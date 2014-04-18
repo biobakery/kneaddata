@@ -10,7 +10,7 @@ import subprocess
 # Global configuration options
 
 # path to Trimmomatic executable
-path_to_trim = "/n/sw/centos6/Trimmomatic-0.30/trimmomatic-0.30.jar"
+path_to_trim = "$TRIMMOMATIC/trimmomatic-0.30.jar"
 
 def trim(infile, trimlen=60, prefix=None):
     '''
@@ -32,7 +32,7 @@ def trim(infile, trimlen=60, prefix=None):
     '''
 
     # check that we have the right number of input fastqs
-    assert(len(infile) < 2 and len(infile) > 1)
+    assert(len(infile) <= 2 and len(infile) >= 1)
 
     if not prefix:
         prefix = infile[0]
@@ -50,7 +50,9 @@ def trim(infile, trimlen=60, prefix=None):
                 " &> " + prefix + ".log")
 
     print("Trimmomatic arguments: " + trim_arg)
-    subprocess.call(["java", "-Xx8g" + trim_arg])
+    #print(cmd)
+    subprocess.call(['java ', '-Xmx8g ', '-jar ', trim_arg], shell=True)
+    #print(p1)
 
 
 def tag():
@@ -65,12 +67,12 @@ def main():
     # parse command line arguments
     parser = argparse.ArgumentParser()
     parser.add_argument("infile1", help="input FASTQ file")
-    parser.add_argument("-2 --infile2", help="input FASTQ file mate")
+    parser.add_argument("-2", "--infile2", help="input FASTQ file mate")
     parser.add_argument("--trimlen", help="length to trim reads", default=60)
 
     args = parser.parse_args()
 
-    files = [args.infile]
+    files = [args.infile1]
     if args.infile2:
         files.append(args.infile2)
 
