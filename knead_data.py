@@ -6,11 +6,13 @@ Pipeline for processing metagenomics sequencing data
 '''
 import argparse
 import subprocess
+import shlex
 
 # Global configuration options
 
 # path to Trimmomatic executable
-path_to_trim = "$TRIMMOMATIC/trimmomatic-0.30.jar"
+#path_to_trim = "$TRIMMOMATIC/trimmomatic-0.30.jar"
+path_to_trim = "/home/andy/bin/Trimmomatic-0.32/trimmomatic-0.32.jar"
 
 def trim(infile, trimlen=60, prefix=None):
     '''
@@ -46,12 +48,22 @@ def trim(infile, trimlen=60, prefix=None):
         trim_arg = str(path_to_trim + " PE -phred33 " + infile[0] + " " +
                 infile[1] + " " + prefix + ".trimmed.1.fastq " + prefix +
                 ".trimmed.single.1.fastq " + prefix + ".trimmed.2.fastq " +
-                prefix + ".trimmed.single.2.fastq " + "MINLEN:" + str(trimlen) +
-                " &> " + prefix + ".log")
+                prefix + ".trimmed.single.2.fastq " + "MINLEN:" + str(trimlen))
+        #trim_arg = str(path_to_trim + " PE -phred33 " + infile[0] + " " +
+        #        infile[1] + " " + prefix + ".trimmed.1.fastq " + prefix +
+        #        ".trimmed.single.1.fastq " + prefix + ".trimmed.2.fastq " +
+        #        prefix + ".trimmed.single.2.fastq " + "MINLEN:" + str(trimlen) +
+        #        " &> " + prefix + ".log")
 
     print("Trimmomatic arguments: " + trim_arg)
-    #print(cmd)
-    subprocess.call(['java ', '-Xmx8g ', '-jar ', trim_arg], shell=True)
+    cmd = 'java -Xmx500m -jar ' + trim_arg
+    print(cmd)
+    #subprocess.call(['java ', '-Xmx8g ', '-jar ', trim_arg], shell=True)
+    args = shlex.split(cmd)
+    print(args)
+    subprocess.call(args)
+    #subprocess.call([cmd], shell=True)
+    #subprocess.Popen([cmd], shell=False)
     #print(p1)
 
 
