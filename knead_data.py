@@ -15,7 +15,9 @@ path_to_trim = "/n/sw/centos6/Trimmomatic-0.30/trimmomatic-0.30.jar"
 def trim(infile, trimlen=60, prefix=None):
     '''
     input: 
-        infile:     input fastq file
+        infile:     input fastq file list (either length 1 or length 2)
+                    length 1: single end
+                    length 2: paired end
     optional input: 
         trimlen:    length to trim
         prefix:     output prefix
@@ -28,15 +30,28 @@ def trim(infile, trimlen=60, prefix=None):
         that lost their partner from the first file
     Uses trimmomatic to trim reads to [arg] base pairs long
     '''
+
+    # check that we have the right number of input fastqs
+    assert(len(infile) < 2 and len(infile) > 1)
+
     if not prefix:
         prefix = infile[0]
         
-    cmd = str("java -Xmx8g " + path_to_trim + " PE -phred33 " + infile[0] + 
-            " " + infile[1] + " " + prefix + ".trimmed.1.fastq " + prefix + 
-            ".trimmed.single.1.fastq " + prefix + ".trimmed.2.fastq " + 
-            prefix + ".trimmed.single.2.fastq " + "MINLEN:" + str(trimlen) + 
-            " &> " + prefix + ".log")
-    print(cmd)
+    trim_arg = ""
+    if len(infile) == 1:
+        trim_arg = str(path_to_trim + " SE -phred33 " + infile[0] + " " + prefix
+                + ".trimmed.fastq " + "MINLEN:" + str(trimlen) + " &> " + prefix
+                + ".log")
+    else:
+        trim_arg = str(path_to_trim + " PE -phred33 " + infile[0] + " " +
+                infile[1] + " " + prefix + ".trimmed.1.fastq " + prefix +
+                ".trimmed.single.1.fastq " + prefix + ".trimmed.2.fastq " +
+                prefix + ".trimmed.single.2.fastq " + "MINLEN:" + str(trimlen) +
+                " &> " + prefix + ".log")
+
+    print("Trimmomatic arguments: " + trim_arg)
+    subprocess.call(["java", "-Xx8g" + trim_arg])
+
 
 def tag():
     '''
@@ -49,17 +64,17 @@ def tag():
 def main():
     # parse command line arguments
     parser = argparse.ArgumentParser()
-    parser.add_argument("infile", help="input FASTQ file")
-    parser.add_argument("--infile2", help="input FASTQ file mate")
+    parser.add_argument("infile1", help="input FASTQ file")
+    parser.add_argument("-2 --infile2", help="input FASTQ file mate")
     parser.add_argument("--trimlen", help="length to trim reads", default=60)
 
     args = parser.parse_args()
-    print(args.trimlen)
 
     files = [args.infile]
     if args.infile2:
         files.append(args.infile2)
 
+    print("Running Trimmomatic...")
     trim(files, args.trimlen)
     tag()
 
