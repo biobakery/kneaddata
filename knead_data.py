@@ -11,8 +11,8 @@ import shlex
 # Global configuration options
 
 # path to Trimmomatic executable
-#path_to_trim = "$TRIMMOMATIC/trimmomatic-0.30.jar"
-path_to_trim = "/home/andy/bin/Trimmomatic-0.32/trimmomatic-0.32.jar"
+path_to_trim = "/n/sw/centos6/Trimmomatic-0.32/trimmomatic-0.32.jar"
+#path_to_trim = "/home/andy/bin/Trimmomatic-0.32/trimmomatic-0.32.jar"
 
 def trim(infile, trimlen=60, prefix=None):
     '''
@@ -62,10 +62,6 @@ def trim(infile, trimlen=60, prefix=None):
     args = shlex.split(cmd)
     print(args)
     subprocess.call(args)
-    #subprocess.call([cmd], shell=True)
-    #subprocess.Popen([cmd], shell=False)
-    #print(p1)
-
 
 def tag():
     '''
