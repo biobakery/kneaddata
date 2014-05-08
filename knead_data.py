@@ -1,5 +1,5 @@
 '''
-pipeline.py
+kneaddata.py
 Author: Andy Shi
 
 Pipeline for processing metagenomics sequencing data
@@ -7,14 +7,10 @@ Pipeline for processing metagenomics sequencing data
 import argparse
 import subprocess
 import shlex
+import os
+import sys
 
-# Global configuration options
-
-# path to Trimmomatic executable
-path_to_trim = "/n/sw/centos6/Trimmomatic-0.32/trimmomatic-0.32.jar"
-#path_to_trim = "/home/andy/bin/Trimmomatic-0.32/trimmomatic-0.32.jar"
-
-def trim(infile, trimlen=60, prefix=None):
+def trim(infile, trimlen, trim_path, single_end, prefix):
     '''
     input: 
         infile:     input fastq file list (either length 1 or length 2)
@@ -22,71 +18,166 @@ def trim(infile, trimlen=60, prefix=None):
                     length 2: paired end
     optional input: 
         trimlen:    length to trim
-        prefix:     output prefix
+        prefix:     prefix for outputs
     output: At most 5 files
         (1) prefix.trimmed.1.fastq: trimmed first pair-end file
         (2) prefix.trimmed.2.fastq: trimmed second pair-end file
         (3) prefix.trimmed.single.1.fastq: trimmed sequences from the first file
         that lost their partner from the second file
-        (4) prefix.trimmed.single.2.fastq: trimmed sequences from the second file
-        that lost their partner from the first file
+        (4) prefix.trimmed.single.2.fastq: trimmed sequences from the second
+        file that lost their partner from the first file
+        (5) prefix.log: log file with stdout output from Trimmomatic
     Uses trimmomatic to trim reads to [arg] base pairs long
     '''
 
     # check that we have the right number of input fastqs
-    assert(len(infile) <= 2 and len(infile) >= 1)
+    assert(len(infile) == 2 or len(infile) == 1)
 
-    if not prefix:
-        prefix = infile[0]
-        
     trim_arg = ""
-    if len(infile) == 1:
-        trim_arg = str(path_to_trim + " SE -phred33 " + infile[0] + " " + prefix
+    if single_end:
+        trim_arg = str(trim_path + " SE -phred33 " + infile[0] + " " + prefix
                 + ".trimmed.fastq " + "MINLEN:" + str(trimlen) + " &> " + prefix
                 + ".log")
     else:
-        trim_arg = str(path_to_trim + " PE -phred33 " + infile[0] + " " +
+        trim_arg = str(trim_path + " PE -phred33 " + infile[0] + " " +
                 infile[1] + " " + prefix + ".trimmed.1.fastq " + prefix +
                 ".trimmed.single.1.fastq " + prefix + ".trimmed.2.fastq " +
                 prefix + ".trimmed.single.2.fastq " + "MINLEN:" + str(trimlen))
-        #trim_arg = str(path_to_trim + " PE -phred33 " + infile[0] + " " +
-        #        infile[1] + " " + prefix + ".trimmed.1.fastq " + prefix +
-        #        ".trimmed.single.1.fastq " + prefix + ".trimmed.2.fastq " +
-        #        prefix + ".trimmed.single.2.fastq " + "MINLEN:" + str(trimlen) +
-        #        " &> " + prefix + ".log")
 
-    print("Trimmomatic arguments: " + trim_arg)
-    cmd = 'java -Xmx500m -jar ' + trim_arg
-    print(cmd)
-    #subprocess.call(['java ', '-Xmx8g ', '-jar ', trim_arg], shell=True)
-    args = shlex.split(cmd)
-    print(args)
-    subprocess.call(args)
+    cmd = "java -Xmx500m -jar " + trim_arg
+    print("Trimmomatic command that will be run: " + cmd)
+    call = shlex.split(cmd)
+    subprocess.call(call)
 
-def tag():
+
+def tag(infile, db_prefix, bmtagger_path, single_end, prefix):
     '''
     input:
+        infile: a list of length 1 or 2 (for single and paired ends,
+        respectively) 
     output:
     Uses BMTagger to tag and potentially remove unwanted reads
     '''
-    pass
+    # check inputs
+    db_len = len(db_prefix)
+    assert (db_len > 0)
+
+    bmt_args = ["" for i in xrange(db_len)]
+    # build arguments
+    for i in xrange(db_len):
+        db = db_prefix[i]
+        if single_end:
+            bmt_args[i] = str(bmtagger_path + " -q 1 -1 " + infile[0] + 
+                    " -b " + db + " .bitmask -x " + db + " .srprism -T ./ " 
+                    + prefix + ".temp -o " + prefix + ".out") 
+        else:
+            bmt_args[i] = str(bmtagger_path + " -q 1 -1 " + infile[0] + 
+                    " -2 " + infile[1] + " -b " + db + " .bitmask -x " + db + 
+                    " .srprism -T ./ " + prefix + ".temp -o " + prefix + ".out")
+    
+    for arg in bmt_args:
+        # Run all the BMTagger instances 
+        print("BMTagger command to be run: " + arg)
+        call = shlex.split(arg)
+        print(call)
+        #subprocess.call(call)
+
+
 
 def main():
     # parse command line arguments
+    # note: argparse converts dashes '-' in arguement prefixes to underscores
+    # '_' 
     parser = argparse.ArgumentParser()
-    parser.add_argument("infile1", help="input FASTQ file")
+    parser.add_argument("-1", "--infile1", help="input FASTQ file", required =
+            True)
     parser.add_argument("-2", "--infile2", help="input FASTQ file mate")
-    parser.add_argument("--trimlen", help="length to trim reads", default=60)
+    parser.add_argument("--trimlen", type=int, help="length to trim reads",
+            default=60)
+    parser.add_argument("-o", "--output-prefix", 
+            help="prefix for all output files")
+    parser.add_argument("-db", "--reference-db", nargs = "+", 
+            help="prefix for reference databases used in BMTagger")
+    parser.add_argument("-t", "--trim-path", help="path to Trimmomatic",
+            required = True)
+    parser.add_argument("-b", "--bmtagger-path", help="path to BMTagger",
+            required = True)
+    parser.add_argument("-S", "--slurm", help="Running in a slurm environment",
+            action = "store_true")
 
     args = parser.parse_args()
 
+    # check inputs
+    # deal with missing prefix
+    if not args.output_prefix:
+        args.output_prefix = args.infile1
+
+    # check for the existence of required files/paths
+    paths = [args.infile1, args.infile2, args.trim_path, args.bmtagger_path]
+    for path in paths:
+        if path != None and not os.path.exists(path):
+            print("Could not find file " + str(path))
+            print("Aborting...")
+            sys.exit(2)
+    for db in args.reference_db:
+        if not os.path.exists(db):
+            print("Could not find BMTagger database " + db)
+            print("Aborting...")
+            sys.exit(2)
+
+    # determine single-ended or pair ends
+    b_single_end = True
     files = [args.infile1]
     if args.infile2:
         files.append(args.infile2)
+        b_single_end = False
 
     print("Running Trimmomatic...")
-    trim(files, args.trimlen)
-    tag()
+
+    trim(files, trimlen = args.trimlen, trim_path = args.trim_path, single_end =
+            b_single_end, prefix = args.output_prefix)
+    
+    print("Finished running Trimmomatic. Checking output files exist... ")
+
+    # check that Trimmomatic's output files exist
+    outputs = []
+    if b_single_end:
+        outputs.append(str(args.output_prefix + "trimmed.fastq"))
+        if not os.path.exists(outputs[0]):
+            print("Could not find file " + output)
+            print("Trimmomatic failed. Exiting...")
+            sys.exit(1)
+    else:
+        outputs = [args.output_prefix + ".trimmed." for i in xrange(4)]
+        outputs[0] = outputs[0] + "1.fastq"
+        outputs[1] = outputs[1] + "2.fastq"
+        outputs[2] = outputs[2] + "single.1.fastq"
+        outputs[3] = outputs[3] + "single.2.fastq"
+        for output in outputs:
+            if not os.path.exists(output):
+                print("Could not find file " + output)
+                print("Trimmomatic failed. Exiting...")
+                sys.exit(1)
+
+    print("Everything checks out!")
+    print("Running BMTagger...")
+
+    if b_single_end:
+        tag(infile = outputs[0], db_prefix = args.reference_db, bmtagger_path =
+                args.bmtagger_path, single_end = True, prefix =
+                args.output_prefix)
+    else:
+        tag(infile = outputs[0:2], db_prefix = args.reference_db, bmtagger_path
+                = args.bmtagger_path, single_end = False, prefix =
+                args.output_prefix + "pe")
+        tag(infile = outputs[2], db_prefix = args.reference_db, bmtagger_path
+                = args.bmtagger_path, single_end = True, prefix =
+                args.output_prefix + "se1")
+        tag(infile = outputs[3], db_prefix = args.reference_db, bmtagger_path
+                = args.bmtagger_path, single_end = True, prefix =
+                args.output_prefix + "se2")
+
+    print("Finished running BMTagger.")
 
 if __name__ == '__main__':
     main()
