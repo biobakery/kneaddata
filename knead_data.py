@@ -48,6 +48,7 @@ def trim(infile, trimlen, trim_path, single_end, prefix):
     print("Trimmomatic command that will be run: " + cmd)
     call = shlex.split(cmd)
     subprocess.call(call)
+    return 0
 
 
 def tag(infile, db_prefix, bmtagger_path, single_end, prefix):
@@ -68,21 +69,38 @@ def tag(infile, db_prefix, bmtagger_path, single_end, prefix):
         db = db_prefix[i]
         if single_end:
             bmt_args[i] = str(bmtagger_path + " -q 1 -1 " + infile[0] + 
-                    " -b " + db + " .bitmask -x " + db + " .srprism -T ./ " 
-                    + prefix + ".temp -o " + prefix + ".out") 
+                    " -b " + db + ".bitmask -x " + db + 
+                    ".srprism -T ./temp_dir -o " + prefix + ".out") 
         else:
             bmt_args[i] = str(bmtagger_path + " -q 1 -1 " + infile[0] + 
-                    " -2 " + infile[1] + " -b " + db + " .bitmask -x " + db + 
-                    " .srprism -T ./ " + prefix + ".temp -o " + prefix + ".out")
+                    " -2 " + infile[1] + " -b " + db + ".bitmask -x " + db + 
+                    ".srprism -T ./temp_dir -o " + prefix + ".out")
     
     for arg in bmt_args:
         # Run all the BMTagger instances 
         print("BMTagger command to be run: " + arg)
         call = shlex.split(arg)
         print(call)
-        #subprocess.call(call)
+        subprocess.call(call)
+    return 0
 
 
+def checkfile(fname):
+    '''
+    input:
+        fname: the file name. A string.
+    output:
+        1: the file exists
+        0: the file does not exist
+        -1: the file exists but is an empty file (size = 0 bytes)
+    '''
+    try:
+        if os.stat(fname).st_size > 0:
+            return 1
+        else:
+            return -1
+    except OSError:
+        return 0
 
 def main():
     # parse command line arguments
@@ -141,41 +159,50 @@ def main():
 
     # check that Trimmomatic's output files exist
     outputs = []
+    bmt_inputs = []
     if b_single_end:
         outputs.append(str(args.output_prefix + "trimmed.fastq"))
         if not os.path.exists(outputs[0]):
             print("Could not find file " + output)
             print("Trimmomatic failed. Exiting...")
             sys.exit(1)
+        bmt_inputs = [outputs]
     else:
         outputs = [args.output_prefix + ".trimmed." for i in xrange(4)]
         outputs[0] = outputs[0] + "1.fastq"
         outputs[1] = outputs[1] + "2.fastq"
         outputs[2] = outputs[2] + "single.1.fastq"
         outputs[3] = outputs[3] + "single.2.fastq"
-        for output in outputs:
-            if not os.path.exists(output):
-                print("Could not find file " + output)
+        checks = map(checkfile, outputs)
+        for i in xrange(4):
+            if checks[i] == 0:
+                print("Could not find file " + output[i])
                 print("Trimmomatic failed. Exiting...")
-                sys.exit(1)
 
-    print("Everything checks out!")
-    print("Running BMTagger...")
+        if checks[0] == 1 and checks[1] == 1:
+            bmt_inputs.append([outputs[0], outputs[1]])
+        elif checks[0] == 1:
+            bmt_inputs.append([outputs[0]])
+        elif checks[1] == 1:
+            bmt_inputs.append([outputs[1]])
+        for i in [2,3]:
+            if checks[i] == 1:
+                bmt_inputs.append([outputs[i]])
 
     if b_single_end:
-        tag(infile = outputs[0], db_prefix = args.reference_db, bmtagger_path =
+        tag(infile = bmt_inputs, db_prefix = args.reference_db, bmtagger_path =
                 args.bmtagger_path, single_end = True, prefix =
                 args.output_prefix)
     else:
-        tag(infile = outputs[0:2], db_prefix = args.reference_db, bmtagger_path
-                = args.bmtagger_path, single_end = False, prefix =
-                args.output_prefix + "pe")
-        tag(infile = outputs[2], db_prefix = args.reference_db, bmtagger_path
-                = args.bmtagger_path, single_end = True, prefix =
-                args.output_prefix + "se1")
-        tag(infile = outputs[3], db_prefix = args.reference_db, bmtagger_path
-                = args.bmtagger_path, single_end = True, prefix =
-                args.output_prefix + "se2")
+        for input in bmt_inputs:
+            if len(input) == 2:
+                tag(infile = input, db_prefix = args.reference_db, bmtagger_path
+                    = args.bmtagger_path, single_end = False, prefix =
+                    args.output_prefix + "_pe")
+            else:
+                tag(infile = input, db_prefix = args.reference_db,
+                    bmtagger_path = args.bmtagger_path, single_end = True,
+                    prefix = args.output_prefix + "_se_" + input)
 
     print("Finished running BMTagger.")
 
