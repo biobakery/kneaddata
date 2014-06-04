@@ -1,0 +1,10 @@
+
+
+Building a new DB, current time: 06/04/2014 00:03:49
+New DB name:   Homo_sapiens_assembly19.fasta
+New DB title:  Homo_sapiens_assembly19.fasta
+Sequence type: Nucleotide
+Deleted existing BLAST database with identical name.
+Keep Linkouts: T
+Keep MBits: T
+Maximum file size: 1000000000B

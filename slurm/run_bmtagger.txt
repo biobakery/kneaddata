@@ -1,0 +1,27 @@
+#!/bin/bash 
+
+#SBATCH -n 1 #Number of cores 
+
+#SBATCH -t 60 #Runtime in minutes 
+
+#SBATCH -p serial_requeue #Partition to submit to 
+
+#SBATCH --mem-per-cpu=10240 #Memory per cpu in MB (see also --mem)
+# BMTagger assumes you have at least 9 Gb of RAM
+
+#SBATCH -J run-bmtagger
+
+#SBATCH --error=run-bmtagger.out
+
+#SBATCH --mail-user=andyshi@college.harvard.edu
+
+#SBATCH --mail-type=BEGIN
+
+#SBATCH --mail-type=END
+
+module load centos6/ncbi-blast-2.2.29+
+
+cd ~/testfiles
+#bmtagger.sh -b /n/huttenhower_lab_nobackup/kneadData/databases/humanGenome/Homo_sapiens_assembly19.bitmask -x /n/huttenhower_lab_nobackup/kneadData/databases/humanGenome/Homo_sapiens_assembly19.sprism -T . -q 1 -1 G35124_short.trimmo.60.1.fastq -2 G35124_short.trimmo.60.2.fastq -o G35124_short_pairedtagged.out
+#bmtagger.sh -b /n/huttenhower_lab_nobackup/kneadData/dna.fna.bitmask -x /n/huttenhower_lab_nobackup/kneadData/dna.fna.sprism -T . -q 1 -1 G35124_short.trimmo.60.1.fastq -2 G35124_short.trimmo.60.2.fastq -o G35124_short_pairedtagged.out
+.~/kneadData/bin/bmtagger.sh G35124_short_tag ~/kneadData/dna.fna 

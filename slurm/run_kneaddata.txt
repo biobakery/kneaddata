@@ -1,0 +1,27 @@
+#!/bin/bash 
+
+#SBATCH -n 1 #Number of cores 
+
+#SBATCH -t 60 #Runtime in minutes 
+
+#SBATCH -p serial_requeue #Partition to submit to 
+
+#SBATCH --mem-per-cpu=10000 #Memory per cpu in MB (see also --mem)
+# BMTagger assumes you have at least 9 Gb of RAM
+
+#SBATCH -J run-kneaddata
+
+#SBATCH --error=run-kneaddata.out
+
+#SBATCH --mail-user=andyshi@college.harvard.edu
+
+#SBATCH --mail-type=BEGIN
+
+#SBATCH --mail-type=END
+
+module load centos6/ncbi-blast-2.2.29+
+module load centos6/Trimmomatic-0.32
+
+cd ~/testfiles
+
+time python ~/kneadData/kneaddata/knead_data.py -1 G35124_short.1.fastq -2 G35124_short.2.fastq -o test1 -db ~/kneadData/databases/humanGenome/Homo_sapiens_assembly19.fasta -t /n/sw/centos6/Trimmomatic-0.32/trimmomatic-0.32.jar -b ~/bin/bmtagger.sh

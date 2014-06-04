@@ -1,0 +1,6 @@
+Loading module centos6/ncbi-blast-2.2.29+.
+BLAST Database error: No alias or index file found for nucleotide database [Homo_sapiens_assembly19.fasta] in search path [/net/rcnfs11/srv/export/huttenhower_lab_nobackup/share_root/data/kneadData/databases/humanGenome:/net/rcstore/ifs/rc_labs/bluarc/mol/seq/blastdb:]
+
+real	0m1.639s
+user	0m0.022s
+sys	0m0.025s

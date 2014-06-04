@@ -1,0 +1,28 @@
+#!/bin/bash 
+
+#SBATCH -n 1 #Number of cores 
+
+#SBATCH -t 60 #Runtime in minutes 
+
+#SBATCH -p serial_requeue #Partition to submit to 
+
+#SBATCH --mem-per-cpu=10000 #Memory per cpu in MB (see also --mem)
+# BMTagger assumes you have at least 8.5 Gb of RAM
+
+#SBATCH -J srprism
+#SBATCH --error=srprism.out
+
+#SBATCH --mail-user=andyshi@college.harvard.edu
+
+#SBATCH --mail-type=BEGIN
+
+#SBATCH --mail-type=END
+
+#cd /n/huttenhower_lab_nobackup/data/kneadData/databases/humanGenome
+
+#time srprism mkindex -i Homo_sapiens_assembly19.fasta -o Homo_sapiens_assembly19.srprism -M 7168
+
+#cd /n/huttenhower_lab_nobackup/data/kneadData/databases/humanTranscriptome
+#time srprism mkindex -i rna.fna -o rna.fna.srprism -M 7168
+cd /n/huttenhower_lab_nobackup/data/kneadData/databases/humanGenome
+time srprism mkindex -i Homo_sapiens_assembly19.fasta -o Homo_sapiens_assembly19.fasta.srprism -M 7168
