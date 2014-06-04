@@ -1,6 +1,28 @@
 Loading module centos6/ncbi-blast-2.2.29+.
-BLAST Database error: No alias or index file found for nucleotide database [Homo_sapiens_assembly19.fasta] in search path [/net/rcnfs11/srv/export/huttenhower_lab_nobackup/share_root/data/kneadData/databases/humanGenome:/net/rcstore/ifs/rc_labs/bluarc/mol/seq/blastdb:]
+Error: (1431.1) FASTA-Reader: Warning: FASTA-Reader: First data line in seq is about 100% ambiguous nucleotides (shouldn't be over 40%)
+Error: (1431.1) FASTA-Reader: Warning: FASTA-Reader: First data line in seq is about 100% ambiguous nucleotides (shouldn't be over 40%)
+Error: (1431.1) FASTA-Reader: Warning: FASTA-Reader: First data line in seq is about 100% ambiguous nucleotides (shouldn't be over 40%)
+Error: (1431.1) FASTA-Reader: Warning: FASTA-Reader: First data line in seq is about 100% ambiguous nucleotides (shouldn't be over 40%)
+Error: (1431.1) FASTA-Reader: Warning: FASTA-Reader: First data line in seq is about 100% ambiguous nucleotides (shouldn't be over 40%)
+Error: (1431.1) FASTA-Reader: Warning: FASTA-Reader: First data line in seq is about 100% ambiguous nucleotides (shouldn't be over 40%)
+Error: (1431.1) FASTA-Reader: Warning: FASTA-Reader: First data line in seq is about 100% ambiguous nucleotides (shouldn't be over 40%)
+Error: (1431.1) FASTA-Reader: Warning: FASTA-Reader: First data line in seq is about 100% ambiguous nucleotides (shouldn't be over 40%)
+Error: (1431.1) FASTA-Reader: Warning: FASTA-Reader: First data line in seq is about 100% ambiguous nucleotides (shouldn't be over 40%)
+Error: (1431.1) FASTA-Reader: Warning: FASTA-Reader: First data line in seq is about 100% ambiguous nucleotides (shouldn't be over 40%)
+Error: (1431.1) FASTA-Reader: Warning: FASTA-Reader: First data line in seq is about 100% ambiguous nucleotides (shouldn't be over 40%)
+Error: (1431.1) FASTA-Reader: Warning: FASTA-Reader: First data line in seq is about 100% ambiguous nucleotides (shouldn't be over 40%)
+Error: (1431.1) FASTA-Reader: Warning: FASTA-Reader: First data line in seq is about 100% ambiguous nucleotides (shouldn't be over 40%)
+Error: (1431.1) FASTA-Reader: Warning: FASTA-Reader: First data line in seq is about 100% ambiguous nucleotides (shouldn't be over 40%)
+Error: (1431.1) FASTA-Reader: Warning: FASTA-Reader: First data line in seq is about 100% ambiguous nucleotides (shouldn't be over 40%)
+Error: (1431.1) FASTA-Reader: Warning: FASTA-Reader: First data line in seq is about 100% ambiguous nucleotides (shouldn't be over 40%)
+Error: (1431.1) FASTA-Reader: Warning: FASTA-Reader: First data line in seq is about 100% ambiguous nucleotides (shouldn't be over 40%)
+Error: (1431.1) FASTA-Reader: Warning: FASTA-Reader: First data line in seq is about 100% ambiguous nucleotides (shouldn't be over 40%)
+Error: (1431.1) FASTA-Reader: Warning: FASTA-Reader: First data line in seq is about 100% ambiguous nucleotides (shouldn't be over 40%)
+Error: (1431.1) FASTA-Reader: Warning: FASTA-Reader: First data line in seq is about 100% ambiguous nucleotides (shouldn't be over 40%)
+Error: (1431.1) FASTA-Reader: Warning: FASTA-Reader: First data line in seq is about 100% ambiguous nucleotides (shouldn't be over 40%)
+Error: (1431.1) FASTA-Reader: Warning: FASTA-Reader: First data line in seq is about 100% ambiguous nucleotides (shouldn't be over 40%)
+Error: (1431.1) FASTA-Reader: Warning: FASTA-Reader: First data line in seq is about 100% ambiguous nucleotides (shouldn't be over 40%)
 
-real	0m1.639s
-user	0m0.022s
-sys	0m0.025s
+real	3m18.451s
+user	3m7.658s
+sys	0m8.089s

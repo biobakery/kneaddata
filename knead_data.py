@@ -158,6 +158,8 @@ def main():
     print("Finished running Trimmomatic. Checking output files exist... ")
 
     # check that Trimmomatic's output files exist
+
+    # TODO: Take better care to make the temporary directory for BMTagger files
     outputs = []
     bmt_inputs = []
     if b_single_end:

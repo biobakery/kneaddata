@@ -19,7 +19,7 @@
 
 module load centos6/ncbi-blast-2.2.29+
 
-cd /n/huttenhower_lab_nobackup/data/kneadData/databases/humanGenome
+cd ~/kneadData/databases/humanGenome
 
 #time makeblastdb -in Homo_sapiens_assembly19.fasta -input_type blastdb -dbtype nucl -parse_seqids -mask_data Homo_sapiens_assembly19_dust.asnb -out Homo_sapiens_assembly19
-time makeblastdb -in Homo_sapiens_assembly19.fasta -input_type blastdb -dbtype nucl -out Homo_sapiens_assembly19.fasta
+time makeblastdb -in Homo_sapiens_assembly19.fasta -dbtype nucl -out Homo_sapiens_assembly19.fasta
