@@ -56,22 +56,24 @@ def trim(infile, trimlen, trim_path, single_end, prefix, mem):
     return 0
 
 
-def tag(infile, db_prefix, bmtagger_path, single_end, prefix, remove):
+def tag(infile, db_prefix, bmtagger_path, single_end, prefix, remove, temp_dir):
     '''
     input:
-        infile: a list of length 1 or 2 (for single and paired ends,
-        respectively) 
-        db_prefix: prefix of the BMTagger databases. BMTagger needs databases of
-        the format [db_prefix].srprism.* and [db_prefix].[blastdb file
-        extensions]
-        bmtagger_path: path to the bmtagger.sh executable
-        single_end: True/False, single end or paired ends
-        prefix: prefix for output files
-        remove: True/False, remove the reads from the input files (make a copy
-        first) or not. 
+        infile:         a list of length 1 or 2 (for single and paired ends,
+                        respectively) 
+        db_prefix:      prefix of the BMTagger databases. BMTagger needs 
+                        databases of the format [db_prefix].srprism.* and 
+                        [db_prefix].[blastdb file extensions]
+        bmtagger_path:  path to the bmtagger.sh executable
+        single_end:     True/False, single end or paired ends
+        prefix:         prefix for output files
+        remove:         True/False, remove the reads from the input files 
+                        (make a copy first) or not. 
+        temp_dir:       Directory to put BMTagger's temporary files
+
     output:
-        prefix.out: a list of the contaminant reads
-        prefix_depleted.fastq: the input fastq with the unwanted reads removed
+        prefix.out:             a list of the contaminant reads
+        prefix_depleted.fastq:  the input fastq with the unwanted reads removed
     Summary: Uses BMTagger to tag and potentially remove unwanted reads
     '''
     # check inputs
@@ -83,13 +85,13 @@ def tag(infile, db_prefix, bmtagger_path, single_end, prefix, remove):
     for i in xrange(db_len):
         db = db_prefix[i]
         if single_end:
-            bmt_args[i] = str(bmtagger_path + " -q 1 -1 " + infile[0] + 
-                    " -b " + db + ".bitmask -x " + db + 
-                    ".srprism -T ./temp -o " + prefix) 
+            bmt_args[i] = str(bmtagger_path + " -q 1 -1 " + infile[0] + " -b " +
+                    db + ".bitmask -x " + db + ".srprism -T " + temp_dir + 
+                    " -o " + prefix) 
         else:
             bmt_args[i] = str(bmtagger_path + " -q 1 -1 " + infile[0] + 
                     " -2 " + infile[1] + " -b " + db + ".bitmask -x " + db + 
-                    ".srprism -T ./temp -o " + prefix)
+                    ".srprism -T " + temp_dir + " -o " + prefix)
         if remove:
             # remove the contaminant reads
             bmt_args[i] = bmt_args[i] + " --extract"
@@ -191,14 +193,6 @@ def main():
     
     print("Finished running Trimmomatic. Checking output files exist... ")
 
-    # make temporary directory for BMTagger files
-    tempdir = args.output_prefix + "_temp"
-    if not os.path.exists(tempdir):
-        os.makedirs(tempdir)
-        # Potential race condition: If the directory is created between the
-        # os.path.exists call and the os.makedirs call, the os.makedirs call
-        # will return an error.
-
     # check that Trimmomatic's output files exist
     outputs = []
     bmt_inputs = []
@@ -232,6 +226,15 @@ def main():
             if checks[i] == 1:
                 bmt_inputs.append([outputs[i]])
 
+    # make temporary directory for BMTagger files
+    tempdir = args.output_prefix + "_temp"
+    if not os.path.exists(tempdir):
+        os.makedirs(tempdir)
+        # Potential race condition: If the directory is created between the
+        # os.path.exists call and the os.makedirs call, the os.makedirs call
+        # will return an error.
+
+
     if b_single_end:
         tag(infile = bmt_inputs, db_prefix = args.reference_db, bmtagger_path =
                 args.bmtagger_path, single_end = True, prefix =
@@ -241,12 +244,13 @@ def main():
             if len(inp) == 2:
                 tag(infile = inp, db_prefix = args.reference_db, bmtagger_path
                     = args.bmtagger_path, single_end = False, prefix =
-                    args.output_prefix + "_pe", remove = args.extract)
+                    args.output_prefix + "_pe", remove = args.extract, temp_dir
+                    = tempdir)
             else:
                 tag(infile = inp, db_prefix = args.reference_db,
                     bmtagger_path = args.bmtagger_path, single_end = True,
                     prefix = args.output_prefix + "_se_" + inp[0], remove =
-                    args.extract)
+                    args.extract, temp_dir = tempdir)
 
     # TODO: Remove temporary files
     print("Removing temporary files...")
