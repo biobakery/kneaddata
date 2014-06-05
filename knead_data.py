@@ -9,6 +9,7 @@ import subprocess
 import shlex
 import os
 import sys
+import shutil
 
 def trim(infile, trimlen, trim_path, single_end, prefix):
     '''
@@ -51,13 +52,23 @@ def trim(infile, trimlen, trim_path, single_end, prefix):
     return 0
 
 
-def tag(infile, db_prefix, bmtagger_path, single_end, prefix):
+def tag(infile, db_prefix, bmtagger_path, single_end, prefix, remove):
     '''
     input:
         infile: a list of length 1 or 2 (for single and paired ends,
         respectively) 
+        db_prefix: prefix of the BMTagger databases. BMTagger needs databases of
+        the format [db_prefix].srprism.* and [db_prefix].[blastdb file
+        extensions]
+        bmtagger_path: path to the bmtagger.sh executable
+        single_end: True/False, single end or paired ends
+        prefix: prefix for output files
+        remove: True/False, remove the reads from the input files (make a copy
+        first) or not. 
     output:
-    Uses BMTagger to tag and potentially remove unwanted reads
+        prefix.out: a list of the contaminant reads
+        prefix_depleted.fastq: the input fastq with the unwanted reads removed
+    Summary: Uses BMTagger to tag and potentially remove unwanted reads
     '''
     # check inputs
     db_len = len(db_prefix)
@@ -75,6 +86,9 @@ def tag(infile, db_prefix, bmtagger_path, single_end, prefix):
             bmt_args[i] = str(bmtagger_path + " -q 1 -1 " + infile[0] + 
                     " -2 " + infile[1] + " -b " + db + ".bitmask -x " + db + 
                     ".srprism -T ./temp_dir -o " + prefix + ".out")
+        if remove:
+            # remove the contaminant reads
+            bmt_args[i] = bmt_args[i] + " --extract"
     
     for arg in bmt_args:
         # Run all the BMTagger instances 
@@ -93,6 +107,8 @@ def checkfile(fname):
         1: the file exists
         0: the file does not exist
         -1: the file exists but is an empty file (size = 0 bytes)
+    Summary: Helper function to test if a file exists and is nonempty, exists
+    and is empty, or does not exist
     '''
     try:
         if os.stat(fname).st_size > 0:
@@ -120,6 +136,8 @@ def main():
             required = True)
     parser.add_argument("-b", "--bmtagger-path", help="path to BMTagger",
             required = True)
+    parser.add_argument("-x", "--extract", help="Remove contaminant reads",
+            default=False, action="store_true")
     parser.add_argument("-S", "--slurm", help="Running in a slurm environment",
             action = "store_true")
 
@@ -150,6 +168,15 @@ def main():
         files.append(args.infile2)
         b_single_end = False
 
+    # creates a backup of the input fastq if the user wishes to remove
+    # contaminant reads
+    if args.extract:
+        print("Creating a backup of the input fastq")
+        for f in files:
+            shutil.copy(f, str(f + ".bak"))
+        print("Done creating backup")
+
+
     print("Running Trimmomatic...")
 
     trim(files, trimlen = args.trimlen, trim_path = args.trim_path, single_end =
@@ -157,15 +184,20 @@ def main():
     
     print("Finished running Trimmomatic. Checking output files exist... ")
 
-    # check that Trimmomatic's output files exist
+    # make temporary directory for BMTagger files
+    if not os.path.exists("temp"):
+        os.makedirs("temp")
+        # Potential race condition: If the directory is created between the
+        # os.path.exists call and the os.makedirs call, the os.makedirs call
+        # will return an error.
 
-    # TODO: Take better care to make the temporary directory for BMTagger files
+    # check that Trimmomatic's output files exist
     outputs = []
     bmt_inputs = []
     if b_single_end:
         outputs.append(str(args.output_prefix + "trimmed.fastq"))
         if not os.path.exists(outputs[0]):
-            print("Could not find file " + output)
+            print("Could not find file " + output[0])
             print("Trimmomatic failed. Exiting...")
             sys.exit(1)
         bmt_inputs = [outputs]
@@ -194,18 +226,20 @@ def main():
     if b_single_end:
         tag(infile = bmt_inputs, db_prefix = args.reference_db, bmtagger_path =
                 args.bmtagger_path, single_end = True, prefix =
-                args.output_prefix)
+                args.output_prefix, remove = args.extract)
     else:
-        for input in bmt_inputs:
-            if len(input) == 2:
-                tag(infile = input, db_prefix = args.reference_db, bmtagger_path
+        for inp in bmt_inputs:
+            if len(inp) == 2:
+                tag(infile = inp, db_prefix = args.reference_db, bmtagger_path
                     = args.bmtagger_path, single_end = False, prefix =
-                    args.output_prefix + "_pe")
+                    args.output_prefix + "_pe", remove = args.extract)
             else:
-                tag(infile = input, db_prefix = args.reference_db,
+                tag(infile = inp, db_prefix = args.reference_db,
                     bmtagger_path = args.bmtagger_path, single_end = True,
-                    prefix = args.output_prefix + "_se_" + input)
+                    prefix = args.output_prefix + "_se_" + inp[0], remove =
+                    args.extract)
 
+    # TODO: Remove temporary files
     print("Finished running BMTagger.")
 
 if __name__ == '__main__':
