@@ -81,11 +81,11 @@ def tag(infile, db_prefix, bmtagger_path, single_end, prefix, remove):
         if single_end:
             bmt_args[i] = str(bmtagger_path + " -q 1 -1 " + infile[0] + 
                     " -b " + db + ".bitmask -x " + db + 
-                    ".srprism -T ./temp_dir -o " + prefix + ".out") 
+                    ".srprism -T ./temp -o " + prefix + ".out") 
         else:
             bmt_args[i] = str(bmtagger_path + " -q 1 -1 " + infile[0] + 
                     " -2 " + infile[1] + " -b " + db + ".bitmask -x " + db + 
-                    ".srprism -T ./temp_dir -o " + prefix + ".out")
+                    ".srprism -T ./temp -o " + prefix + ".out")
         if remove:
             # remove the contaminant reads
             bmt_args[i] = bmt_args[i] + " --extract"
