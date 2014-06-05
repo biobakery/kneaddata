@@ -11,28 +11,32 @@ import os
 import sys
 import shutil
 
-def trim(infile, trimlen, trim_path, single_end, prefix):
+def trim(infile, trimlen, trim_path, single_end, prefix, mem):
     '''
     input: 
         infile:     input fastq file list (either length 1 or length 2)
                     length 1: single end
                     length 2: paired end
-    optional input: 
         trimlen:    length to trim
+        trim_path:  Path to the Trimmomatic executable
+        single_end: True/False, is it a single_end or paired end input
         prefix:     prefix for outputs
-    output: At most 5 files
+        mem:        string, ie "500m" or "8g", which specifies how much memory
+                    the Java VM is allowed to use
+    output: 4 files
         (1) prefix.trimmed.1.fastq: trimmed first pair-end file
         (2) prefix.trimmed.2.fastq: trimmed second pair-end file
         (3) prefix.trimmed.single.1.fastq: trimmed sequences from the first file
         that lost their partner from the second file
         (4) prefix.trimmed.single.2.fastq: trimmed sequences from the second
         file that lost their partner from the first file
-        (5) prefix.log: log file with stdout output from Trimmomatic
-    Uses trimmomatic to trim reads to [arg] base pairs long
+    Summary: Calls Trimmomatic to trim reads based on quality
     '''
 
     # check that we have the right number of input fastqs
-    assert(len(infile) == 2 or len(infile) == 1)
+    assert((len(infile) == 2 and not single_end) or (single_end and len(infile)
+        == 1))
+
 
     trim_arg = ""
     if single_end:
@@ -45,7 +49,7 @@ def trim(infile, trimlen, trim_path, single_end, prefix):
                 ".trimmed.single.1.fastq " + prefix + ".trimmed.2.fastq " +
                 prefix + ".trimmed.single.2.fastq " + "MINLEN:" + str(trimlen))
 
-    cmd = "java -Xmx500m -jar " + trim_arg
+    cmd = "java -Xmx" + mem + " -jar " + trim_arg
     print("Trimmomatic command that will be run: " + cmd)
     call = shlex.split(cmd)
     subprocess.call(call)
@@ -81,11 +85,11 @@ def tag(infile, db_prefix, bmtagger_path, single_end, prefix, remove):
         if single_end:
             bmt_args[i] = str(bmtagger_path + " -q 1 -1 " + infile[0] + 
                     " -b " + db + ".bitmask -x " + db + 
-                    ".srprism -T ./temp -o " + prefix + ".out") 
+                    ".srprism -T ./temp -o " + prefix) 
         else:
             bmt_args[i] = str(bmtagger_path + " -q 1 -1 " + infile[0] + 
                     " -2 " + infile[1] + " -b " + db + ".bitmask -x " + db + 
-                    ".srprism -T ./temp -o " + prefix + ".out")
+                    ".srprism -T ./temp -o " + prefix)
         if remove:
             # remove the contaminant reads
             bmt_args[i] = bmt_args[i] + " --extract"
@@ -138,6 +142,8 @@ def main():
             required = True)
     parser.add_argument("-x", "--extract", help="Remove contaminant reads",
             default=False, action="store_true")
+    parser.add_argument("-m", "--max-mem", default="500m", 
+            help="Maximum amount of memory that will be used by Trimmomatic, as a string, ie 500m or 8g")
     parser.add_argument("-S", "--slurm", help="Running in a slurm environment",
             action = "store_true")
 
@@ -170,23 +176,25 @@ def main():
 
     # creates a backup of the input fastq if the user wishes to remove
     # contaminant reads
+    '''
     if args.extract:
         print("Creating a backup of the input fastq")
         for f in files:
             shutil.copy(f, str(f + ".bak"))
         print("Done creating backup")
-
+    '''
 
     print("Running Trimmomatic...")
 
     trim(files, trimlen = args.trimlen, trim_path = args.trim_path, single_end =
-            b_single_end, prefix = args.output_prefix)
+            b_single_end, prefix = args.output_prefix, mem = args.max_mem)
     
     print("Finished running Trimmomatic. Checking output files exist... ")
 
     # make temporary directory for BMTagger files
-    if not os.path.exists("temp"):
-        os.makedirs("temp")
+    tempdir = args.output_prefix + "_temp"
+    if not os.path.exists(tempdir):
+        os.makedirs(tempdir)
         # Potential race condition: If the directory is created between the
         # os.path.exists call and the os.makedirs call, the os.makedirs call
         # will return an error.
@@ -210,8 +218,9 @@ def main():
         checks = map(checkfile, outputs)
         for i in xrange(4):
             if checks[i] == 0:
-                print("Could not find file " + output[i])
+                print("Could not find file " + outputs[i])
                 print("Trimmomatic failed. Exiting...")
+                sys.exit(1)
 
         if checks[0] == 1 and checks[1] == 1:
             bmt_inputs.append([outputs[0], outputs[1]])
@@ -240,6 +249,10 @@ def main():
                     args.extract)
 
     # TODO: Remove temporary files
+    print("Removing temporary files...")
+    for output in outputs:
+        os.remove(output)
+    shutil.rmtree(tempdir)
     print("Finished running BMTagger.")
 
 if __name__ == '__main__':

@@ -3,5 +3,6 @@ syntax: glob
 *.swp*
 *.fastq
 *.fasta
+*.bak
 
 syntax: regexp
