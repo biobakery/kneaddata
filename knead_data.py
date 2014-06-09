@@ -126,8 +126,7 @@ def checkfile(fname):
 
 def main():
     # parse command line arguments
-    # note: argparse converts dashes '-' in arguement prefixes to underscores
-    # '_' 
+    # note: argparse converts dashes '-' in argument prefixes to underscores '_' 
     parser = argparse.ArgumentParser()
     parser.add_argument("-1", "--infile1", help="input FASTQ file", required =
             True)
