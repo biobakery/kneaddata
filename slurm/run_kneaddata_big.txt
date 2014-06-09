@@ -22,6 +22,6 @@
 module load centos6/ncbi-blast-2.2.29+
 module load centos6/Trimmomatic-0.32
 
-cd ~/testfiles
+cd ~/kneadData/data/test_data
 
-time python ~/kneadData/kneaddata/knead_data.py -1 aligned-dna_FusoMonoCultureT0.1.fastq -2 aligned-dna_FusoMonoCultureT0.2.fastq -o aligned-dna_FusoMonoCultureT0 -db ~/kneadData/databases/humanGenome/Homo_sapiens_assembly19.fasta -t /n/sw/centos6/Trimmomatic-0.32/trimmomatic-0.32.jar -b ~/bin/bmtagger.sh
+time python ~/kneadData/kneaddata/knead_data.py -1 G35124.1.fastq -2 G35124.2.fastq -o testrun -db ~/kneadData/databases/humanGenome/Homo_sapiens_assembly19.fasta -t /n/sw/centos6/Trimmomatic-0.32/trimmomatic-0.32.jar -b ~/bin/bmtagger.sh
