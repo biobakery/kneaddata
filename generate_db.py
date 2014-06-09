@@ -11,6 +11,16 @@ import subprocess
 import shlex
 import os
 import sys
+from multiprocessing.dummy import Pool as ThreadedPool
+
+def exists(s_cmd):
+    '''
+    Prints out error message with appropriate command name substituted in
+    '''
+    out = str("The output files for " + s_cmd + " already exist! Moving on...")
+    print(out)
+    return  
+
 
 def main():
     # parse command line arguments
@@ -47,7 +57,9 @@ def main():
 
     # before running each command, check that output files don't already exist.
     
-    # Can parallelize the below
+    # TODO: Add parallelization
+
+    l_cmds = []
 
     # bmtool
     if not os.path.exists(args.output_prefix + ".bitmask"):
@@ -56,11 +68,12 @@ def main():
             args.output_prefix + ".bitmask -A 0 -z -w 18")
         print("The following bmtool command will be run:")
         print(cmd)
-        ret = subprocess.call(shlex.split(cmd))
-        if ret != 0:
-            print("Something seems to have gone wrong with bmtool!")
+        l_cmds.append(shlex.split(cmd))
+        #ret = subprocess.call(shlex.split(cmd))
+        #if ret != 0:
+        #    print("Something seems to have gone wrong with bmtool!")
     else:
-        print("The output files for bmtool already exist! Moving on...")
+        exists("bmtool")
 
 
 
@@ -86,11 +99,12 @@ def main():
             args.output_prefix + ".srprism -M 7168")
         print("The following srprism command will be run:")
         print(cmd)
-        ret = subprocess.call(shlex.split(cmd))
-        if ret != 0:
-            print("Something seems to have gone wrong with srprism!")
+        l_cmds.append(shlex.split(cmd))
+        #ret = subprocess.call(shlex.split(cmd))
+        #if ret != 0:
+        #    print("Something seems to have gone wrong with srprism!")
     else:
-        print("The output files for srprism already exist! Moving on...")
+        exists("srprism")
 
 
     # makeblastdb
@@ -114,13 +128,34 @@ def main():
             " -dbtype nucl -out " + args.output_prefix)
         print("The following makeblastdb command will be run:")
         print(cmd)
-        ret = subprocess.call(shlex.split(cmd))
-        if ret != 0:
-            print("Something seems to have gone wrong with makeblastdb!")
+        l_cmds.append(shlex.split(cmd))
+        #ret = subprocess.call(shlex.split(cmd))
+        #if ret != 0:
+        #    print("Something seems to have gone wrong with makeblastdb!")
     else:
-        print("The output files for makeblastdb already exist! Moving on...")
+        exists("makeblastdb")
     
-    print("Done generating database files!")
+    pool = ThreadedPool(3)
+    res = pool.map(subprocess.call, l_cmds)
+    pool.close()
+    pool.join()
+
+    print(res)
+
+    # Check that everything returned properly
+    wrong = False
+    programs = ["bmtool", "srprism", "makeblastdb"]
+    for i in xrange(3):
+        if res[i] != 0:
+            wrong = True
+            print(str("Something went wrong! " + programs[i] + 
+                " has returned error code " + str(res[i])))
+            
+    if not wrong:
+        print("Successfully generated database files!")
+        return 0
+    else:
+        return -1
 
 if __name__ == '__main__':
     main()
