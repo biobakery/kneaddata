@@ -83,7 +83,7 @@ def main():
     if b_srprism_run:
         print("Running srprism!")
         cmd = str(args.srprism_path + " mkindex -i " + args.fasta + " -o " +
-            args.output_prefix + " -M 7168")
+            args.output_prefix + ".srprism -M 7168")
         print("The following srprism command will be run:")
         print(cmd)
         ret = subprocess.call(shlex.split(cmd))
