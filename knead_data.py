@@ -156,6 +156,10 @@ def main():
     if not args.output_prefix:
         args.output_prefix = args.infile1
 
+    # if not extracting, append .out to the prefix
+    if not args.extract:
+        args.output_prefix = args.output_prefix + ".out"
+
     # check for the existence of required files/paths
     paths = [args.infile1, args.infile2, args.trim_path, args.bmtagger_path]
     for path in paths:
@@ -252,12 +256,12 @@ def main():
                     prefix = args.output_prefix + "_se_" + inp[0], remove =
                     args.extract, temp_dir = tempdir)
 
-    # TODO: Remove temporary files
+    print("Finished running BMTagger.")
     print("Removing temporary files...")
     for output in outputs:
         os.remove(output)
     shutil.rmtree(tempdir)
-    print("Finished running BMTagger.")
+    print("Done!")
 
 if __name__ == '__main__':
     main()
