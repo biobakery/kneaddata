@@ -179,11 +179,8 @@ def main():
     else:
         return -1
     '''
-<<<<<<< local
-=======
     for t in threads:
         t.join()
->>>>>>> other
 
 if __name__ == '__main__':
     main()
