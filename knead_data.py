@@ -23,13 +23,16 @@ def trim(infile, trimlen, trim_path, single_end, prefix, mem):
         prefix:     prefix for outputs
         mem:        string, ie "500m" or "8g", which specifies how much memory
                     the Java VM is allowed to use
-    output: 4 files
+    output: 4 files for paired end
         (1) prefix.trimmed.1.fastq: trimmed first pair-end file
         (2) prefix.trimmed.2.fastq: trimmed second pair-end file
         (3) prefix.trimmed.single.1.fastq: trimmed sequences from the first file
         that lost their partner from the second file
         (4) prefix.trimmed.single.2.fastq: trimmed sequences from the second
         file that lost their partner from the first file
+
+        for single end:
+        prefix.trimmed.fastq
     Summary: Calls Trimmomatic to trim reads based on quality
     '''
 
@@ -41,14 +44,14 @@ def trim(infile, trimlen, trim_path, single_end, prefix, mem):
     trim_arg = ""
     if single_end:
         trim_arg = str(trim_path + " SE -phred33 " + infile[0] + " " + prefix
-                + ".trimmed.fastq " + "MINLEN:" + str(trimlen) + " &> " + prefix
-                + ".log")
+                + ".trimmed.fastq " + "MINLEN:" + str(trimlen))
     else:
         trim_arg = str(trim_path + " PE -phred33 " + infile[0] + " " +
                 infile[1] + " " + prefix + ".trimmed.1.fastq " + prefix +
                 ".trimmed.single.1.fastq " + prefix + ".trimmed.2.fastq " +
                 prefix + ".trimmed.single.2.fastq " + "MINLEN:" + str(trimlen))
 
+    # TODO: Check 64-bit architecture? 
     cmd = "java -Xmx" + mem + " -jar " + trim_arg
     print("Trimmomatic command that will be run: " + cmd)
     call = shlex.split(cmd)
@@ -137,10 +140,12 @@ def main():
             help="prefix for all output files")
     parser.add_argument("-db", "--reference-db", nargs = "+", 
             help="prefix for reference databases used in BMTagger")
+    # Consider using a params file
     parser.add_argument("-t", "--trim-path", help="path to Trimmomatic",
             required = True)
     parser.add_argument("-b", "--bmtagger-path", help="path to BMTagger",
             required = True)
+
     parser.add_argument("-x", "--extract", help="Remove contaminant reads",
             default=False, action="store_true")
     parser.add_argument("-m", "--max-mem", default="500m", 
@@ -166,6 +171,7 @@ def main():
             print("Could not find file " + str(path))
             print("Aborting...")
             sys.exit(2)
+    # TODO: put extensions
     for db in args.reference_db:
         if not os.path.exists(db):
             print("Could not find BMTagger database " + db)
@@ -194,6 +200,9 @@ def main():
     trim(files, trimlen = args.trimlen, trim_path = args.trim_path, single_end =
             b_single_end, prefix = args.output_prefix, mem = args.max_mem)
     
+    # TODO: run part of the pipeline (if you have the output, either overwrite
+    # or do the next step)
+
     print("Finished running Trimmomatic. Checking output files exist... ")
 
     # check that Trimmomatic's output files exist
@@ -239,7 +248,7 @@ def main():
 
 
     if b_single_end:
-        tag(infile = bmt_inputs, db_prefix = args.reference_db, bmtagger_path =
+        tag(infile = bmt_inputs[0], db_prefix = args.reference_db, bmtagger_path =
                 args.bmtagger_path, single_end = True, prefix =
                 args.output_prefix, remove = args.extract)
     else:
