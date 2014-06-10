@@ -29,7 +29,18 @@ class run_proc_thread(threading.Thread):
 
     def run(self):
         out = subprocess.call(shlex.split(self.command))
-        
+
+def run_proc(s_cmd):
+    '''
+    Helper function to run a command in a new thread.
+    input:     s_cmd (string), which is the command to be run
+    returns:   a (pointer to) the thread which is running the command
+    '''
+    print("Command to be run:")
+    print(s_cmd)
+    t = run_proc_thread(cmd)
+    t.start()
+    return t
 
 
 def main():
@@ -65,12 +76,8 @@ def main():
             print("Aborting... ")
             sys.exit(1)
 
-
     # before running each command, check that output files don't already exist.
     
-    # TODO: Add parallelization
-
-    l_cmds = []
     threads = []
 
     # bmtool
@@ -78,19 +85,10 @@ def main():
         print("Running bmtool!")
         cmd = str(args.bmtool_path + " -d " + args.fasta + " -o " +
             args.output_prefix + ".bitmask -A 0 -z -w 18")
-        print("The following bmtool command will be run:")
-        print(cmd)
-        thread_bmtool = run_proc_thread(cmd)
-        thread_bmtool.start()
-        threads.append(thread_bmtool)
-        #l_cmds.append(shlex.split(cmd))
-        #ret = subprocess.call(shlex.split(cmd))
-        #if ret != 0:
-        #    print("Something seems to have gone wrong with bmtool!")
+        t = run_proc(cmd)
+        threads.append(t)
     else:
         exists("bmtool")
-
-
 
     # srprism 
     srprism_ext = [".amp", ".idx", ".imp", ".map", ".pmp", ".rmp", ".ss",
@@ -112,15 +110,8 @@ def main():
         print("Running srprism!")
         cmd = str(args.srprism_path + " mkindex -i " + args.fasta + " -o " +
             args.output_prefix + ".srprism -M 7168")
-        print("The following srprism command will be run:")
-        print(cmd)
-        thread_srprism = run_proc_thread(cmd)
-        thread_srprism.start()
-        threads.append(thread_srprism)
-        #l_cmds.append(shlex.split(cmd))
-        #ret = subprocess.call(shlex.split(cmd))
-        #if ret != 0:
-        #    print("Something seems to have gone wrong with srprism!")
+        t = run_proc(cmd)
+        threads.append(t)
     else:
         exists("srprism")
 
@@ -144,41 +135,12 @@ def main():
         print("Running makeblastdb!")
         cmd = str(args.makeblastdb_path + " -in " + args.fasta + 
             " -dbtype nucl -out " + args.output_prefix)
-        print("The following makeblastdb command will be run:")
-        print(cmd)
-        thread_makeblastdb = run_proc_thread(cmd)
-        thread_makeblastdb.start()
-        threads.append(thread_makeblastdb)
-        #l_cmds.append(shlex.split(cmd))
-        #ret = subprocess.call(shlex.split(cmd))
-        #if ret != 0:
-        #    print("Something seems to have gone wrong with makeblastdb!")
+        t = run_proc(cmd)
+        threads.append(t)
     else:
         exists("makeblastdb")
     
-    '''
-    pool = ThreadedPool(3)
-    res = pool.map(subprocess.call, l_cmds)
-    pool.close()
-    pool.join()
-
-    print(res)
-
-    # Check that everything returned properly
-    wrong = False
-    programs = ["bmtool", "srprism", "makeblastdb"]
-    for i in xrange(3):
-        if res[i] != 0:
-            wrong = True
-            print(str("Something went wrong! " + programs[i] + 
-                " has returned error code " + str(res[i])))
-            
-    if not wrong:
-        print("Successfully generated database files!")
-        return 0
-    else:
-        return -1
-    '''
+    # wait for all tasks to finish
     for t in threads:
         t.join()
 
