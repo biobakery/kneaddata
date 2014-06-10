@@ -33,6 +33,10 @@ def trim(infile, trimlen, trim_path, single_end, prefix, mem):
 
         for single end:
         prefix.trimmed.fastq
+
+    returns:
+        (res, cmd)              res is the error code of the command
+                                cmd (string) is the command itself
     Summary: Calls Trimmomatic to trim reads based on quality
     '''
 
@@ -52,11 +56,11 @@ def trim(infile, trimlen, trim_path, single_end, prefix, mem):
                 prefix + ".trimmed.single.2.fastq " + "MINLEN:" + str(trimlen))
 
     # TODO: Check 64-bit architecture? 
-    cmd = "java -Xmx" + mem + " -jar " + trim_arg
+    cmd = "java -Xmx" + mem + " -d64 -jar " + trim_arg
     print("Trimmomatic command that will be run: " + cmd)
     call = shlex.split(cmd)
-    subprocess.call(call)
-    return 0
+    res = subprocess.call(call)
+    return (res,cmd)
 
 
 def tag(infile, db_prefix, bmtagger_path, single_end, prefix, remove, temp_dir):
@@ -77,6 +81,10 @@ def tag(infile, db_prefix, bmtagger_path, single_end, prefix, remove, temp_dir):
     output:
         prefix.out:             a list of the contaminant reads
         prefix_depleted.fastq:  the input fastq with the unwanted reads removed
+
+    returns:
+        (res, cmd)              res is the error code of the command
+                                cmd (string) is the command itself
     Summary: Uses BMTagger to tag and potentially remove unwanted reads
     '''
     # check inputs
@@ -104,8 +112,8 @@ def tag(infile, db_prefix, bmtagger_path, single_end, prefix, remove, temp_dir):
         print("BMTagger command to be run: " + arg)
         call = shlex.split(arg)
         print(call)
-        subprocess.call(call)
-    return 0
+        res = subprocess.call(call)
+    return (res,cmd)
 
 
 def checkfile(fname):
@@ -119,6 +127,7 @@ def checkfile(fname):
     Summary: Helper function to test if a file exists and is nonempty, exists
     and is empty, or does not exist
     '''
+    fname = str(fname)
     try:
         if os.stat(fname).st_size > 0:
             return 1
@@ -126,6 +135,12 @@ def checkfile(fname):
             return -1
     except OSError:
         return 0
+
+def checkexists(l_fnames, ftype="file"):
+    for f in l_fnames:
+        if f != None and not os.path.exists(f):
+            raise IOError(str("Could not find " + ftype + " " + f))
+    return True
 
 def main():
     # parse command line arguments
@@ -166,17 +181,14 @@ def main():
 
     # check for the existence of required files/paths
     paths = [args.infile1, args.infile2, args.trim_path, args.bmtagger_path]
-    for path in paths:
-        if path != None and not os.path.exists(path):
-            print("Could not find file " + str(path))
-            print("Aborting...")
-            sys.exit(2)
-    # TODO: put extensions
-    for db in args.reference_db:
-        if not os.path.exists(db):
-            print("Could not find BMTagger database " + db)
-            print("Aborting...")
-            sys.exit(2)
+    checkexists(paths)
+
+    for db_prefix in args.reference_db:
+        endings = [".bitmask", ".srprism.amp", ".srprism.idx", ".srprism.imp",
+                ".srprism.map", ".srprism.pmp", ".srprism.rmp", ".srprism.ss",
+                ".srprism.ssa", ".srprism.ssd", ".nhr", ".nin", ".nsq"]
+        dbs = map(lambda x: str(db_prefix + x), endings)
+        checkexists(dbs, ftype = "BMTagger database")
 
     # determine single-ended or pair ends
     b_single_end = True
@@ -184,16 +196,14 @@ def main():
     if args.infile2:
         files.append(args.infile2)
         b_single_end = False
+    
+    if b_single_end and (len(files) != 1):
+        print("Single-end mode but input fastq's != 1.")
+        sys.exit(-1)
 
-    # creates a backup of the input fastq if the user wishes to remove
-    # contaminant reads
-    '''
-    if args.extract:
-        print("Creating a backup of the input fastq")
-        for f in files:
-            shutil.copy(f, str(f + ".bak"))
-        print("Done creating backup")
-    '''
+    if (not b_single_end) and (len(files) != 2):
+        print("Paired end mode but input fastq's != 2")
+        sys.exit(-1)
 
     print("Running Trimmomatic...")
 
@@ -240,11 +250,12 @@ def main():
 
     # make temporary directory for BMTagger files
     tempdir = args.output_prefix + "_temp"
-    if not os.path.exists(tempdir):
+    try:
         os.makedirs(tempdir)
-        # Potential race condition: If the directory is created between the
-        # os.path.exists call and the os.makedirs call, the os.makedirs call
-        # will return an error.
+    except OSError:
+        if not os.path.isdir(tempdir):
+            print("Cannot make the BMTagger temporary directory")
+            raise
 
 
     if b_single_end:
