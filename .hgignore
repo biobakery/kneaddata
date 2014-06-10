@@ -4,5 +4,6 @@ syntax: glob
 *.fastq
 *.fasta
 *.bak
+*.pyc
 
 syntax: regexp
