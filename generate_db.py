@@ -11,7 +11,7 @@ import subprocess
 import shlex
 import os
 import sys
-from multiprocessing.dummy import Pool as ThreadedPool
+import threading
 
 def exists(s_cmd):
     '''
@@ -20,6 +20,16 @@ def exists(s_cmd):
     out = str("The output files for " + s_cmd + " already exist! Moving on...")
     print(out)
     return  
+
+
+class run_proc_thread(threading.Thread):
+    def __init__(self, command):
+        threading.Thread.__init__(self)
+        self.command = command
+
+    def run(self):
+        out = subprocess.call(shlex.split(self.command))
+        
 
 
 def main():
@@ -61,6 +71,7 @@ def main():
     # TODO: Add parallelization
 
     l_cmds = []
+    threads = []
 
     # bmtool
     if not os.path.exists(args.output_prefix + ".bitmask"):
@@ -69,10 +80,13 @@ def main():
             args.output_prefix + ".bitmask -A 0 -z -w 18")
         print("The following bmtool command will be run:")
         print(cmd)
-        l_cmds.append(shlex.split(cmd))
-        ret = subprocess.call(shlex.split(cmd))
-        if ret != 0:
-            print("Something seems to have gone wrong with bmtool!")
+        thread_bmtool = run_proc_thread(cmd)
+        thread_bmtool.start()
+        threads.append(thread_bmtool)
+        #l_cmds.append(shlex.split(cmd))
+        #ret = subprocess.call(shlex.split(cmd))
+        #if ret != 0:
+        #    print("Something seems to have gone wrong with bmtool!")
     else:
         exists("bmtool")
 
@@ -100,10 +114,13 @@ def main():
             args.output_prefix + ".srprism -M 7168")
         print("The following srprism command will be run:")
         print(cmd)
-        l_cmds.append(shlex.split(cmd))
-        ret = subprocess.call(shlex.split(cmd))
-        if ret != 0:
-            print("Something seems to have gone wrong with srprism!")
+        thread_srprism = run_proc_thread(cmd)
+        thread_srprism.start()
+        threads.append(thread_srprism)
+        #l_cmds.append(shlex.split(cmd))
+        #ret = subprocess.call(shlex.split(cmd))
+        #if ret != 0:
+        #    print("Something seems to have gone wrong with srprism!")
     else:
         exists("srprism")
 
@@ -129,10 +146,13 @@ def main():
             " -dbtype nucl -out " + args.output_prefix)
         print("The following makeblastdb command will be run:")
         print(cmd)
-        l_cmds.append(shlex.split(cmd))
-        ret = subprocess.call(shlex.split(cmd))
-        if ret != 0:
-            print("Something seems to have gone wrong with makeblastdb!")
+        thread_makeblastdb = run_proc_thread(cmd)
+        thread_makeblastdb.start()
+        threads.append(thread_makeblastdb)
+        #l_cmds.append(shlex.split(cmd))
+        #ret = subprocess.call(shlex.split(cmd))
+        #if ret != 0:
+        #    print("Something seems to have gone wrong with makeblastdb!")
     else:
         exists("makeblastdb")
     
@@ -159,6 +179,11 @@ def main():
     else:
         return -1
     '''
+<<<<<<< local
+=======
+    for t in threads:
+        t.join()
+>>>>>>> other
 
 if __name__ == '__main__':
     main()
