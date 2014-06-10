@@ -113,13 +113,13 @@ def tag(infile, db_prefix, bmtagger_path, single_end, prefix, remove, temp_dir):
         call = shlex.split(arg)
         print(call)
         res = subprocess.call(call)
-    return (res,cmd)
+    return (res,bmt_args)
 
 
-def checkfile(fname):
+def checkfile(fname, ftype="file", fail_hard=False):
     '''
     input:
-        fname: the file name. A string.
+        fnames: One or more file names. Must be strings
     output:
         1: the file exists
         0: the file does not exist
@@ -127,20 +127,33 @@ def checkfile(fname):
     Summary: Helper function to test if a file exists and is nonempty, exists
     and is empty, or does not exist
     '''
-    fname = str(fname)
     try:
         if os.stat(fname).st_size > 0:
             return 1
         else:
-            return -1
+            if fail_hard:
+                raise IOError(str(fname + " is an empty " + ftype))
+            else:
+                return -1
     except OSError:
-        return 0
+        if fail_hard:
+            raise OSError(str("Could not find " + ftype + " " + fname))
+        else:
+            return 0
 
-def checkexists(l_fnames, ftype="file"):
-    for f in l_fnames:
-        if f != None and not os.path.exists(f):
-            raise IOError(str("Could not find " + ftype + " " + f))
-    return True
+def is_single_end(file1, file2):
+    '''
+    INVARIANT: file1 is never none 
+    '''
+    b_single_end = True
+    out_files = [file1]
+    assert(file1)
+    if file2:
+        out_files.append(file2)
+        b_single_end = False
+
+    return (b_single_end, out_files)
+    
 
 def main():
     # parse command line arguments
@@ -181,29 +194,17 @@ def main():
 
     # check for the existence of required files/paths
     paths = [args.infile1, args.infile2, args.trim_path, args.bmtagger_path]
-    checkexists(paths)
+    [checkfile(p, fail_hard=True) for p in paths]
 
     for db_prefix in args.reference_db:
         endings = [".bitmask", ".srprism.amp", ".srprism.idx", ".srprism.imp",
                 ".srprism.map", ".srprism.pmp", ".srprism.rmp", ".srprism.ss",
                 ".srprism.ssa", ".srprism.ssd", ".nhr", ".nin", ".nsq"]
         dbs = map(lambda x: str(db_prefix + x), endings)
-        checkexists(dbs, ftype = "BMTagger database")
+        [checkfile(db, fail_hard=True, ftype="BMTagger database") for db in dbs]
 
     # determine single-ended or pair ends
-    b_single_end = True
-    files = [args.infile1]
-    if args.infile2:
-        files.append(args.infile2)
-        b_single_end = False
-    
-    if b_single_end and (len(files) != 1):
-        print("Single-end mode but input fastq's != 1.")
-        sys.exit(-1)
-
-    if (not b_single_end) and (len(files) != 2):
-        print("Paired end mode but input fastq's != 2")
-        sys.exit(-1)
+    b_single_end, files = is_single_end(args.infile1, args.infile2)
 
     print("Running Trimmomatic...")
 
@@ -259,8 +260,8 @@ def main():
 
 
     if b_single_end:
-        tag(infile = bmt_inputs[0], db_prefix = args.reference_db, bmtagger_path =
-                args.bmtagger_path, single_end = True, prefix =
+        tag(infile = bmt_inputs[0], db_prefix = args.reference_db, 
+                bmtagger_path = args.bmtagger_path, single_end = True, prefix =
                 args.output_prefix, remove = args.extract)
     else:
         for inp in bmt_inputs:
