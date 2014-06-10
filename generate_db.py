@@ -46,8 +46,9 @@ def main():
         args.output_prefix = args.fasta
 
     # check if input files exist
-    inputs = [args.fasta, args.bmtool_path, args.srprism_path,
-            args.makeblastdb_path]
+    #inputs = [args.fasta, args.bmtool_path, args.srprism_path,
+    #        args.makeblastdb_path]
+    inputs = [args.fasta]
     for inp in inputs:
         if not os.path.exists(inp):
             print("Could not find file " + inp)
@@ -69,9 +70,9 @@ def main():
         print("The following bmtool command will be run:")
         print(cmd)
         l_cmds.append(shlex.split(cmd))
-        #ret = subprocess.call(shlex.split(cmd))
-        #if ret != 0:
-        #    print("Something seems to have gone wrong with bmtool!")
+        ret = subprocess.call(shlex.split(cmd))
+        if ret != 0:
+            print("Something seems to have gone wrong with bmtool!")
     else:
         exists("bmtool")
 
@@ -100,9 +101,9 @@ def main():
         print("The following srprism command will be run:")
         print(cmd)
         l_cmds.append(shlex.split(cmd))
-        #ret = subprocess.call(shlex.split(cmd))
-        #if ret != 0:
-        #    print("Something seems to have gone wrong with srprism!")
+        ret = subprocess.call(shlex.split(cmd))
+        if ret != 0:
+            print("Something seems to have gone wrong with srprism!")
     else:
         exists("srprism")
 
@@ -129,12 +130,13 @@ def main():
         print("The following makeblastdb command will be run:")
         print(cmd)
         l_cmds.append(shlex.split(cmd))
-        #ret = subprocess.call(shlex.split(cmd))
-        #if ret != 0:
-        #    print("Something seems to have gone wrong with makeblastdb!")
+        ret = subprocess.call(shlex.split(cmd))
+        if ret != 0:
+            print("Something seems to have gone wrong with makeblastdb!")
     else:
         exists("makeblastdb")
     
+    '''
     pool = ThreadedPool(3)
     res = pool.map(subprocess.call, l_cmds)
     pool.close()
@@ -156,6 +158,7 @@ def main():
         return 0
     else:
         return -1
+    '''
 
 if __name__ == '__main__':
     main()

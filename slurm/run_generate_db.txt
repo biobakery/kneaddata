@@ -1,0 +1,26 @@
+#!/bin/bash 
+
+#SBATCH -n 1 #Number of cores 
+
+#SBATCH -t 60 #Runtime in minutes 
+
+#SBATCH -p serial_requeue #Partition to submit to 
+
+#SBATCH --mem-per-cpu=10000 #Memory per cpu in MB (see also --mem)
+# BMTagger assumes you have at least 8.5 Gb of RAM
+
+#SBATCH -J generate_db
+#SBATCH --error=generate_db.out
+
+#SBATCH --mail-user=andyshi@college.harvard.edu
+
+#SBATCH --mail-type=BEGIN
+
+#SBATCH --mail-type=END
+
+module load centos6/ncbi-blast-2.2.29+
+
+cd /n/huttenhower_lab_nobackup/data/kneadData/databases/humanGenome
+
+time python ~/kneadData/kneaddata/generate_db.py Homo_sapiens_assembly19.fasta
+-o testing
