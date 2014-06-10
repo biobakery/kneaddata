@@ -38,7 +38,7 @@ def run_proc(s_cmd):
     '''
     print("Command to be run:")
     print(s_cmd)
-    t = run_proc_thread(cmd)
+    t = run_proc_thread(s_cmd)
     t.start()
     return t
 
@@ -85,7 +85,10 @@ def main():
         print("Running bmtool!")
         cmd = str(args.bmtool_path + " -d " + args.fasta + " -o " +
             args.output_prefix + ".bitmask -A 0 -z -w 18")
-        t = run_proc(cmd)
+        print("Command to be run:")
+        print(cmd)
+        t = run_proc_thread(cmd)
+        t.start()
         threads.append(t)
     else:
         exists("bmtool")
@@ -110,7 +113,10 @@ def main():
         print("Running srprism!")
         cmd = str(args.srprism_path + " mkindex -i " + args.fasta + " -o " +
             args.output_prefix + ".srprism -M 7168")
-        t = run_proc(cmd)
+        print("Command to be run:")
+        print(cmd)
+        t = run_proc_thread(cmd)
+        t.start()
         threads.append(t)
     else:
         exists("srprism")
@@ -135,7 +141,10 @@ def main():
         print("Running makeblastdb!")
         cmd = str(args.makeblastdb_path + " -in " + args.fasta + 
             " -dbtype nucl -out " + args.output_prefix)
-        t = run_proc(cmd)
+        print("Command to be run:")
+        print(cmd)
+        t = run_proc_thread(cmd)
+        t.start()
         threads.append(t)
     else:
         exists("makeblastdb")

@@ -22,5 +22,4 @@ module load centos6/ncbi-blast-2.2.29+
 
 cd /n/huttenhower_lab_nobackup/data/kneadData/databases/humanGenome
 
-time python ~/kneadData/kneaddata/generate_db.py Homo_sapiens_assembly19.fasta
--o testing
+time python ~/kneadData/kneaddata/generate_db.py test.fasta -o testing
