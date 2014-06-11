@@ -1,6 +1,16 @@
+'''
+test_knead_data.py: Python script for running unit tests for knead_data.py. You
+might want to run this from its own folder because it creates a lot of temporary
+files which may interfere with yours. 
+
+Author: Andy Shi
+'''
+
 import knead_data as kd
 import unittest
 import os
+import subprocess
+import shlex
 
 class test_checkfile(unittest.TestCase):
     def setUp(self): 
@@ -142,6 +152,39 @@ class test_checktrim_output(unittest.TestCase):
         for fname in self.files:
             os.remove(fname)
 
+
+class test_get_num_reads(unittest.TestCase):
+    def setUp(self):
+        # create files
+        self.testfile = "words.txt"
+        cmd = "head --lines 4000 /usr/share/dict/words"
+
+        out = subprocess.check_output(shlex.split(cmd))
+
+        with open(self.testfile, "w") as f:
+            f.write(out)
+
+        with open("empty.txt", "w") as f:
+            pass
+
+    def test_notExist(self):
+        ''' Nonexistent file '''
+        self.assertEqual(kd.get_num_reads("dne.txt"), None, 
+                "Should return None for nonexistent file")
+
+    def test_empty(self):
+        ''' Empty file '''
+        self.assertEqual(kd.get_num_reads("empty.txt"), 0, 
+                "Should return 0 for empty file")
+    
+    def test_nonEmpty(self):
+        ''' Normal, nonempty file'''
+        self.assertEqual(kd.get_num_reads(self.testfile), 1000, 
+            "Should return the number of lines in the file divided by 4")
+
+    def tearDown(self):
+        os.remove(self.testfile)
+        os.remove("empty.txt")
 
 if __name__ == '__main__':
     unittest.main()

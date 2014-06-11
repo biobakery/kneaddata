@@ -10,6 +10,7 @@ import shlex
 import os
 import sys
 import shutil
+import re
 
 # Constants
 
@@ -28,6 +29,12 @@ TRIM_PE_ENDINGS =   [".trimmed.1.fastq",
                     ".trimmed.2.fastq", 
                     ".trimmed.single.1.fastq", 
                     ".trimmed.single.2.fastq"]
+
+# BMTagger file endings if you choose to remove the contaminant reads. For
+# single end and paired end reads, respectively.
+BMTAGGER_SE_ENDING = ".fastq"
+BMTAGGER_PE_ENDINGS =   ["_1.fastq",
+                        "_2.fastq"]
 
 def trim(infile, trimlen, trim_path, single_end, prefix, mem):
     '''
@@ -73,7 +80,6 @@ def trim(infile, trimlen, trim_path, single_end, prefix, mem):
                 ".trimmed.single.1.fastq " + prefix + ".trimmed.2.fastq " +
                 prefix + ".trimmed.single.2.fastq " + "MINLEN:" + str(trimlen))
 
-    # TODO: Check 64-bit architecture? 
     cmd = "java -Xmx" + mem + " -d64 -jar " + trim_arg
     print("Trimmomatic command that will be run: " + cmd)
     ret = subprocess.call(shlex.split(cmd))
@@ -156,7 +162,6 @@ def checkfile(fname, ftype="file", fail_hard=False):
     Summary: Helper function to test if a file exists and is nonempty, exists
     and is empty, or does not exist. Can fail loudly or silently
     '''
-    print(fname)
     try:
         if os.stat(fname).st_size > 0:
             return 1
@@ -253,6 +258,45 @@ def checktrim_output(output_prefix, b_single_end):
     return (True, outputs, ll_new_inputs)
 
 
+def get_num_reads(fname):
+    '''
+    input:  fname: fastq file name, as a string
+    output: the number of reads in the file, aka the number of lines in the file 
+            divided by 4. If the command fails, return None
+    Summary: Uses wc to find the number of reads in a file.
+    '''
+    pat = r'[0-9]+ '
+    cmd = "wc --lines " + fname
+    out = ""
+    try:
+        out = subprocess.check_output(shlex.split(cmd))
+    except subprocess.CalledProcessError as e:
+        print("Command " + str(e.cmd) + " failed with return code " +
+                str(e.returncode))
+        return None
+    
+    # match to get the line numbers
+    match = re.search(pat, out)
+    if match:
+        # one read is 4 lines in the fastq file
+        num_reads = int(match.group())/4
+        return(num_reads)
+    else:
+        # should not happen
+        print("This should not happen. Can't find the regex in wc output!")
+        return None
+
+
+'''
+def format_num_reads(fname): 
+    num_reads = get_num_reads(fname)
+    msg = "Unable to get the number of reads"
+    if num_reads != None:
+        msg = fname + ": " + str(num_reads) + "\n"
+
+    return(msg, num_reads)
+'''
+
 def main():
     # parse command line arguments
     # note: argparse converts dashes '-' in argument prefixes to underscores '_' 
@@ -283,19 +327,18 @@ def main():
 
     # check inputs
     # deal with missing prefix
-    if not args.output_prefix:
-        args.output_prefix = args.infile1
+    if args.output_prefix == None:
+        args.output_prefix = args.infile1 + "_out"
 
     # if not extracting, append .out to the prefix
     if not args.extract:
         args.output_prefix = args.output_prefix + ".out"
 
+
     # check for the existence of required files/paths
     paths = [args.infile1, args.trim_path, args.bmtagger_path]
-    print(paths)
     if args.infile2 != None:
         paths.append(args.infile2)
-    print(paths)
     [checkfile(p, fail_hard=True) for p in paths]
 
     for db_prefix in args.reference_db:
@@ -304,6 +347,19 @@ def main():
 
     # determine single-ended or pair ends
     b_single_end, files = is_single_end(args.infile1, args.infile2)
+
+    # Get number of reads initially, then log
+    num_reads_init = map(get_num_reads, files)
+    lenfiles = len(files)
+    msg = "Initial number of reads:\n"
+    for i in range(len(files)):
+        msg = msg + files[i] + ": " + str(num_reads_init[i]) + "\n"
+    print(msg)
+
+    # Log file. Create a new one the first time, then keep appending to it.
+    logfile = args.output_prefix + ".log"
+    with open(logfile, "w") as f:
+        f.write(msg)
 
     print("Running Trimmomatic...")
 
@@ -319,6 +375,14 @@ def main():
     b_continue, outputs, bmt_inputs = checktrim_output(args.output_prefix, 
             b_single_end)
 
+    msg = "Number of reads after trimming:\n"
+    for output in outputs:
+        msg = msg + output + ": " + str(get_num_reads(output)) + "\n"
+    print(msg)
+
+    with open(logfile, "a") as f:
+        f.write(msg)
+
     if not b_continue:
         print("Trimmomatic produced no non-empty files.")
         print("Terminating the pipeline...")
@@ -333,25 +397,44 @@ def main():
             print("Cannot make the BMTagger temporary directory")
             raise
 
+    # TODO: Add parallelization. Use command line utility 'split' to split the
+    # files, fork a thread for each file, and run BMTagger in each thread.
 
+    # Start tagging
+    msg = ""
     if b_single_end:
         tag(infile = bmt_inputs[0], db_prefix = args.reference_db, 
                 bmtagger_path = args.bmtagger_path, single_end = True, prefix =
                 args.output_prefix, remove = args.extract, temp_dir = tempdir)
+        out_fname = args.output_prefix + BMTAGGER_SE_ENDING
+        msg = msg + out_fname + ": " + str(get_num_reads(out_fname)) + "\n"
     else:
         for inp in bmt_inputs:
             if len(inp) == 2:
-                tag(infile = inp, db_prefix = args.reference_db, bmtagger_path
-                    = args.bmtagger_path, single_end = False, prefix =
-                    args.output_prefix + "_pe", remove = args.extract, temp_dir
-                    = tempdir)
+                out_prefix = args.output_prefix + "_pe"
+                tag(infile = inp, db_prefix = args.reference_db, bmtagger_path =
+                        args.bmtagger_path, single_end = False, prefix =
+                        out_prefix, remove = args.extract, temp_dir = tempdir)
+                out_fnames = [out_prefix + ending for ending in BMTAGGER_PE_ENDINGS]
+                for out_fname in out_fnames:
+                    msg = msg + out_fname + ": " + str(get_num_reads(out_fname)) + "\n"
+
             else:
+                out_prefix = args.output_prefix + inp[0] + "_se"
                 tag(infile = inp, db_prefix = args.reference_db,
                     bmtagger_path = args.bmtagger_path, single_end = True,
-                    prefix = args.output_prefix + "_se_" + inp[0], remove =
+                    prefix = args.output_prefix + inp[0] + "_se", remove =
                     args.extract, temp_dir = tempdir)
+                out_fname = out_prefix + BMTAGGER_SE_ENDING
+                msg = msg + out_fname + ": " + str(get_num_reads(out_fname)) + "\n"
 
     print("Finished running BMTagger.")
+    msg_intro = "Number of reads after tagging:\n"
+    print(msg_intro + msg)
+
+    with open(logfile, "a") as f:
+        f.write(msg_intro + msg)
+
     print("Removing temporary files...")
     for output in outputs:
         os.remove(output)
