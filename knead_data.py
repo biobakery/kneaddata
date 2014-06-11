@@ -76,9 +76,11 @@ def trim(infile, trimlen, trim_path, single_end, prefix, mem):
     # TODO: Check 64-bit architecture? 
     cmd = "java -Xmx" + mem + " -d64 -jar " + trim_arg
     print("Trimmomatic command that will be run: " + cmd)
-    proc = subprocess.Popen(shlex.split(cmd), stdout=subprocess.PIPE)
+    ret = subprocess.call(shlex.split(cmd))
+    return(ret, cmd)
+    #proc = subprocess.Popen(shlex.split(cmd), stdout=subprocess.PIPE)
     #stdout, stderr = proc.communicate()
-    return (proc.returncode, cmd)
+    #return (proc.returncode, cmd)
 
 
 def tag(infile, db_prefix, bmtagger_path, single_end, prefix, remove, temp_dir):
@@ -154,6 +156,7 @@ def checkfile(fname, ftype="file", fail_hard=False):
     Summary: Helper function to test if a file exists and is nonempty, exists
     and is empty, or does not exist. Can fail loudly or silently
     '''
+    print(fname)
     try:
         if os.stat(fname).st_size > 0:
             return 1
@@ -259,7 +262,7 @@ def main():
     parser.add_argument("-2", "--infile2", help="input FASTQ file mate")
     parser.add_argument("--trimlen", type=int, help="length to trim reads",
             default=60)
-    parser.add_argument("-o", "--output-prefix", 
+    parser.add_argument("-o", "--output-prefix",
             help="prefix for all output files")
     parser.add_argument("-db", "--reference-db", nargs = "+", 
             help="prefix for reference databases used in BMTagger")
@@ -288,7 +291,11 @@ def main():
         args.output_prefix = args.output_prefix + ".out"
 
     # check for the existence of required files/paths
-    paths = [args.infile1, args.infile2, args.trim_path, args.bmtagger_path]
+    paths = [args.infile1, args.trim_path, args.bmtagger_path]
+    print(paths)
+    if args.infile2 != None:
+        paths.append(args.infile2)
+    print(paths)
     [checkfile(p, fail_hard=True) for p in paths]
 
     for db_prefix in args.reference_db:
