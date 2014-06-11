@@ -287,16 +287,6 @@ def get_num_reads(fname):
         return None
 
 
-'''
-def format_num_reads(fname): 
-    num_reads = get_num_reads(fname)
-    msg = "Unable to get the number of reads"
-    if num_reads != None:
-        msg = fname + ": " + str(num_reads) + "\n"
-
-    return(msg, num_reads)
-'''
-
 def main():
     # parse command line arguments
     # note: argparse converts dashes '-' in argument prefixes to underscores '_' 
@@ -401,39 +391,80 @@ def main():
     # files, fork a thread for each file, and run BMTagger in each thread.
 
     # Start tagging
-    msg = ""
+    out_files = []
+
     if b_single_end:
         tag(infile = bmt_inputs[0], db_prefix = args.reference_db, 
                 bmtagger_path = args.bmtagger_path, single_end = True, prefix =
                 args.output_prefix, remove = args.extract, temp_dir = tempdir)
-        out_fname = args.output_prefix + BMTAGGER_SE_ENDING
-        msg = msg + out_fname + ": " + str(get_num_reads(out_fname)) + "\n"
+
+        # Get the proper output file name for logging purposes
+        if args.extract:
+            out_files.append(args.output_prefix + BMTAGGER_SE_ENDING)
+        else:
+            out_files.append(args.output_prefix)
+
     else:
         for inp in bmt_inputs:
             if len(inp) == 2:
+                # Run paired end BMTagger
                 out_prefix = args.output_prefix + "_pe"
                 tag(infile = inp, db_prefix = args.reference_db, bmtagger_path =
                         args.bmtagger_path, single_end = False, prefix =
                         out_prefix, remove = args.extract, temp_dir = tempdir)
-                out_fnames = [out_prefix + ending for ending in BMTAGGER_PE_ENDINGS]
-                for out_fname in out_fnames:
-                    msg = msg + out_fname + ": " + str(get_num_reads(out_fname)) + "\n"
+
+                # Get the proper output file name for logging purposes
+                if args.extract:
+                    out_fnames = [out_prefix + ending for ending in BMTAGGER_PE_ENDINGS]
+                    for out_fname in out_fnames:
+                        out_files.append(out_fname)
+                else:
+                    out_files.append(args.output_prefix)
 
             else:
+                # Run single end BMTagger
                 out_prefix = args.output_prefix + inp[0] + "_se"
                 tag(infile = inp, db_prefix = args.reference_db,
                     bmtagger_path = args.bmtagger_path, single_end = True,
                     prefix = args.output_prefix + inp[0] + "_se", remove =
                     args.extract, temp_dir = tempdir)
-                out_fname = out_prefix + BMTAGGER_SE_ENDING
-                msg = msg + out_fname + ": " + str(get_num_reads(out_fname)) + "\n"
+
+                if args.extract:
+                    out_files.append(out_prefix + BMTAGGER_SE_ENDING)
+                else:
+                    out_files.append(out_prefix)
 
     print("Finished running BMTagger.")
-    msg_intro = "Number of reads after tagging:\n"
-    print(msg_intro + msg)
+
+    msg = "Number of reads after tagging:\n"
+    # Calculate the number of reads remaining
+    percent_reads_left = None
+    for i in range(len(out_files)):
+        num_reads_orig = get_num_reads(out_files[i])
+        try:
+            num_reads = float(num_reads_orig)
+            if b_single_end:
+                percent_reads_left = num_reads/num_reads_init[0]
+
+            # if --extract is set, look for one of the paired end files.
+            # Otherwise, look for the file containing the list of reads
+            else:
+                if args.extract and (out_files[i] == args.output_prefix + "_pe" +
+                        BMTAGGER_PE_ENDINGS[0]):
+                    percent_reads_left = num_reads/num_reads_init[0]
+                elif (not args.extract) and (out_files[i] == args.output_prefix):
+                    percent_reads_left = (num_reads_init[0] -
+                            (num_reads*4))/num_reads_init[0]
+        except TypeError:
+            pass
+
+        msg = msg + out_files[i] + ": " + str(num_reads_orig) + "\n"
+
+    msg2 = "Proportion of reads that survived: " + str(percent_reads_left)
+    print(msg + msg2)
 
     with open(logfile, "a") as f:
-        f.write(msg_intro + msg)
+        f.write(msg + msg2)
 
     print("Removing temporary files...")
     for output in outputs:
