@@ -66,6 +66,9 @@ def main():
     if not args.output_prefix:
         args.output_prefix = args.fasta
 
+    # TODO: Consider factoring out the checking into a util.py file. 
+    # TODO: If the user supplies a path, check it. Manually set the defaults
+
     # check if input files exist
     #inputs = [args.fasta, args.bmtool_path, args.srprism_path,
     #        args.makeblastdb_path]

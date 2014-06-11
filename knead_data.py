@@ -1,5 +1,5 @@
 '''
-kneaddata.py
+knead_data.py
 Author: Andy Shi
 
 Pipeline for processing metagenomics sequencing data
@@ -10,6 +10,24 @@ import shlex
 import os
 import sys
 import shutil
+
+# Constants
+
+# File endings for BMTagger's required database files
+DB_ENDINGS =    [".bitmask", ".srprism.amp", 
+                ".srprism.idx", ".srprism.imp",
+                ".srprism.map", ".srprism.pmp", 
+                ".srprism.rmp", ".srprism.ss",
+                ".srprism.ssa", ".srprism.ssd", 
+                ".nhr", ".nin", ".nsq"]
+
+# Trimmomatic file endings for single end and paired end, respectively
+TRIM_SE_ENDING = ".trimmed.fastq"
+
+TRIM_PE_ENDINGS =   [".trimmed.1.fastq", 
+                    ".trimmed.2.fastq", 
+                    ".trimmed.single.1.fastq", 
+                    ".trimmed.single.2.fastq"]
 
 def trim(infile, trimlen, trim_path, single_end, prefix, mem):
     '''
@@ -31,7 +49,7 @@ def trim(infile, trimlen, trim_path, single_end, prefix, mem):
         (4) prefix.trimmed.single.2.fastq: trimmed sequences from the second
         file that lost their partner from the first file
 
-        for single end:
+            1 file for single end:
         prefix.trimmed.fastq
 
     returns:
@@ -60,6 +78,8 @@ def trim(infile, trimlen, trim_path, single_end, prefix, mem):
     print("Trimmomatic command that will be run: " + cmd)
     call = shlex.split(cmd)
     res = subprocess.call(call)
+    # TODO: Python truism: It's easier to ask for forgiveness than to ask
+    # for permission. 
     return (res,cmd)
 
 
@@ -113,19 +133,31 @@ def tag(infile, db_prefix, bmtagger_path, single_end, prefix, remove, temp_dir):
         call = shlex.split(arg)
         print(call)
         res = subprocess.call(call)
+        # TODO: Python truism: It's easier to ask for forgiveness than to ask
+        # for permission. 
     return (res,bmt_args)
 
 
 def checkfile(fname, ftype="file", fail_hard=False):
     '''
     input:
-        fnames: One or more file names. Must be strings
+        fnames:         One or more file names. Must be strings
+        ftype:          A string describing what type of file we are checking. 
+                        Used to clarify error messages.
+        empty_failhard: Boolean, whether or not to raise an error when the file
+                        is empty, or whether to return a value. 
+        dne_failhard:   Boolean, whether or not to raise an error when the file
+                        does not exist, or whether to return a value. 
     output:
-        1: the file exists
-        0: the file does not exist
-        -1: the file exists but is an empty file (size = 0 bytes)
+        1:      the file exists
+        0:      the file does not exist
+        -1:     the file exists but is an empty file (size = 0 bytes)
+
+        If fail_hard=True, then raises IOError on empty file and OSError on
+        non-existent file instead of returning 0 and -1, respectively
+
     Summary: Helper function to test if a file exists and is nonempty, exists
-    and is empty, or does not exist
+    and is empty, or does not exist. Can fail loudly or silently
     '''
     try:
         if os.stat(fname).st_size > 0:
@@ -143,7 +175,19 @@ def checkfile(fname, ftype="file", fail_hard=False):
 
 def is_single_end(file1, file2):
     '''
-    INVARIANT: file1 is never none 
+    Determine from two input fastq's if we are running single-end or paired-end.
+    Outputs a list of file(s) that should be processsed. 
+    Input:      file1:      an input fastq. INVARIANT: this argument is never 
+                            None.
+                file2:      possibly another input fastq. Could be None.
+
+    Output:     (b_single_end, out_files)
+                b_single_end:   True when single-end, False otherwise. 
+                out_files:      A list of file(s) that will be processed by the
+                                rest of the pipeline. If single-end, should just
+                                be [file1]. If paired end, should be 
+                                [file1, file2]
+    If single-end, file2 should be None. Else, file2 should not be None. 
     '''
     b_single_end = True
     out_files = [file1]
@@ -154,6 +198,59 @@ def is_single_end(file1, file2):
 
     return (b_single_end, out_files)
     
+def checktrim_output(output_prefix, b_single_end):
+    '''
+    input:  output_prefix: a string containing the output prefix
+            b_single_end:  True/False, single end or not
+
+    output: a tuple (b, outputs, new_inputs)
+            b:          a boolean. True if at least 1 Trimmomatic output file is
+                        existing and nonempty
+            outputs:    a list of the outputs we are checking against. 
+            new_inputs: a list of lists [l_1, l_2, l_3, ...] where each l_i is
+                        a (nonempty) input to BMTagger. Each l_i has length 1 or
+                        length 2.
+    Summary:    Checks if Trimmomatic output files exist, and if at least some
+                of them do, assemble them into lists to pass to BMTagger.
+    '''
+    outputs = []
+    ll_new_inputs = []
+    if b_single_end:
+
+        outputs.append(output_prefix + TRIM_SE_ENDING)
+        checks = checkfile(outputs[0])
+        if checks <= 0:
+            return (False, outputs, ll_new_inputs)
+        else:
+            ll_new_inputs = [outputs]
+
+    else:
+        len_endings = len(TRIM_PE_ENDINGS)
+        outputs = [output_prefix + TRIM_PE_ENDINGS[i] for i in
+                        xrange(len_endings)]
+
+        checks = [checkfile(out) for out in outputs]
+        for i in xrange(len_endings):
+            if checks[i] == 0:
+                print("Could not find file " + outputs[i])
+                return(False, outputs, ll_new_inputs)
+        
+        if checks[0] == 1 and checks[1] == 1:
+            ll_new_inputs.append([outputs[0], outputs[1]])
+        elif checks[0] == 1:
+            ll_new_inputs.append([outputs[0]])
+        elif checks[1] == 1:
+            ll_new_inputs.append([outputs[1]])
+        for i in [2,3]:
+            if checks[i] == 1:
+                ll_new_inputs.append([outputs[i]])
+
+        # If no valid inputs, return False
+        if ll_new_inputs == []:
+            return(False, outputs, ll_new_inputs)
+
+    return (True, outputs, ll_new_inputs)
+
 
 def main():
     # parse command line arguments
@@ -197,11 +294,8 @@ def main():
     [checkfile(p, fail_hard=True) for p in paths]
 
     for db_prefix in args.reference_db:
-        endings = [".bitmask", ".srprism.amp", ".srprism.idx", ".srprism.imp",
-                ".srprism.map", ".srprism.pmp", ".srprism.rmp", ".srprism.ss",
-                ".srprism.ssa", ".srprism.ssd", ".nhr", ".nin", ".nsq"]
-        dbs = map(lambda x: str(db_prefix + x), endings)
-        [checkfile(db, fail_hard=True, ftype="BMTagger database") for db in dbs]
+        dbs = map(lambda x: str(db_prefix + x), DB_ENDINGS)
+        [checkfile(db, ftype="BMTagger database", fail_hard=True) for db in dbs]
 
     # determine single-ended or pair ends
     b_single_end, files = is_single_end(args.infile1, args.infile2)
@@ -217,8 +311,10 @@ def main():
     print("Finished running Trimmomatic. Checking output files exist... ")
 
     # check that Trimmomatic's output files exist
-    outputs = []
-    bmt_inputs = []
+    # TODO: Put this next block in a function. Do a check of files before and
+    # after running Trimmomatic. 
+    outputs, bmt_inputs = checktrim_output(args.output_prefix, b_single_end)
+    '''
     if b_single_end:
         outputs.append(str(args.output_prefix + "trimmed.fastq"))
         if not os.path.exists(outputs[0]):
@@ -248,6 +344,7 @@ def main():
         for i in [2,3]:
             if checks[i] == 1:
                 bmt_inputs.append([outputs[i]])
+    '''
 
     # make temporary directory for BMTagger files
     tempdir = args.output_prefix + "_temp"
