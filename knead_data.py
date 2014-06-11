@@ -76,11 +76,9 @@ def trim(infile, trimlen, trim_path, single_end, prefix, mem):
     # TODO: Check 64-bit architecture? 
     cmd = "java -Xmx" + mem + " -d64 -jar " + trim_arg
     print("Trimmomatic command that will be run: " + cmd)
-    call = shlex.split(cmd)
-    res = subprocess.call(call)
-    # TODO: Python truism: It's easier to ask for forgiveness than to ask
-    # for permission. 
-    return (res,cmd)
+    proc = subprocess.Popen(shlex.split(cmd), stdout=subprocess.PIPE)
+    #stdout, stderr = proc.communicate()
+    return (proc.returncode, cmd)
 
 
 def tag(infile, db_prefix, bmtagger_path, single_end, prefix, remove, temp_dir):
@@ -111,9 +109,9 @@ def tag(infile, db_prefix, bmtagger_path, single_end, prefix, remove, temp_dir):
     db_len = len(db_prefix)
     assert (db_len > 0)
 
-    bmt_args = ["" for i in xrange(db_len)]
+    bmt_args = ["" for i in range(db_len)]
     # build arguments
-    for i in xrange(db_len):
+    for i in range(db_len):
         db = db_prefix[i]
         if single_end:
             bmt_args[i] = str(bmtagger_path + " -q 1 -1 " + infile[0] + " -b " +
@@ -130,11 +128,8 @@ def tag(infile, db_prefix, bmtagger_path, single_end, prefix, remove, temp_dir):
     for arg in bmt_args:
         # Run all the BMTagger instances 
         print("BMTagger command to be run: " + arg)
-        call = shlex.split(arg)
-        print(call)
-        res = subprocess.call(call)
-        # TODO: Python truism: It's easier to ask for forgiveness than to ask
-        # for permission. 
+        res = subprocess.call(shlex.split(arg))
+
     return (res,bmt_args)
 
 
@@ -227,10 +222,13 @@ def checktrim_output(output_prefix, b_single_end):
     else:
         len_endings = len(TRIM_PE_ENDINGS)
         outputs = [output_prefix + TRIM_PE_ENDINGS[i] for i in
-                        xrange(len_endings)]
+                        range(len_endings)]
 
         checks = [checkfile(out) for out in outputs]
-        for i in xrange(len_endings):
+
+        # check that all the files at least exist. If they don't exist this
+        # means that something went wrong with Trimmomatic
+        for i in range(len_endings):
             if checks[i] == 0:
                 print("Could not find file " + outputs[i])
                 return(False, outputs, ll_new_inputs)
@@ -311,40 +309,13 @@ def main():
     print("Finished running Trimmomatic. Checking output files exist... ")
 
     # check that Trimmomatic's output files exist
-    # TODO: Put this next block in a function. Do a check of files before and
-    # after running Trimmomatic. 
-    outputs, bmt_inputs = checktrim_output(args.output_prefix, b_single_end)
-    '''
-    if b_single_end:
-        outputs.append(str(args.output_prefix + "trimmed.fastq"))
-        if not os.path.exists(outputs[0]):
-            print("Could not find file " + output[0])
-            print("Trimmomatic failed. Exiting...")
-            sys.exit(1)
-        bmt_inputs = [outputs]
-    else:
-        outputs = [args.output_prefix + ".trimmed." for i in xrange(4)]
-        outputs[0] = outputs[0] + "1.fastq"
-        outputs[1] = outputs[1] + "2.fastq"
-        outputs[2] = outputs[2] + "single.1.fastq"
-        outputs[3] = outputs[3] + "single.2.fastq"
-        checks = map(checkfile, outputs)
-        for i in xrange(4):
-            if checks[i] == 0:
-                print("Could not find file " + outputs[i])
-                print("Trimmomatic failed. Exiting...")
-                sys.exit(1)
+    b_continue, outputs, bmt_inputs = checktrim_output(args.output_prefix, 
+            b_single_end)
 
-        if checks[0] == 1 and checks[1] == 1:
-            bmt_inputs.append([outputs[0], outputs[1]])
-        elif checks[0] == 1:
-            bmt_inputs.append([outputs[0]])
-        elif checks[1] == 1:
-            bmt_inputs.append([outputs[1]])
-        for i in [2,3]:
-            if checks[i] == 1:
-                bmt_inputs.append([outputs[i]])
-    '''
+    if not b_continue:
+        print("Trimmomatic produced no non-empty files.")
+        print("Terminating the pipeline...")
+        sys.exit(1)
 
     # make temporary directory for BMTagger files
     tempdir = args.output_prefix + "_temp"
@@ -359,7 +330,7 @@ def main():
     if b_single_end:
         tag(infile = bmt_inputs[0], db_prefix = args.reference_db, 
                 bmtagger_path = args.bmtagger_path, single_end = True, prefix =
-                args.output_prefix, remove = args.extract)
+                args.output_prefix, remove = args.extract, temp_dir = tempdir)
     else:
         for inp in bmt_inputs:
             if len(inp) == 2:

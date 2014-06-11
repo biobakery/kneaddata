@@ -1,11 +1,3 @@
-'''
-test_knead_data.py: Python script for running unittests on knead_data.py.
-Recommend that you run this script in an empty directory because it generates
-files that might interfere with your own. 
-
-Author: Andy Shi
-'''
-
 import knead_data as kd
 import unittest
 import os
@@ -99,7 +91,7 @@ class test_checktrim_output(unittest.TestCase):
     def test_pe_allEmpty(self):
         ''' paired end, all files are empty '''
         b, o, inp = kd.checktrim_output(self.out, False)
-        self.assertFalse(b, "paired end with empty input")
+        self.assertFalse(b, "paired end with empty input should be false")
         self.assertEqual(o, ["out.trimmed.1.fastq", "out.trimmed.2.fastq",
         "out.trimmed.single.1.fastq", "out.trimmed.single.2.fastq"],
         "paired end correct output")
