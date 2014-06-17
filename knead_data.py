@@ -408,26 +408,26 @@ def main():
         for inp in bmt_inputs:
             if len(inp) == 2:
                 # Run paired end BMTagger
-                out_prefix = args.output_prefix + "_pe"
+                if not args.extract:
+                    out_prefix = args.output_prefix + "_pe"
                 tag(infile = inp, db_prefix = args.reference_db, bmtagger_path =
                         args.bmtagger_path, single_end = False, prefix =
                         out_prefix, remove = args.extract, temp_dir = tempdir)
 
                 # Get the proper output file name for logging purposes
                 if args.extract:
-                    out_fnames = [out_prefix + ending for ending in BMTAGGER_PE_ENDINGS]
-                    for out_fname in out_fnames:
-                        out_files.append(out_fname)
+                    for ending in BMTAGGER_PE_ENDINGS:
+                        out_files.append(out_prefix + ending)
                 else:
                     out_files.append(args.output_prefix)
 
             else:
                 # Run single end BMTagger
-                out_prefix = args.output_prefix + inp[0] + "_se"
-                tag(infile = inp, db_prefix = args.reference_db,
-                    bmtagger_path = args.bmtagger_path, single_end = True,
-                    prefix = args.output_prefix + inp[0] + "_se", remove =
-                    args.extract, temp_dir = tempdir)
+                if not args.extract:
+                    out_prefix = args.output_prefix + inp[0] + "_se"
+                tag(infile = inp, db_prefix = args.reference_db, bmtagger_path =
+                        args.bmtagger_path, single_end = True, prefix =
+                        out_prefix, remove = args.extract, temp_dir = tempdir)
 
                 if args.extract:
                     out_files.append(out_prefix + BMTAGGER_SE_ENDING)
@@ -435,6 +435,7 @@ def main():
                     out_files.append(out_prefix)
 
     print("Finished running BMTagger.")
+    print(out_files)
 
     msg = "Number of reads after tagging:\n"
     # Calculate the number of reads remaining
@@ -461,10 +462,12 @@ def main():
         msg = msg + out_files[i] + ": " + str(num_reads_orig) + "\n"
 
     msg2 = "Proportion of reads that survived: " + str(percent_reads_left)
-    print(msg + msg2)
+    print(msg)
+    print(msg2)
 
     with open(logfile, "a") as f:
-        f.write(msg + msg2)
+        f.write(msg)
+        f.write(msg2)
 
     print("Removing temporary files...")
     for output in outputs:
