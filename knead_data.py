@@ -36,7 +36,7 @@ BMTAGGER_SE_ENDING = ".fastq"
 BMTAGGER_PE_ENDINGS =   ["_1.fastq",
                         "_2.fastq"]
 
-def trim(infile, trimlen, trim_path, single_end, prefix, mem):
+def trim(infile, trimlen, trim_path, single_end, prefix, mem, addl_args):
     '''
     input: 
         infile:     input fastq file list (either length 1 or length 2)
@@ -48,6 +48,7 @@ def trim(infile, trimlen, trim_path, single_end, prefix, mem):
         prefix:     prefix for outputs
         mem:        string, ie "500m" or "8g", which specifies how much memory
                     the Java VM is allowed to use
+        addl_args:  string of additional arguments for Trimmomatic
     output: 4 files for paired end
         (1) prefix.trimmed.1.fastq: trimmed first pair-end file
         (2) prefix.trimmed.2.fastq: trimmed second pair-end file
@@ -72,13 +73,14 @@ def trim(infile, trimlen, trim_path, single_end, prefix, mem):
 
     trim_arg = ""
     if single_end:
-        trim_arg = str(trim_path + " SE -phred33 " + infile[0] + " " + prefix
-                + ".trimmed.fastq " + "MINLEN:" + str(trimlen))
+        trim_arg = str(trim_path + " SE -phred33 " + infile[0] + " " + prefix +
+                ".trimmed.fastq " + "MINLEN:" + str(trimlen) + addl_args)
     else:
         trim_arg = str(trim_path + " PE -phred33 " + infile[0] + " " +
                 infile[1] + " " + prefix + ".trimmed.1.fastq " + prefix +
                 ".trimmed.single.1.fastq " + prefix + ".trimmed.2.fastq " +
-                prefix + ".trimmed.single.2.fastq " + "MINLEN:" + str(trimlen))
+                prefix + ".trimmed.single.2.fastq " + "MINLEN:" + str(trimlen) +
+                addl_args)
 
     cmd = "java -Xmx" + mem + " -d64 -jar " + trim_arg
     print("Trimmomatic command that will be run: " + cmd)
@@ -306,7 +308,7 @@ def main():
     parser.add_argument("-db", "--reference-db", nargs = "+", 
             help="prefix for reference databases used in BMTagger")
     # Consider using a params file
-    parser.add_argument("-t", "--trim-path", help="path to Trimmomatic",
+    parser.add_argument("-t", "--trim-path", help="path to T(rimmomatic",
             required = True)
     parser.add_argument("-b", "--bmtagger-path", help="path to BMTagger",
             required = True)
@@ -315,6 +317,8 @@ def main():
             default=False, action="store_true")
     parser.add_argument("-m", "--max-mem", default="500m", 
             help="Maximum amount of memory that will be used by Trimmomatic, as a string, ie 500m or 8g")
+    parser.add_argument("-a", "--trim-args", 
+            help="additional arguments for Trimmomatic")
     parser.add_argument("-S", "--slurm", help="Running in a slurm environment",
             action = "store_true")
 
@@ -326,6 +330,7 @@ def main():
         args.output_prefix = args.infile1 + "_out"
 
     # if not extracting, append .out to the prefix
+    orig_output_prefix = args.output_prefix
     if not args.extract:
         args.output_prefix = args.output_prefix + ".out"
 
@@ -352,14 +357,15 @@ def main():
     print(msg)
 
     # Log file. Create a new one the first time, then keep appending to it.
-    logfile = args.output_prefix + ".log"
+    logfile = orig_output_prefix + ".log"
     with open(logfile, "w") as f:
         f.write(msg)
 
     print("Running Trimmomatic...")
 
     trim(files, trimlen = args.trimlen, trim_path = args.trim_path, single_end =
-            b_single_end, prefix = args.output_prefix, mem = args.max_mem)
+            b_single_end, prefix = args.output_prefix, mem = args.max_mem,
+            addl_args = args.trim_args)
     
     # TODO: run part of the pipeline (if you have the output, either overwrite
     # or do the next step)
