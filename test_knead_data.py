@@ -169,18 +169,23 @@ class test_get_num_reads(unittest.TestCase):
 
     def test_notExist(self):
         ''' Nonexistent file '''
-        self.assertEqual(kd.get_num_reads("dne.txt"), None, 
+        self.assertEqual(kd.get_num_reads("dne.txt", False), None, 
                 "Should return None for nonexistent file")
 
     def test_empty(self):
         ''' Empty file '''
-        self.assertEqual(kd.get_num_reads("empty.txt"), 0, 
+        self.assertEqual(kd.get_num_reads("empty.txt", False), 0, 
                 "Should return 0 for empty file")
     
-    def test_nonEmpty(self):
-        ''' Normal, nonempty file'''
-        self.assertEqual(kd.get_num_reads(self.testfile), 1000, 
-            "Should return the number of lines in the file divided by 4")
+    def test_nonEmpty_fastq(self):
+        ''' Normal, nonempty fastq file'''
+        self.assertEqual(kd.get_num_reads(self.testfile, True), 1000, 
+                "Should return the number of lines in the file divided by 4")
+
+    def test_nonEmpty_out(self):
+        '''Normal, nonempty LIST of hits'''
+        self.assertEqual(kd.get_num_reads(self.testfile, False), 4000, 
+                "Should return the number of lines in the file")
 
     def tearDown(self):
         os.remove(self.testfile)
