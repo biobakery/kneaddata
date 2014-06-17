@@ -258,15 +258,17 @@ def checktrim_output(output_prefix, b_single_end):
     return (True, outputs, ll_new_inputs)
 
 
-def get_num_reads(fname):
+def get_num_reads(strFname, fIsFastq):
     '''
-    input:  fname: fastq file name, as a string
-    output: the number of reads in the file, aka the number of lines in the file 
-            divided by 4. If the command fails, return None
+    input: strFname: file name of the list of contaminant reads, or of the 
+                    outputted fastq files from BMTagger.
+           fIsFastq: is the file a fastq file or not.     
+           output: the number of reads in the file, aka the number of lines in
+                   the file divided by 4. If the command fails, return None
     Summary: Uses wc to find the number of reads in a file.
     '''
     pat = r'[0-9]+ '
-    cmd = "wc --lines " + fname
+    cmd = "wc --lines " + strFname
     out = ""
     try:
         out = subprocess.check_output(shlex.split(cmd))
@@ -278,8 +280,11 @@ def get_num_reads(fname):
     # match to get the line numbers
     match = re.search(pat, out)
     if match:
-        # one read is 4 lines in the fastq file
-        num_reads = int(match.group())/4
+        num_reads = int(match.group())
+        if fIsFastq:
+            # one read is 4 lines in the fastq file
+            num_reads = num_reads/4
+
         return(num_reads)
     else:
         # should not happen
@@ -339,7 +344,7 @@ def main():
     b_single_end, files = is_single_end(args.infile1, args.infile2)
 
     # Get number of reads initially, then log
-    num_reads_init = map(get_num_reads, files)
+    num_reads_init = [get_num_reads(f, True) for f in files]
     lenfiles = len(files)
     msg = "Initial number of reads:\n"
     for i in range(len(files)):
@@ -367,7 +372,7 @@ def main():
 
     msg = "Number of reads after trimming:\n"
     for output in outputs:
-        msg = msg + output + ": " + str(get_num_reads(output)) + "\n"
+        msg = msg + output + ": " + str(get_num_reads(output, True)) + "\n"
     print(msg)
 
     with open(logfile, "a") as f:
@@ -441,7 +446,7 @@ def main():
     # Calculate the number of reads remaining
     percent_reads_left = None
     for i in range(len(out_files)):
-        num_reads_orig = get_num_reads(out_files[i])
+        num_reads_orig = get_num_reads(out_files[i], args.extract)
         try:
             num_reads = float(num_reads_orig)
             if b_single_end:
