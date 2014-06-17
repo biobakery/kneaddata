@@ -408,8 +408,10 @@ def main():
         for inp in bmt_inputs:
             if len(inp) == 2:
                 # Run paired end BMTagger
-                if not args.extract:
+                out_prefix = args.output_prefix
+                if args.extract:
                     out_prefix = args.output_prefix + "_pe"
+
                 tag(infile = inp, db_prefix = args.reference_db, bmtagger_path =
                         args.bmtagger_path, single_end = False, prefix =
                         out_prefix, remove = args.extract, temp_dir = tempdir)
@@ -423,8 +425,10 @@ def main():
 
             else:
                 # Run single end BMTagger
-                if not args.extract:
+                out_prefix = args.output_prefix
+                if args.extract:
                     out_prefix = args.output_prefix + inp[0] + "_se"
+
                 tag(infile = inp, db_prefix = args.reference_db, bmtagger_path =
                         args.bmtagger_path, single_end = True, prefix =
                         out_prefix, remove = args.extract, temp_dir = tempdir)
