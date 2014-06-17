@@ -464,7 +464,7 @@ def main():
                     percent_reads_left = num_reads/num_reads_init[0]
                 elif (not args.extract) and (out_files[i] == args.output_prefix):
                     percent_reads_left = (num_reads_init[0] -
-                            (num_reads*4))/num_reads_init[0]
+                            num_reads)/num_reads_init[0]
         except TypeError:
             pass
 
