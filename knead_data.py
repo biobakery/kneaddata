@@ -74,13 +74,13 @@ def trim(infile, trimlen, trim_path, single_end, prefix, mem, addl_args):
     trim_arg = ""
     if single_end:
         trim_arg = str(trim_path + " SE -phred33 " + infile[0] + " " + prefix +
-                ".trimmed.fastq " + "MINLEN:" + str(trimlen) + addl_args)
+                ".trimmed.fastq " + "MINLEN:" + str(trimlen) + " " + addl_args)
     else:
         trim_arg = str(trim_path + " PE -phred33 " + infile[0] + " " +
                 infile[1] + " " + prefix + ".trimmed.1.fastq " + prefix +
                 ".trimmed.single.1.fastq " + prefix + ".trimmed.2.fastq " +
                 prefix + ".trimmed.single.2.fastq " + "MINLEN:" + str(trimlen) +
-                addl_args)
+                " " + addl_args)
 
     cmd = "java -Xmx" + mem + " -d64 -jar " + trim_arg
     print("Trimmomatic command that will be run: " + cmd)
@@ -91,7 +91,8 @@ def trim(infile, trimlen, trim_path, single_end, prefix, mem, addl_args):
     #return (proc.returncode, cmd)
 
 
-def tag(infile, db_prefix, bmtagger_path, single_end, prefix, remove, temp_dir):
+def tag(infile, db_prefix, bmtagger_path, single_end, prefix, remove, debug,
+        temp_dir):
     '''
     input:
         infile:         a list of length 1 or 2 (for single and paired ends,
@@ -104,6 +105,8 @@ def tag(infile, db_prefix, bmtagger_path, single_end, prefix, remove, temp_dir):
         prefix:         prefix for output files
         remove:         True/False, remove the reads from the input files 
                         (make a copy first) or not. 
+        debug:          Boolean. If True, BMTagger does not delete temporary
+                        files
         temp_dir:       Directory to put BMTagger's temporary files
 
     output:
@@ -134,6 +137,8 @@ def tag(infile, db_prefix, bmtagger_path, single_end, prefix, remove, temp_dir):
         if remove:
             # remove the contaminant reads
             bmt_args[i] = bmt_args[i] + " --extract"
+        if debug:
+            bmt_args[i] = bmt_args[i] + " --debug"
     
     for arg in bmt_args:
         # Run all the BMTagger instances 
@@ -317,8 +322,10 @@ def main():
             default=False, action="store_true")
     parser.add_argument("-m", "--max-mem", default="500m", 
             help="Maximum amount of memory that will be used by Trimmomatic, as a string, ie 500m or 8g")
-    parser.add_argument("-a", "--trim-args", 
+    parser.add_argument("-a", "--trim-args", default="",
             help="additional arguments for Trimmomatic")
+    parser.add_argument("-d", "--debug", default=False, action="store_true",
+            help="If set, temporary files are not removed")
     parser.add_argument("-S", "--slurm", help="Running in a slurm environment",
             action = "store_true")
 
@@ -407,7 +414,8 @@ def main():
     if b_single_end:
         tag(infile = bmt_inputs[0], db_prefix = args.reference_db, 
                 bmtagger_path = args.bmtagger_path, single_end = True, prefix =
-                args.output_prefix, remove = args.extract, temp_dir = tempdir)
+                args.output_prefix, remove = args.extract, temp_dir = tempdir,
+                debug = args.debug)
 
         # Get the proper output file name for logging purposes
         if args.extract:
@@ -425,7 +433,8 @@ def main():
 
                 tag(infile = inp, db_prefix = args.reference_db, bmtagger_path =
                         args.bmtagger_path, single_end = False, prefix =
-                        out_prefix, remove = args.extract, temp_dir = tempdir)
+                        out_prefix, remove = args.extract, temp_dir = tempdir, 
+                        debug = args.debug)
 
                 # Get the proper output file name for logging purposes
                 if args.extract:
@@ -437,12 +446,13 @@ def main():
             else:
                 # Run single end BMTagger
                 out_prefix = args.output_prefix
-                if args.extract:
-                    out_prefix = args.output_prefix + inp[0] + "_se"
+                #if args.extract:
+                out_prefix = args.output_prefix + inp[0] + "_se"
 
                 tag(infile = inp, db_prefix = args.reference_db, bmtagger_path =
                         args.bmtagger_path, single_end = True, prefix =
-                        out_prefix, remove = args.extract, temp_dir = tempdir)
+                        out_prefix, remove = args.extract, temp_dir = tempdir,
+                        debug = args.debug)
 
                 if args.extract:
                     out_files.append(out_prefix + BMTAGGER_SE_ENDING)
@@ -484,10 +494,11 @@ def main():
         f.write(msg)
         f.write(msg2)
 
-    print("Removing temporary files...")
-    for output in outputs:
-        os.remove(output)
-    shutil.rmtree(tempdir)
+    if not args.debug:
+        print("Removing temporary files...")
+        for output in outputs:
+            os.remove(output)
+        shutil.rmtree(tempdir)
     print("Done!")
 
 if __name__ == '__main__':
