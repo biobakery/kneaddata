@@ -1,0 +1,34 @@
+#!/bin/bash 
+
+#SBATCH -N 1 # Number of machines to use
+
+#SBATCH -n 2 # Number of cores 
+
+#SBATCH -t 360 # Runtime in minutes 
+
+#SBATCH -p serial_requeue #Partition to submit to 
+
+#SBATCH --mem=9000 #Memory per cpu in MB (see also --mem)
+# BMTagger assumes you have at least 9 Gb of RAM
+
+#SBATCH -J run-kneaddata-array
+
+#SBATCH -e run-kd-human-%A_%a.err
+
+#SBATCH -o run-kd-human-%A_%a.out
+
+#SBATCH --mail-user=andyshi@college.harvard.edu
+
+#SBATCH --mail-type=BEGIN
+
+#SBATCH --mail-type=END
+
+source new-modules.sh
+module load python
+module load legacy
+module load centos6/ncbi-blast-2.2.29+
+module load centos6/Trimmomatic-0.32
+
+cd ~/kneadData/data/test_data/human-$SLURM_ARRAY_TASK_ID
+
+time python /n/huttenhower_lab_nobackup/data/kneadData/kneaddata/knead_data.py -1 human-$SLURM_ARRAY_TASK_ID.fir.fastq -2 human-$SLURM_ARRAY_TASK_ID.sec.fastq -o human-$SLURM_ARRAY_TASK_ID -db /n/huttenhower_lab_nobackup/data/kneadData/databases/humanGenome/Homo_sapiens_assembly19.fasta -t /n/sw/centos6/Trimmomatic-0.32/trimmomatic-0.32.jar -b ~/bin/bmtagger.sh --trim-args "LEADING:3 TRAILING:3" -m 8g --debug
