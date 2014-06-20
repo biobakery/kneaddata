@@ -10,7 +10,8 @@
 
 #SBATCH -J bam2fastq
 
-#SBATCH --error=bam2fastq.out
+#SBATCH --error=bam2fastq.err
+#SBATCH --output=bam2fastq.out
 
 #SBATCH --mail-user=andyshi@college.harvard.edu
 

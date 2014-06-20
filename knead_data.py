@@ -11,30 +11,8 @@ import os
 import sys
 import shutil
 import re
+import constants_knead_data as const
 
-# Constants
-
-# File endings for BMTagger's required database files
-DB_ENDINGS =    [".bitmask", ".srprism.amp", 
-                ".srprism.idx", ".srprism.imp",
-                ".srprism.map", ".srprism.pmp", 
-                ".srprism.rmp", ".srprism.ss",
-                ".srprism.ssa", ".srprism.ssd", 
-                ".nhr", ".nin", ".nsq"]
-
-# Trimmomatic file endings for single end and paired end, respectively
-TRIM_SE_ENDING = ".trimmed.fastq"
-
-TRIM_PE_ENDINGS =   [".trimmed.1.fastq", 
-                    ".trimmed.2.fastq", 
-                    ".trimmed.single.1.fastq", 
-                    ".trimmed.single.2.fastq"]
-
-# BMTagger file endings if you choose to remove the contaminant reads. For
-# single end and paired end reads, respectively.
-BMTAGGER_SE_ENDING = ".fastq"
-BMTAGGER_PE_ENDINGS =   ["_1.fastq",
-                        "_2.fastq"]
 
 def trim(infile, trimlen, trim_path, single_end, prefix, mem, addl_args):
     '''
@@ -227,7 +205,7 @@ def checktrim_output(output_prefix, b_single_end):
     ll_new_inputs = []
     if b_single_end:
 
-        outputs.append(output_prefix + TRIM_SE_ENDING)
+        outputs.append(output_prefix + const.TRIM_SE_ENDING)
         checks = checkfile(outputs[0])
         if checks <= 0:
             return (False, outputs, ll_new_inputs)
@@ -235,8 +213,8 @@ def checktrim_output(output_prefix, b_single_end):
             ll_new_inputs = [outputs]
 
     else:
-        len_endings = len(TRIM_PE_ENDINGS)
-        outputs = [output_prefix + TRIM_PE_ENDINGS[i] for i in
+        len_endings = len(const.TRIM_PE_ENDINGS)
+        outputs = [output_prefix + const.TRIM_PE_ENDINGS[i] for i in
                         range(len_endings)]
 
         checks = [checkfile(out) for out in outputs]
@@ -349,7 +327,7 @@ def main():
     [checkfile(p, fail_hard=True) for p in paths]
 
     for db_prefix in args.reference_db:
-        dbs = map(lambda x: str(db_prefix + x), DB_ENDINGS)
+        dbs = map(lambda x: str(db_prefix + x), const.DB_ENDINGS)
         [checkfile(db, ftype="BMTagger database", fail_hard=True) for db in dbs]
 
     # determine single-ended or pair ends
@@ -421,7 +399,7 @@ def main():
 
         # Get the proper output file name for logging purposes
         if args.extract:
-            out_files.append(args.output_prefix + BMTAGGER_SE_ENDING)
+            out_files.append(args.output_prefix + const.BMTAGGER_SE_ENDING)
         else:
             out_files.append(args.output_prefix)
 
@@ -431,9 +409,10 @@ def main():
             if len(inp) == 2:
                 # Run paired end BMTagger
                 out_prefix = args.output_prefix
-                if args.extract:
+                if not args.extract:
                     out_prefix = orig_output_prefix + "_pe.out"
 
+                print(out_prefix)
                 tag(infile = inp, db_prefix = args.reference_db, bmtagger_path =
                         args.bmtagger_path, single_end = False, prefix =
                         out_prefix, remove = args.extract, temp_dir = tempdir, 
@@ -441,25 +420,26 @@ def main():
 
                 # Get the proper output file name for logging purposes
                 if args.extract:
-                    for ending in BMTAGGER_PE_ENDINGS:
+                    for ending in const.BMTAGGER_PE_ENDINGS:
                         out_files.append(out_prefix + ending)
                 else:
                     out_files.append(args.output_prefix)
 
             else:
                 # Run single end BMTagger
-                out_prefix = args.output_prefix
-                #if args.extract:
-                out_prefix = orig_output_prefix + "_se_" + str(counter) + ".out"
+                # out_prefix = args.output_prefix
+                # if args.extract:
+                out_prefix = orig_output_prefix + "_se_" + str(counter)
                 counter += 1
 
+                print(out_prefix)
                 tag(infile = inp, db_prefix = args.reference_db, bmtagger_path =
                         args.bmtagger_path, single_end = True, prefix =
                         out_prefix, remove = args.extract, temp_dir = tempdir,
                         debug = args.debug)
 
                 if args.extract:
-                    out_files.append(out_prefix + BMTAGGER_SE_ENDING)
+                    out_files.append(out_prefix + const.BMTAGGER_SE_ENDING)
                 else:
                     out_files.append(out_prefix)
 
@@ -481,7 +461,7 @@ def main():
             # Otherwise, look for the file containing the list of reads
             else:
                 if args.extract and (out_files[i] == args.output_prefix + "_pe" +
-                        BMTAGGER_PE_ENDINGS[0]):
+                        const.BMTAGGER_PE_ENDINGS[0]):
                     percent_reads_left = num_reads/num_reads_init[0]
                 elif (not args.extract) and (out_files[i] == args.output_prefix):
                     percent_reads_left = (num_reads_init[0] -

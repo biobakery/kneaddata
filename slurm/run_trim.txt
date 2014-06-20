@@ -10,7 +10,8 @@
 
 #SBATCH -J run-trim
 
-#SBATCH --error=run-trim.out
+#SBATCH --error=run-trim.err
+#SBATCH --output=run-trim.out
 
 #SBATCH --mail-user=andyshi@college.harvard.edu
 

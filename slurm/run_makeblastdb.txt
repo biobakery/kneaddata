@@ -9,7 +9,8 @@
 #SBATCH --mem-per-cpu=9000 #Memory per cpu in MB (see also --mem)
 
 #SBATCH -J makeblastdb-dna
-#SBATCH --error=makeblastdb-dna.out
+#SBATCH --error=run-makeblastdb-dna.err
+#SBATCH --output=run-makeblastdb-dna.out
 
 #SBATCH --mail-user=andyshi@college.harvard.edu
 

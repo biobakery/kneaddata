@@ -1,16 +1,17 @@
 #!/bin/bash 
 
-#SBATCH -n 1 #Number of cores 
+#SBATCH -n 2 #Number of cores 
 
 #SBATCH -t 60 #Runtime in minutes 
 
 #SBATCH -p serial_requeue #Partition to submit to 
 
-#SBATCH --mem-per-cpu=10000 #Memory per cpu in MB (see also --mem)
+#SBATCH --mem=9000 # Total memory (in MB). See also --mem-per-cpu
 # BMTagger assumes you have at least 8.5 Gb of RAM
 
-#SBATCH -J srprism
-#SBATCH --error=srprism.out
+#SBATCH -J run-srprism
+#SBATCH --error=run-srprism.err
+#SBATCH --output=run-srprism.out
 
 #SBATCH --mail-user=andyshi@college.harvard.edu
 

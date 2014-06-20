@@ -6,10 +6,11 @@
 
 #SBATCH -p serial_requeue #Partition to submit to 
 
-#SBATCH --mem-per-cpu=9000 #Memory per cpu in MB (see also --mem)
+#SBATCH --mem=9000 # Total memory (in MB). See also --mem-per-cpu
 
 #SBATCH -J dustmasker
-#SBATCH --error=dustmasker.out
+#SBATCH --error=dustmasker.err
+#SBATCH --output=dustmasker.out
 
 #SBATCH --mail-user=andyshi@college.harvard.edu
 
