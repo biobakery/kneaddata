@@ -401,7 +401,9 @@ def main():
     try:
         os.makedirs(tempdir)
     except OSError:
-        if not os.path.isdir(tempdir):
+        if os.path.isdir(tempdir):
+            print("BMTagger temporary directory already exists! Using it...")
+        else:
             print("Cannot make the BMTagger temporary directory")
             raise
 
@@ -424,12 +426,13 @@ def main():
             out_files.append(args.output_prefix)
 
     else:
+        counter = 1
         for inp in bmt_inputs:
             if len(inp) == 2:
                 # Run paired end BMTagger
                 out_prefix = args.output_prefix
                 if args.extract:
-                    out_prefix = args.output_prefix + "_pe"
+                    out_prefix = orig_output_prefix + "_pe.out"
 
                 tag(infile = inp, db_prefix = args.reference_db, bmtagger_path =
                         args.bmtagger_path, single_end = False, prefix =
@@ -447,7 +450,8 @@ def main():
                 # Run single end BMTagger
                 out_prefix = args.output_prefix
                 #if args.extract:
-                out_prefix = args.output_prefix + inp[0] + "_se"
+                out_prefix = orig_output_prefix + "_se_" + str(counter) + ".out"
+                counter += 1
 
                 tag(infile = inp, db_prefix = args.reference_db, bmtagger_path =
                         args.bmtagger_path, single_end = True, prefix =
@@ -467,6 +471,7 @@ def main():
     percent_reads_left = None
     for i in range(len(out_files)):
         num_reads_orig = get_num_reads(out_files[i], args.extract)
+        '''
         try:
             num_reads = float(num_reads_orig)
             if b_single_end:
@@ -483,16 +488,17 @@ def main():
                             num_reads)/num_reads_init[0]
         except TypeError:
             pass
+        '''
 
         msg = msg + out_files[i] + ": " + str(num_reads_orig) + "\n"
 
-    msg2 = "Proportion of reads that survived: " + str(percent_reads_left)
     print(msg)
-    print(msg2)
+    # msg2 = "Proportion of reads that survived: " + str(percent_reads_left)
+    # print(msg2)
 
     with open(logfile, "a") as f:
         f.write(msg)
-        f.write(msg2)
+        #f.write(msg2)
 
     if not args.debug:
         print("Removing temporary files...")
