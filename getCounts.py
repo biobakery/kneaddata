@@ -22,11 +22,12 @@ def getCount(strFname):
         # Only consider every 4th line for .fastq
         iLineMod = 4
 
-    with open(strFname, "rU") as f:
+    try:
+        f = open(strFname, "rU")
         for line in f:
             if (iLineCounter % iLineMod) == 0:
                 # keep this number between 1-4 so taking mods is easy
-                iLineCounter = 1    
+                iLineCounter = 0    
 
                 # use regex to get the genus, species name
                 match = re.search(regex, line)
@@ -36,13 +37,15 @@ def getCount(strFname):
                 else:
                     # If there is no regex match, print the line so we can see
                     # what is going wrong 
-                    print("DID NOT MATCH REGEX")
-                    print(line)
+                    pass
+                    #print("DID NOT MATCH REGEX")
+                    #print(line)
                     # sys.exit(1)
             iLineCounter += 1
     except IOError:
         print("Could not find file " + strFname)
         return None
+
     return (iTotalReads, counterCount['Homo sapiens'], counterCount)
 
 

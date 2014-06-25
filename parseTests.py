@@ -3,6 +3,7 @@ import constants_knead_data as const
 import argparse
 import os
 import numpy as np
+import cPickle
 
 def main():
     parser = argparse.ArgumentParser()
@@ -10,12 +11,17 @@ def main():
         help="A list of the different data sets you want to parse")
     parser.add_argument("parent_dir", 
             help="parent directory of the datasets")
+    parser.add_argument("dumpfile", help="pickle dump file")
 
     args = parser.parse_args()
     
     # assuming all of our data is paired end, and we are using BMTagger to
     # output the putative human reads in a .out file, instead of producing a
     # .fastq file with the human reads removed.
+
+    if os.path.isfile(os.path.join(args.parent_dir, args.dumpfile)):
+        print("Pickled file already exists! Code did not execute")
+        return 0
 
     ORIG_ENDINGS = ['.fir.fastq', '.sec.fastq']
     iLenDatasets = len(args.datasets)
@@ -42,24 +48,28 @@ def main():
         lFileNames[iFileNameCounter] = dataset
         iFileNameCounter += 1
 
-        res = np.array([-1 for i in range(iLenField)])
+        res = np.array([0 for i in range(iLenField)])
         
         # count the input files
-        for ending in ORIG_ENDINGS:
-            strFile = strPathToDataSet + "/" + dataset + ending
-            try:
-                iTotalReads, iHumanReads, counter = getCount(strFile)
-                res[0] = iTotalReads
-                res[4] = iHumanReads
-            except TypeError:
-                print("Could not get counts for " + strFile)
+        strFile = os.path.join(strPathToDataSet, dataset + ORIG_ENDINGS[0])
+        #strFile = strPathToDataSet + "/" + dataset + ORIG_ENDINGS[0]
+        print(strFile)
+        try:
+            iTotalReads, iHumanReads, counter = getCounts.getCount(strFile)
+            res[0] = iTotalReads
+            res[4] = iHumanReads
+        except TypeError:
+            print("Could not get counts for " + strFile)
 
         # count the trimmed files
-        for i in range(len(const.TRIM_PE_ENDINGS))
-            strFile = strPathToDataSet + "/" + dataset +
-                    const.TRIM_PE_ENDINGS[i]
+        endings = const.TRIM_PE_ENDINGS[1:] # only include one of the PE files
+        for i in range(len(endings)):
+            strFile = os.path.join(strPathToDataSet,
+                    dataset + ".out" + endings[i])
+            # strFile = str(strPathToDataSet + "/" + dataset + ".out" + endings[i])
+            print(strFile)
             try:
-                iTotalReads, iHumanReads, counter = getCounts(strFile)
+                iTotalReads, iHumanReads, counter = getCounts.getCount(strFile)
                 res[i+1] = iTotalReads
                 res[i+5] = iHumanReads
             except TypeError:
@@ -67,16 +77,23 @@ def main():
 
         # count the BMTagger output
         for i in range(len(const.BMTAGGER_EXTRACT_ENDINGS)):
-            strFile = strPathToDataSet + "/" + dataset +
-                    const.BMTAGGER_EXTRACT_ENDINGS[i]
+            strFile = os.path.join(strPathToDataSet,
+                    dataset + const.BMTAGGER_EXTRACT_ENDINGS[i])
+            # strFile = str(strPathToDataSet + "/" + dataset + const.BMTAGGER_EXTRACT_ENDINGS[i])
+            print(strFile)
             try:
-                iTotalReads, iHumanReads, counter = getCounts(strFile)
+                iTotalReads, iHumanReads, counter = getCounts.getCount(strFile)
                 res[i+8] = iHumanReads
                 res[i+11] = iTotalReads - iHumanReads
             except TypeError:
                 print("Could not get counts for " + strFile)
         lRes[iDataInd] = res
-        print(lRes)
+    print(lstrFieldNames)
+    print(lRes)
+
+    with open(os.path.join(args.parent_dir, args.dumpfile), "w") as f:
+        cPickle.dump((lstrFieldNames,lRes), f)
+
 
 if __name__ == '__main__':
     main()
