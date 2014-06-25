@@ -423,13 +423,15 @@ def main():
                     for ending in const.BMTAGGER_PE_ENDINGS:
                         out_files.append(out_prefix + ending)
                 else:
-                    out_files.append(args.output_prefix)
+                    out_files.append(out_prefix)
 
             else:
                 # Run single end BMTagger
                 # out_prefix = args.output_prefix
                 # if args.extract:
                 out_prefix = orig_output_prefix + "_se_" + str(counter)
+                if not args.extract:
+                    out_prefix = out_prefix + ".out"
                 counter += 1
 
                 print(out_prefix)

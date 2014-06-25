@@ -40,6 +40,9 @@ def getCount(strFname):
                     print(line)
                     # sys.exit(1)
             iLineCounter += 1
+    except IOError:
+        print("Could not find file " + strFname)
+        return None
     return (iTotalReads, counterCount['Homo sapiens'], counterCount)
 
 
