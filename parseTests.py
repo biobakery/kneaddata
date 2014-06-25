@@ -38,7 +38,7 @@ def main():
     iLenField = len(lstrFieldNames)
 
     lRes = np.array([[-1 for i in range(iLenField)] for i in
-        range(iLenDatasets)])
+        range(iLenDatasets)], dtype="float_")
 
     for iDataInd in range(iLenDatasets):
         dataset = args.datasets[iDataInd]
@@ -48,7 +48,7 @@ def main():
         lFileNames[iFileNameCounter] = dataset
         iFileNameCounter += 1
 
-        res = np.array([0 for i in range(iLenField)])
+        res = np.array([0 for i in range(iLenField)], dtype="float_")
         
         # count the input files
         strFile = os.path.join(strPathToDataSet, dataset + ORIG_ENDINGS[0])
@@ -88,11 +88,12 @@ def main():
             except TypeError:
                 print("Could not get counts for " + strFile)
         lRes[iDataInd] = res
+    print(lFileNames)
     print(lstrFieldNames)
     print(lRes)
 
     with open(os.path.join(args.parent_dir, args.dumpfile), "w") as f:
-        cPickle.dump((lstrFieldNames,lRes), f)
+        cPickle.dump((lFileNames, lstrFieldNames,lRes), f)
 
 
 if __name__ == '__main__':
