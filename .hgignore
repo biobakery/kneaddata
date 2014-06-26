@@ -6,5 +6,7 @@ syntax: glob
 *.bak
 *.pyc
 *.npy
+*.csv
+*.pdf
 
 syntax: regexp
