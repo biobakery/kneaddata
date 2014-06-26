@@ -32,7 +32,7 @@ def main():
             'NumReadsTrimmedSE1', 'NumReadsTrimmedSE2', 'HumanOrig',
             'HumanTrimmedPE', 'HumanTrimmedSE1', 'HumanTrimmedSE2',
             'HumanRemovedPE', 'HumanRemovedSE1', 'HumanRemovedSE2',
-            'NonhumanRemovedPE', 'NonHumanRemovedSE1', 'NonHumanRemovedSE2']
+            'NonHumanRemovedPE', 'NonHumanRemovedSE1', 'NonHumanRemovedSE2']
 
     iLenField = len(lstrFieldNames)
 
@@ -91,8 +91,8 @@ def main():
     print(lstrFieldNames)
     print(lRes)
 
-    np.savetxt(savefile, lRes, delimiter=",", newline="\n",
-            header=",".join(lstrFieldNames))
+    np.savetxt(args.savefile, lRes, fmt="%d", delimiter=",", newline="\n",
+            header=",".join(lstrFieldNames), comments="")
 
 
 if __name__ == '__main__':
