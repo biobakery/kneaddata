@@ -3,7 +3,6 @@ import constants_knead_data as const
 import argparse
 import os
 import numpy as np
-import cPickle
 
 def main():
     parser = argparse.ArgumentParser()
@@ -11,7 +10,7 @@ def main():
         help="A list of the different data sets you want to parse")
     parser.add_argument("parent_dir", 
             help="parent directory of the datasets")
-    parser.add_argument("dumpfile", help="pickle dump file")
+    parser.add_argument("savefile", help="Output file for numpy array (as csv)")
 
     args = parser.parse_args()
     
@@ -19,8 +18,8 @@ def main():
     # output the putative human reads in a .out file, instead of producing a
     # .fastq file with the human reads removed.
 
-    if os.path.isfile(os.path.join(args.parent_dir, args.dumpfile)):
-        print("Pickled file already exists! Code did not execute")
+    if os.path.isfile(os.path.join(args.parent_dir, args.savefile)):
+        print("Output file already exists! Code did not execute")
         return 0
 
     ORIG_ENDINGS = ['.fir.fastq', '.sec.fastq']
@@ -92,8 +91,8 @@ def main():
     print(lstrFieldNames)
     print(lRes)
 
-    with open(os.path.join(args.parent_dir, args.dumpfile), "w") as f:
-        cPickle.dump((lFileNames, lstrFieldNames,lRes), f)
+    np.savetxt(savefile, lRes, delimiter=",", newline="\n",
+            header=",".join(lstrFieldNames))
 
 
 if __name__ == '__main__':

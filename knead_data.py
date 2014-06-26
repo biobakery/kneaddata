@@ -291,7 +291,7 @@ def main():
     parser.add_argument("-db", "--reference-db", nargs = "+", 
             help="prefix for reference databases used in BMTagger")
     # Consider using a params file
-    parser.add_argument("-t", "--trim-path", help="path to T(rimmomatic",
+    parser.add_argument("-t", "--trim-path", help="path to Trimmomatic",
             required = True)
     parser.add_argument("-b", "--bmtagger-path", help="path to BMTagger",
             required = True)
@@ -304,8 +304,8 @@ def main():
             help="additional arguments for Trimmomatic")
     parser.add_argument("-d", "--debug", default=False, action="store_true",
             help="If set, temporary files are not removed")
-    parser.add_argument("-S", "--slurm", help="Running in a slurm environment",
-            action = "store_true")
+    # parser.add_argument("-S", "--slurm", help="Running in a slurm environment",
+    #        action = "store_true")
 
     args = parser.parse_args()
 
@@ -344,6 +344,8 @@ def main():
     # Log file. Create a new one the first time, then keep appending to it.
     logfile = orig_output_prefix + ".log"
     with open(logfile, "w") as f:
+        f.write("Running knead_data.py with the following arguments (from argparse):\n"
+                + str(args))
         f.write(msg)
 
     print("Running Trimmomatic...")
@@ -450,7 +452,7 @@ def main():
 
     msg = "Number of reads after tagging:\n"
     # Calculate the number of reads remaining
-    percent_reads_left = None
+    #percent_reads_left = None
     for i in range(len(out_files)):
         num_reads_orig = get_num_reads(out_files[i], args.extract)
         '''
