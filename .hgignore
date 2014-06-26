@@ -8,5 +8,6 @@ syntax: glob
 *.npy
 *.csv
 *.pdf
+*.ipynb
 
 syntax: regexp
