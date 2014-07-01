@@ -11,6 +11,8 @@ import os
 import sys
 import shutil
 import re
+import itertools
+import collections
 import constants_knead_data as const
 
 
@@ -70,8 +72,10 @@ def trim(infile, trimlen, trim_path, single_end, prefix, mem, addl_args):
 
 
 def tag(infile, db_prefix, bmtagger_path, single_end, prefix, remove, debug,
-        temp_dir):
+        temp_dir, orphan=None):
     '''
+    Runs multiple instances of BMTagger (in parallel), one for each input
+    database. 
     input:
         infile:         a list of length 1 or 2 (for single and paired ends,
                         respectively) 
@@ -92,38 +96,169 @@ def tag(infile, db_prefix, bmtagger_path, single_end, prefix, remove, debug,
         prefix_depleted.fastq:  the input fastq with the unwanted reads removed
 
     returns:
-        (res, cmd)              res is the error code of the command
-                                cmd (string) is the command itself
+        (ret_codes, bmt_args)   
+        Both are lists, each which has the same number of elements as the number
+        of databases. THe first contains the return codes for each of the
+        BMTagger executions, and the second contains the command line calls for
+        these executions
     Summary: Uses BMTagger to tag and potentially remove unwanted reads
     '''
-    # check inputs
-    db_len = len(db_prefix)
-    assert (db_len > 0)
+    # quick check of inputs
+    if single_end:
+        if len(infile) != 1:
+            print("Improper call to BMTagger!")
+            return([],[])
 
-    bmt_args = ["" for i in range(db_len)]
+    else:
+        if len(infile) != 2:
+            print("Improper call to BMTagger!")
+            return([],[])
+
+
+    db_len = len(db_prefix)
+    bmt_args = [None for i in range(db_len)]
+
+    # correctly manage the output prefix
+    outputs = [None for i in range(db_len)]
     # build arguments
     for i in range(db_len):
         db = db_prefix[i]
+        out_prefix = None
         if single_end:
-            bmt_args[i] = str(bmtagger_path + " -q 1 -1 " + infile[0] + " -b " +
-                    db + ".bitmask -x " + db + ".srprism -T " + temp_dir + 
-                    " -o " + prefix) 
+            if remove:
+                out_prefix = prefix + "_db" + str(i)
+                if orphan != None:
+                    out_prefix = prefix + "_db" + str(i) + "_se_" + str(orphan)
+                bmt_args[i] = str(bmtagger_path + " -q 1 -1 " + infile[0] + 
+                        " -b " + db + ".bitmask -x " + db + ".srprism -T " + 
+                        temp_dir + " -o " + out_prefix + " --extract")
+                outputs[i] = [out_prefix + const.BMTAGGER_SE_ENDING]
+
+            else:
+                out_prefix = prefix + "_db" + str(i) + ".out"
+                if orphan != None:
+                    out_prefix = str(prefix + "_db" + str(i) + "_se_" + str(orphan)
+                            + ".out")
+                bmt_args[i] = str(bmtagger_path + " -q 1 -1 " + infile[0] + 
+                        " -b " + db + ".bitmask -x " + db + ".srprism -T " + 
+                        temp_dir + " -o " + out_prefix)
+                outputs[i] = [out_prefix]
+
+
         else:
-            bmt_args[i] = str(bmtagger_path + " -q 1 -1 " + infile[0] + 
-                    " -2 " + infile[1] + " -b " + db + ".bitmask -x " + db + 
-                    ".srprism -T " + temp_dir + " -o " + prefix)
-        if remove:
-            # remove the contaminant reads
-            bmt_args[i] = bmt_args[i] + " --extract"
+            if remove:
+                out_prefix = prefix + "_db" + str(i) + "_pe"
+                bmt_args[i] = str(bmtagger_path + " -q 1 -1 " + infile[0] + 
+                        " -2 " + infile[1] + " -b " + db + ".bitmask -x " + db +
+                        ".srprism -T " + temp_dir + " -o " + out_prefix + 
+                        " --extract")
+                outputs[i] = [out_prefix + ending for ending in
+                        const.BMTAGGER_PE_ENDINGS]
+            
+            else:
+                out_prefix = prefix + "_db" + str(i) + "_pe" + ".out"
+                bmt_args[i] = str(bmtagger_path + " -q 1 -1 " + infile[0] + 
+                        " -2 " + infile[1] + " -b " + db + ".bitmask -x " + db +
+                        ".srprism -T " + temp_dir + " -o " + out_prefix)
+                outputs[i] = [out_prefix]
         if debug:
             bmt_args[i] = bmt_args[i] + " --debug"
     
-    for arg in bmt_args:
-        # Run all the BMTagger instances 
-        print("BMTagger command to be run: " + arg)
-        res = subprocess.call(shlex.split(arg))
+    print("BMTagger commands to run:")
+    print(bmt_args)
+    procs = [subprocess.Popen(shlex.split(arg)) for arg in bmt_args]
 
-    return (res,bmt_args)
+    print(outputs)
+    ret_codes = []
+    # wait for all subprocesses to terminate
+    for p in procs:
+        p.wait()
+        ret_codes.append(p.returncode)
+
+    return (ret_codes, bmt_args)
+
+
+def check_fastq(strFname):
+    '''
+    Returns True if file strFname is a fastq file (based on file extension)
+    '''
+    return (strFname[-6:] == '.fastq')
+
+def intersect_fastq(lstrFiles, out_file):
+    counter = collections.Counter()
+    for fname in lstrFiles:
+        with open(fname, "rU") as f:
+            for lines in itertools.izip_longest(*[f]*4):
+                read = "".join(lines).strip()
+                counter[read] += 1
+    #with open(logfile, "a") as f:
+    print(counter)
+    for key in counter:
+        if counter[key] > 1:
+            print(key+"\n")
+
+def union_outfiles(lstrFiles):
+    strFiles = " ".join(lstrFiles)
+    subprocess.call(shlex.split("sort -u " + strFiles))# + " > " prefix))
+
+def combine_tag(llstrFiles, logfile, out_prefix, single_end):
+    '''
+    Summary: Combines output if we run BMTagger on multiple databases.
+    Input:
+        llstrFiles: a list of lists of BMTagger outputs. This is passed in from
+        the tag function. The `inner lists` are of length 1 or 2
+        logfile: the file used to log statistics about the files
+
+    Output:
+        the log file is updated with read counts
+    '''
+    # get read counts
+    msgs = [[str(f + ": " + str(get_num_reads(f))) for f in pair] for pair in llstrFiles]
+
+    # flatten the list
+    msg_flattened = itertools.chain.from_iterable(msgs)
+    msg_to_print = "\n".join(msg_flattened)
+    #print(msg_to_print)
+    with open(logfile, "a") as f:
+        f.write("Read counts after tagging:\n")
+        f.write(msg_to_print)
+
+    # Get the file names and concat them into strings (separated by spaces)
+    fnames1 = [f[0] for f in llstrFiles]
+    strJoined1 = " ".join(fnames1)
+    fnames2 = []
+    strJoined2 = None
+    if not single_end:
+        fnames2 = [f[1] for f in llstrFiles]
+        strJoined2 = " ".join(fnames2)
+
+    # Check if it was .fastq or not
+    fIsFastq = check_fastq(fnames1[0])
+
+    # Call the unix uniq command to join the files
+    if fIsFastq:
+        # If BMTagger outputs fastq files, we only want the lines in common
+        # after tagging against all the databases
+        '''
+        subprocess.call(shlex.split("sort " + strJoined1 + " | uniq -d > " +
+            out_prefix)) 
+        if strJoined2 != None:
+            subprocess.call(shlex.split("sort " + strJoined2 + " | uniq -d > " +
+                out_prefix)) 
+        '''
+    else:
+        # Otherwise, if we generate .out files, we want the unique lines from
+        # each, as to not have overlap when we produce the list of contaminant
+        # reads
+        '''
+        subprocess.call(shlex.split("sort -u " + strJoined1 + " > " +
+            out_prefix + ".out")) 
+        if strJoined2 != None:
+            subprocess.call(shlex.split("sort -u " + strJoined2 + " > " +
+            out_prefix + ".out")) 
+        '''
+    return
+
 
 
 def checkfile(fname, ftype="file", fail_hard=False):
@@ -214,8 +349,7 @@ def checktrim_output(output_prefix, b_single_end):
 
     else:
         len_endings = len(const.TRIM_PE_ENDINGS)
-        outputs = [output_prefix + const.TRIM_PE_ENDINGS[i] for i in
-                        range(len_endings)]
+        outputs = [output_prefix + ending for ending in const.TRIM_PE_ENDINGS]
 
         checks = [checkfile(out) for out in outputs]
 
@@ -243,7 +377,7 @@ def checktrim_output(output_prefix, b_single_end):
     return (True, outputs, ll_new_inputs)
 
 
-def get_num_reads(strFname, fIsFastq):
+def get_num_reads(strFname):
     '''
     input: strFname: file name of the list of contaminant reads, or of the 
                     outputted fastq files from BMTagger.
@@ -254,27 +388,28 @@ def get_num_reads(strFname, fIsFastq):
     '''
     pat = r'[0-9]+ '
     cmd = "wc --lines " + strFname
-    out = ""
+    fIsFastq = check_fastq(strFname)
+
     try:
         out = subprocess.check_output(shlex.split(cmd))
+        # match to get the line numbers
+        match = re.search(pat, out)
+        if match:
+            num_reads = int(match.group())
+            if fIsFastq:
+                # one read is 4 lines in the fastq file
+                num_reads = num_reads/4
+
+            return(num_reads)
+        else:
+            # should not happen
+            print("This should not happen. Can't find the regex in wc output!")
+            return None
     except subprocess.CalledProcessError as e:
         print("Command " + str(e.cmd) + " failed with return code " +
                 str(e.returncode))
         return None
     
-    # match to get the line numbers
-    match = re.search(pat, out)
-    if match:
-        num_reads = int(match.group())
-        if fIsFastq:
-            # one read is 4 lines in the fastq file
-            num_reads = num_reads/4
-
-        return(num_reads)
-    else:
-        # should not happen
-        print("This should not happen. Can't find the regex in wc output!")
-        return None
 
 
 def main():
@@ -288,7 +423,7 @@ def main():
             default=60)
     parser.add_argument("-o", "--output-prefix",
             help="prefix for all output files")
-    parser.add_argument("-db", "--reference-db", nargs = "+", 
+    parser.add_argument("-db", "--reference-db", nargs = "+", default=[],
             help="prefix for reference databases used in BMTagger")
     # Consider using a params file
     parser.add_argument("-t", "--trim-path", help="path to Trimmomatic",
@@ -312,13 +447,7 @@ def main():
     # check inputs
     # deal with missing prefix
     if args.output_prefix == None:
-        args.output_prefix = args.infile1 + "_out"
-
-    # if not extracting, append .out to the prefix
-    orig_output_prefix = args.output_prefix
-    if not args.extract:
-        args.output_prefix = args.output_prefix + ".out"
-
+        args.output_prefix = args.infile1 + "_output"
 
     # check for the existence of required files/paths
     paths = [args.infile1, args.trim_path, args.bmtagger_path]
@@ -334,15 +463,16 @@ def main():
     b_single_end, files = is_single_end(args.infile1, args.infile2)
 
     # Get number of reads initially, then log
-    num_reads_init = [get_num_reads(f, True) for f in files]
+    num_reads_init = [get_num_reads(f) for f in files]
     lenfiles = len(files)
     msg = "Initial number of reads:\n"
+    # TODO: Use string.join instead of repeated string concatenations
     for i in range(len(files)):
         msg = msg + files[i] + ": " + str(num_reads_init[i]) + "\n"
     print(msg)
 
     # Log file. Create a new one the first time, then keep appending to it.
-    logfile = orig_output_prefix + ".log"
+    logfile = args.output_prefix + ".log"
     with open(logfile, "w") as f:
         f.write("Running knead_data.py with the following arguments (from argparse):\n"
                 + str(args))
@@ -365,7 +495,7 @@ def main():
 
     msg = "Number of reads after trimming:\n"
     for output in outputs:
-        msg = msg + output + ": " + str(get_num_reads(output, True)) + "\n"
+        msg = msg + output + ": " + str(get_num_reads(output)) + "\n"
     print(msg)
 
     with open(logfile, "a") as f:
@@ -399,90 +529,97 @@ def main():
                 args.output_prefix, remove = args.extract, temp_dir = tempdir,
                 debug = args.debug)
 
+        '''
         # Get the proper output file name for logging purposes
         if args.extract:
             out_files.append(args.output_prefix + const.BMTAGGER_SE_ENDING)
         else:
             out_files.append(args.output_prefix)
+        '''
 
     else:
-        counter = 1
+        orphan_counter = 1
         for inp in bmt_inputs:
             if len(inp) == 2:
+                '''
                 # Run paired end BMTagger
                 out_prefix = args.output_prefix
                 if not args.extract:
                     out_prefix = orig_output_prefix + "_pe.out"
 
                 print(out_prefix)
+                '''
                 tag(infile = inp, db_prefix = args.reference_db, bmtagger_path =
                         args.bmtagger_path, single_end = False, prefix =
-                        out_prefix, remove = args.extract, temp_dir = tempdir, 
+                        args.output_prefix, remove = args.extract, temp_dir = tempdir, 
                         debug = args.debug)
 
+                '''
                 # Get the proper output file name for logging purposes
                 if args.extract:
                     for ending in const.BMTAGGER_PE_ENDINGS:
                         out_files.append(out_prefix + ending)
                 else:
                     out_files.append(out_prefix)
+                '''
 
             else:
                 # Run single end BMTagger
-                # out_prefix = args.output_prefix
-                # if args.extract:
-                out_prefix = orig_output_prefix + "_se_" + str(counter)
+                '''
                 if not args.extract:
                     out_prefix = out_prefix + ".out"
-                counter += 1
-
                 print(out_prefix)
+                '''
+
                 tag(infile = inp, db_prefix = args.reference_db, bmtagger_path =
                         args.bmtagger_path, single_end = True, prefix =
-                        out_prefix, remove = args.extract, temp_dir = tempdir,
-                        debug = args.debug)
+                        args.output_prefix, remove = args.extract, temp_dir = tempdir,
+                        debug = args.debug, orphan = orphan_counter)
+                orphan_counter += 1
 
+                '''
                 if args.extract:
                     out_files.append(out_prefix + const.BMTAGGER_SE_ENDING)
                 else:
                     out_files.append(out_prefix)
+                '''
 
     print("Finished running BMTagger.")
-    print(out_files)
-
-    msg = "Number of reads after tagging:\n"
-    # Calculate the number of reads remaining
-    #percent_reads_left = None
-    for i in range(len(out_files)):
-        num_reads_orig = get_num_reads(out_files[i], args.extract)
-        '''
-        try:
-            num_reads = float(num_reads_orig)
-            if b_single_end:
-                percent_reads_left = num_reads/num_reads_init[0]
-
-            # if --extract is set, look for one of the paired end files.
-            # Otherwise, look for the file containing the list of reads
-            else:
-                if args.extract and (out_files[i] == args.output_prefix + "_pe" +
-                        const.BMTAGGER_PE_ENDINGS[0]):
-                    percent_reads_left = num_reads/num_reads_init[0]
-                elif (not args.extract) and (out_files[i] == args.output_prefix):
-                    percent_reads_left = (num_reads_init[0] -
-                            num_reads)/num_reads_init[0]
-        except TypeError:
-            pass
-        '''
-
-        msg = msg + out_files[i] + ": " + str(num_reads_orig) + "\n"
-
-    print(msg)
-    # msg2 = "Proportion of reads that survived: " + str(percent_reads_left)
-    # print(msg2)
-
-    with open(logfile, "a") as f:
-        f.write(msg)
-        #f.write(msg2)
+#    print(out_files)
+#
+#    msg = "Number of reads after tagging:\n"
+#    # Calculate the number of reads remaining
+#    #percent_reads_left = None
+#    for i in range(len(out_files)):
+#        num_reads_orig = get_num_reads(out_files[i])
+#        '''
+#        try:
+#            num_reads = float(num_reads_orig)
+#            if b_single_end:
+#                percent_reads_left = num_reads/num_reads_init[0]
+#
+#            # if --extract is set, look for one of the paired end files.
+#            # Otherwise, look for the file containing the list of reads
+#            else:
+#                if args.extract and (out_files[i] == args.output_prefix + "_pe" +
+#                        const.BMTAGGER_PE_ENDINGS[0]):
+#                    percent_reads_left = num_reads/num_reads_init[0]
+#                elif (not args.extract) and (out_files[i] == args.output_prefix):
+#                    percent_reads_left = (num_reads_init[0] -
+#                            num_reads)/num_reads_init[0]
+#        except TypeError:
+#            pass
+#        '''
+#
+#        msg = msg + out_files[i] + ": " + str(num_reads_orig) + "\n"
+#
+#    print(msg)
+#    # msg2 = "Proportion of reads that survived: " + str(percent_reads_left)
+#    # print(msg2)
+#
+#    with open(logfile, "a") as f:
+#        f.write(msg)
+#        #f.write(msg2)
 
     if not args.debug:
         print("Removing temporary files...")

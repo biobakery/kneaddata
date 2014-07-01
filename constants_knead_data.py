@@ -21,4 +21,4 @@ TRIM_PE_ENDINGS =   [".trimmed.1.fastq",
 BMTAGGER_SE_ENDING = ".fastq"
 BMTAGGER_PE_ENDINGS =   ["_1.fastq",
                         "_2.fastq"]
-BMTAGGER_EXTRACT_ENDINGS = ["_pe.out", "_se_1.out", "_se_2.out"]
+BMTAGGER_OUTPUT_ENDINGS = ["_pe.out", "_se_1.out", "_se_2.out"]

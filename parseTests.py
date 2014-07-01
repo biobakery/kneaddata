@@ -51,7 +51,6 @@ def main():
         
         # count the input files
         strFile = os.path.join(strPathToDataSet, dataset + ORIG_ENDINGS[0])
-        #strFile = strPathToDataSet + "/" + dataset + ORIG_ENDINGS[0]
         print(strFile)
         try:
             iTotalReads, iHumanReads, counter = getCounts.getCount(strFile)
@@ -65,7 +64,6 @@ def main():
         for i in range(len(endings)):
             strFile = os.path.join(strPathToDataSet,
                     dataset + ".out" + endings[i])
-            # strFile = str(strPathToDataSet + "/" + dataset + ".out" + endings[i])
             print(strFile)
             try:
                 iTotalReads, iHumanReads, counter = getCounts.getCount(strFile)
@@ -75,10 +73,9 @@ def main():
                 print("Could not get counts for " + strFile)
 
         # count the BMTagger output
-        for i in range(len(const.BMTAGGER_EXTRACT_ENDINGS)):
+        for i in range(len(const.BMTAGGER_OUTPUT_ENDINGS)):
             strFile = os.path.join(strPathToDataSet,
-                    dataset + const.BMTAGGER_EXTRACT_ENDINGS[i])
-            # strFile = str(strPathToDataSet + "/" + dataset + const.BMTAGGER_EXTRACT_ENDINGS[i])
+                    dataset + const.BMTAGGER_OUTPUT_ENDINGS[i])
             print(strFile)
             try:
                 iTotalReads, iHumanReads, counter = getCounts.getCount(strFile)
