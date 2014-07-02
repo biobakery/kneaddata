@@ -72,7 +72,7 @@ def trim(infile, trimlen, trim_path, single_end, prefix, mem, addl_args):
 
 
 def tag(infile, db_prefix, bmtagger_path, single_end, prefix, remove, debug,
-        temp_dir, orphan=None):
+        temp_dir, logfile, orphan=None):
     '''
     Runs multiple instances of BMTagger (in parallel), one for each input
     database. 
@@ -168,12 +168,16 @@ def tag(infile, db_prefix, bmtagger_path, single_end, prefix, remove, debug,
     print(bmt_args)
     procs = [subprocess.Popen(shlex.split(arg)) for arg in bmt_args]
 
-    print(outputs)
     ret_codes = []
     # wait for all subprocesses to terminate
     for p in procs:
         p.wait()
         ret_codes.append(p.returncode)
+
+    #print("OUTPUTS: " + str(outputs))
+    # TODO: Make better tests; failing b/c we are not actually running BMTagger
+    if outputs != []:
+        combine_tag(outputs, logfile, prefix, single_end)
 
     return (ret_codes, bmt_args)
 
@@ -185,28 +189,74 @@ def check_fastq(strFname):
     return (strFname[-6:] == '.fastq')
 
 def intersect_fastq(lstrFiles, out_file):
+    ''' 
+    Intersects multiple fastq files with one another. Includes only the reads (4
+    lines long each) that are common to all the files. Writes these reads to the
+    output file specified in out_file. 
+
+    Input:
+    lstrFiles:  a list of fastq file names (as strings)
+    out_file:   output file to write the results. 
+    '''
     counter = collections.Counter()
     for fname in lstrFiles:
         with open(fname, "rU") as f:
+            # nifty trick to read 4 lines at a time (fastq files have 4 lines
+            # per read)
             for lines in itertools.izip_longest(*[f]*4):
-                read = "".join(lines).strip()
-                counter[read] += 1
-    #with open(logfile, "a") as f:
-    print(counter)
-    for key in counter:
-        if counter[key] > 1:
-            print(key+"\n")
+                try:
+                    read = ("".join(lines)).strip()
+                    counter[read] += 1
+                except TypeError:
+                    print("Error encountered!!")
+                    print("You probably passed in a bad fastq file, one that doesn't have 4 lines per read")
+                    raise
 
-def union_outfiles(lstrFiles):
+    print(counter)
+    num_files = len(lstrFiles)
+    with open(out_file, "w") as f:
+        for key in counter:
+            # only includes reads that are in n or more files, for n input files
+            if counter[key] >= num_files:
+                f.write(key+"\n")
+
+def union_outfiles(lstrFiles, out_file):
+    '''
+    Union multiple .out files (lists of contaminant reads output by BMTagger).
+    Includes 1 copy of every read name listed in any of the input files. 
+    Input:
+    lstrFiles:  a list of .out file names (as strings)
+    out_file:   output file to write the results
+    '''
+    counter = collections.Counter()
+    for fname in lstrFiles:
+        with open(fname, "rU") as f:
+            for line in f:
+                read = line.strip()
+                counter[read] += 1
+    print(counter)
+    with open(out_file, "w") as f:
+        for key in counter:
+            f.write(key+"\n")
+
+# TODO: Test which one (above or below) is faster
+
+'''
+# Dead code, for now. Tried to implement union using command line tools. 
+def union_outfiles(lstrFiles, out_file):
     strFiles = " ".join(lstrFiles)
-    subprocess.call(shlex.split("sort -u " + strFiles))# + " > " prefix))
+    # subprocess.call does not directly support redirection. Try to use
+    # subprocess.Popen, and manually pipe the stdout to a file
+    print(shlex.split("sort -u " + strFiles + " > " + out_file))
+    #subprocess.call(shlex.split("sort -u " + strFiles + " > " + out_file))
+'''
 
 def combine_tag(llstrFiles, logfile, out_prefix, single_end):
     '''
     Summary: Combines output if we run BMTagger on multiple databases.
     Input:
         llstrFiles: a list of lists of BMTagger outputs. This is passed in from
-        the tag function. The `inner lists` are of length 1 or 2
+        the tag function. The 'inner lists' are of length 1 or 2
         logfile: the file used to log statistics about the files
 
     Output:
@@ -218,46 +268,55 @@ def combine_tag(llstrFiles, logfile, out_prefix, single_end):
     # flatten the list
     msg_flattened = itertools.chain.from_iterable(msgs)
     msg_to_print = "\n".join(msg_flattened)
-    #print(msg_to_print)
+    print(msg_to_print)
     with open(logfile, "a") as f:
         f.write("Read counts after tagging:\n")
         f.write(msg_to_print)
 
     # Get the file names and concat them into strings (separated by spaces)
     fnames1 = [f[0] for f in llstrFiles]
-    strJoined1 = " ".join(fnames1)
     fnames2 = []
-    strJoined2 = None
-    if not single_end:
+    if len(llstrFiles[0]) == 2:
         fnames2 = [f[1] for f in llstrFiles]
-        strJoined2 = " ".join(fnames2)
 
     # Check if it was .fastq or not
     fIsFastq = check_fastq(fnames1[0])
 
-    # Call the unix uniq command to join the files
+    output_files = []
     if fIsFastq:
         # If BMTagger outputs fastq files, we only want the lines in common
         # after tagging against all the databases
-        '''
-        subprocess.call(shlex.split("sort " + strJoined1 + " | uniq -d > " +
-            out_prefix)) 
-        if strJoined2 != None:
-            subprocess.call(shlex.split("sort " + strJoined2 + " | uniq -d > " +
-                out_prefix)) 
-        '''
+        output_file = out_prefix + "_pe_1.fastq"
+        if single_end:
+            output_file = out_prefix + ".fastq"
+
+        intersect_fastq(fnames1, output_file)
+        output_files.append(output_file)
+        if fnames2 != []:
+            if single_end:
+                raise Exception("Cannot have single end file with two different .fastq's per database")
+            output_file = out_prefix + "_pe_2.fastq"
+            intersect_fastq(fnames1, output_file)
+            output_files.append(output_file)
     else:
         # Otherwise, if we generate .out files, we want the unique lines from
         # each, as to not have overlap when we produce the list of contaminant
         # reads
-        '''
-        subprocess.call(shlex.split("sort -u " + strJoined1 + " > " +
-            out_prefix + ".out")) 
-        if strJoined2 != None:
-            subprocess.call(shlex.split("sort -u " + strJoined2 + " > " +
-            out_prefix + ".out")) 
-        '''
-    return
+        union_outfiles(fnames1, out_prefix + ".out")
+        output_files.append(out_prefix + ".out")
+        if fnames2 != []:
+            # This should not happen
+            raise Exception("You have two different .out files for each database")
+
+    # Get the read counts for the newly merged files
+    joined_read_msgs = [str(f + ": " + str(get_num_reads(f))) for f in
+            output_files]
+    joined_read_msgs_print = "\n".join(joined_read_msgs)
+    print(joined_read_msgs_print)
+    with open(logfile, "a") as f:
+        f.write("\nRead counts after merging from multiple databases:\n")
+        f.write(joined_read_msgs_print)
+    return output_files
 
 
 
@@ -409,7 +468,10 @@ def get_num_reads(strFname):
         print("Command " + str(e.cmd) + " failed with return code " +
                 str(e.returncode))
         return None
-    
+   
+   
+def msg_num_reads(lstrFiles):
+    return ("\n".join([f + ": " + str(get_num_reads(f)) for f in lstrFiles]))
 
 
 def main():
@@ -463,12 +525,14 @@ def main():
     b_single_end, files = is_single_end(args.infile1, args.infile2)
 
     # Get number of reads initially, then log
-    num_reads_init = [get_num_reads(f) for f in files]
+    # num_reads_init = [get_num_reads(f) for f in files]
     lenfiles = len(files)
-    msg = "Initial number of reads:\n"
-    # TODO: Use string.join instead of repeated string concatenations
-    for i in range(len(files)):
-        msg = msg + files[i] + ": " + str(num_reads_init[i]) + "\n"
+    msg_init = "Initial number of reads:\n"
+    msg_list = [f + ": " + str(get_num_reads(f)) for f in files]
+    msg = "\n".join(msg_list)
+    #for i in range(len(files)):
+    #    msg = msg + files[i] + ": " + str(num_reads_init[i]) + "\n"
+    print(msg_init)
     print(msg)
 
     # Log file. Create a new one the first time, then keep appending to it.
@@ -476,6 +540,7 @@ def main():
     with open(logfile, "w") as f:
         f.write("Running knead_data.py with the following arguments (from argparse):\n"
                 + str(args))
+        f.write(msg_init)
         f.write(msg)
 
     print("Running Trimmomatic...")
@@ -493,13 +558,14 @@ def main():
     b_continue, outputs, bmt_inputs = checktrim_output(args.output_prefix, 
             b_single_end)
 
-    msg = "Number of reads after trimming:\n"
-    for output in outputs:
-        msg = msg + output + ": " + str(get_num_reads(output)) + "\n"
-    print(msg)
+    msg_trim_init = "\nNumber of reads after trimming:\n"
+    msg_trim_body = "\n".join([f + ": " + str(get_num_reads(f)) for f in files])
+    print(msg_trim_init)
+    print(msg_trim_body)
 
     with open(logfile, "a") as f:
-        f.write(msg)
+        f.write(msg_trim_init)
+        f.write(msg_trim_body)
 
     if not b_continue:
         print("Trimmomatic produced no non-empty files.")
@@ -527,7 +593,7 @@ def main():
         tag(infile = bmt_inputs[0], db_prefix = args.reference_db, 
                 bmtagger_path = args.bmtagger_path, single_end = True, prefix =
                 args.output_prefix, remove = args.extract, temp_dir = tempdir,
-                debug = args.debug)
+                debug = args.debug, logfile = logfile)
 
         '''
         # Get the proper output file name for logging purposes
@@ -552,7 +618,7 @@ def main():
                 tag(infile = inp, db_prefix = args.reference_db, bmtagger_path =
                         args.bmtagger_path, single_end = False, prefix =
                         args.output_prefix, remove = args.extract, temp_dir = tempdir, 
-                        debug = args.debug)
+                        debug = args.debug, logfile = logfile)
 
                 '''
                 # Get the proper output file name for logging purposes
@@ -574,7 +640,8 @@ def main():
                 tag(infile = inp, db_prefix = args.reference_db, bmtagger_path =
                         args.bmtagger_path, single_end = True, prefix =
                         args.output_prefix, remove = args.extract, temp_dir = tempdir,
-                        debug = args.debug, orphan = orphan_counter)
+                        debug = args.debug, orphan = orphan_counter, logfile =
+                        logfile)
                 orphan_counter += 1
 
                 '''
