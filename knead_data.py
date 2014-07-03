@@ -594,49 +594,17 @@ def main():
                 bmtagger_path = args.bmtagger_path, single_end = True, prefix =
                 args.output_prefix, remove = args.extract, temp_dir = tempdir,
                 debug = args.debug, logfile = logfile)
-
-        '''
-        # Get the proper output file name for logging purposes
-        if args.extract:
-            out_files.append(args.output_prefix + const.BMTAGGER_SE_ENDING)
-        else:
-            out_files.append(args.output_prefix)
-        '''
-
     else:
         orphan_counter = 1
         for inp in bmt_inputs:
             if len(inp) == 2:
-                '''
                 # Run paired end BMTagger
-                out_prefix = args.output_prefix
-                if not args.extract:
-                    out_prefix = orig_output_prefix + "_pe.out"
-
-                print(out_prefix)
-                '''
                 tag(infile = inp, db_prefix = args.reference_db, bmtagger_path =
                         args.bmtagger_path, single_end = False, prefix =
                         args.output_prefix, remove = args.extract, temp_dir = tempdir, 
                         debug = args.debug, logfile = logfile)
-
-                '''
-                # Get the proper output file name for logging purposes
-                if args.extract:
-                    for ending in const.BMTAGGER_PE_ENDINGS:
-                        out_files.append(out_prefix + ending)
-                else:
-                    out_files.append(out_prefix)
-                '''
-
             else:
                 # Run single end BMTagger
-                '''
-                if not args.extract:
-                    out_prefix = out_prefix + ".out"
-                print(out_prefix)
-                '''
-
                 tag(infile = inp, db_prefix = args.reference_db, bmtagger_path =
                         args.bmtagger_path, single_end = True, prefix =
                         args.output_prefix, remove = args.extract, temp_dir = tempdir,
@@ -644,49 +612,7 @@ def main():
                         logfile)
                 orphan_counter += 1
 
-                '''
-                if args.extract:
-                    out_files.append(out_prefix + const.BMTAGGER_SE_ENDING)
-                else:
-                    out_files.append(out_prefix)
-                '''
-
     print("Finished running BMTagger.")
-#    print(out_files)
-#
-#    msg = "Number of reads after tagging:\n"
-#    # Calculate the number of reads remaining
-#    #percent_reads_left = None
-#    for i in range(len(out_files)):
-#        num_reads_orig = get_num_reads(out_files[i])
-#        '''
-#        try:
-#            num_reads = float(num_reads_orig)
-#            if b_single_end:
-#                percent_reads_left = num_reads/num_reads_init[0]
-#
-#            # if --extract is set, look for one of the paired end files.
-#            # Otherwise, look for the file containing the list of reads
-#            else:
-#                if args.extract and (out_files[i] == args.output_prefix + "_pe" +
-#                        const.BMTAGGER_PE_ENDINGS[0]):
-#                    percent_reads_left = num_reads/num_reads_init[0]
-#                elif (not args.extract) and (out_files[i] == args.output_prefix):
-#                    percent_reads_left = (num_reads_init[0] -
-#                            num_reads)/num_reads_init[0]
-#        except TypeError:
-#            pass
-#        '''
-#
-#        msg = msg + out_files[i] + ": " + str(num_reads_orig) + "\n"
-#
-#    print(msg)
-#    # msg2 = "Proportion of reads that survived: " + str(percent_reads_left)
-#    # print(msg2)
-#
-#    with open(logfile, "a") as f:
-#        f.write(msg)
-#        #f.write(msg2)
 
     if not args.debug:
         print("Removing temporary files...")
