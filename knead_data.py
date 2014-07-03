@@ -270,7 +270,7 @@ def combine_tag(llstrFiles, logfile, out_prefix, single_end):
     msg_to_print = "\n".join(msg_flattened)
     print(msg_to_print)
     with open(logfile, "a") as f:
-        f.write("Read counts after tagging:\n")
+        f.write("\nRead counts after tagging:\n")
         f.write(msg_to_print)
 
     # Get the file names and concat them into strings (separated by spaces)
@@ -527,7 +527,7 @@ def main():
     # Get number of reads initially, then log
     # num_reads_init = [get_num_reads(f) for f in files]
     lenfiles = len(files)
-    msg_init = "Initial number of reads:\n"
+    msg_init = "\nInitial number of reads:\n"
     msg_list = [f + ": " + str(get_num_reads(f)) for f in files]
     msg = "\n".join(msg_list)
     #for i in range(len(files)):
