@@ -174,10 +174,17 @@ def tag(infile, db_prefix, bmtagger_path, single_end, prefix, remove, debug,
         p.wait()
         ret_codes.append(p.returncode)
 
-    #print("OUTPUTS: " + str(outputs))
-    # TODO: Make better tests; failing b/c we are not actually running BMTagger
-    if outputs != []:
+    if (outputs != []) and (all(ret == 0 for ret in ret_codes)):
         combine_tag(outputs, logfile, prefix, single_end)
+
+    if debug:
+        for output_pair in outputs:
+            for o in output_pair:
+                try:
+                    os.remove(o)
+                except OSError as e:
+                    print("Could not remove file " + str(o))
+                    print("OS Error {0}: {1}".format(e.errno, e.strerror))
 
     return (ret_codes, bmt_args)
 
@@ -206,13 +213,13 @@ def intersect_fastq(lstrFiles, out_file):
             for lines in itertools.izip_longest(*[f]*4):
                 try:
                     read = ("".join(lines)).strip()
-                    counter[read] += 1
                 except TypeError:
                     print("Error encountered!!")
                     print("You probably passed in a bad fastq file, one that doesn't have 4 lines per read")
                     raise
+                else:
+                    counter[read] += 1
 
-    print(counter)
     num_files = len(lstrFiles)
     with open(out_file, "w") as f:
         for key in counter:
@@ -234,7 +241,6 @@ def union_outfiles(lstrFiles, out_file):
             for line in f:
                 read = line.strip()
                 counter[read] += 1
-    print(counter)
     with open(out_file, "w") as f:
         for key in counter:
             f.write(key+"\n")
@@ -268,6 +274,7 @@ def combine_tag(llstrFiles, logfile, out_prefix, single_end):
     # flatten the list
     msg_flattened = itertools.chain.from_iterable(msgs)
     msg_to_print = "\n".join(msg_flattened)
+    print("Read counts after tagging:")
     print(msg_to_print)
     with open(logfile, "a") as f:
         f.write("\nRead counts after tagging:\n")
@@ -283,6 +290,8 @@ def combine_tag(llstrFiles, logfile, out_prefix, single_end):
     fIsFastq = check_fastq(fnames1[0])
 
     output_files = []
+    # TODO: If it's only 1 file (common case), just copy it over and skip the
+    # merging
     if fIsFastq:
         # If BMTagger outputs fastq files, we only want the lines in common
         # after tagging against all the databases
@@ -309,9 +318,8 @@ def combine_tag(llstrFiles, logfile, out_prefix, single_end):
             raise Exception("You have two different .out files for each database")
 
     # Get the read counts for the newly merged files
-    joined_read_msgs = [str(f + ": " + str(get_num_reads(f))) for f in
-            output_files]
-    joined_read_msgs_print = "\n".join(joined_read_msgs)
+    joined_read_msgs_print = msg_num_reads(output_files)
+    print("Read counts after merging from multiple databases:")
     print(joined_read_msgs_print)
     with open(logfile, "a") as f:
         f.write("\nRead counts after merging from multiple databases:\n")
@@ -451,6 +459,11 @@ def get_num_reads(strFname):
 
     try:
         out = subprocess.check_output(shlex.split(cmd))
+    except subprocess.CalledProcessError as e:
+        print("Command " + str(e.cmd) + " failed with return code " +
+                str(e.returncode))
+        return None
+    else:
         # match to get the line numbers
         match = re.search(pat, out)
         if match:
@@ -464,13 +477,20 @@ def get_num_reads(strFname):
             # should not happen
             print("This should not happen. Can't find the regex in wc output!")
             return None
-    except subprocess.CalledProcessError as e:
-        print("Command " + str(e.cmd) + " failed with return code " +
-                str(e.returncode))
-        return None
    
    
 def msg_num_reads(lstrFiles):
+    ''' 
+    Joins the read counts for a list of files into a printable message, with one
+    file per line.
+    Input: lstrFiles: a list of either .fastq or .out (list of read headers)
+                      files. 
+
+    Returns: newline-separated string of the form 
+        f: n
+    f is the name of the file
+    n is the number of reads
+    '''
     return ("\n".join([f + ": " + str(get_num_reads(f)) for f in lstrFiles]))
 
 
@@ -528,10 +548,7 @@ def main():
     # num_reads_init = [get_num_reads(f) for f in files]
     lenfiles = len(files)
     msg_init = "\nInitial number of reads:\n"
-    msg_list = [f + ": " + str(get_num_reads(f)) for f in files]
-    msg = "\n".join(msg_list)
-    #for i in range(len(files)):
-    #    msg = msg + files[i] + ": " + str(num_reads_init[i]) + "\n"
+    msg = msg_num_reads(files)
     print(msg_init)
     print(msg)
 
@@ -559,7 +576,7 @@ def main():
             b_single_end)
 
     msg_trim_init = "\nNumber of reads after trimming:\n"
-    msg_trim_body = "\n".join([f + ": " + str(get_num_reads(f)) for f in files])
+    msg_trim_body = msg_num_reads(files)
     print(msg_trim_init)
     print(msg_trim_body)
 

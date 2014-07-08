@@ -203,8 +203,32 @@ class GetNumReads(unittest.TestCase):
         os.remove(self.testfile2)
         os.remove("empty.txt")
 
-class Tag(unittest.TestCase):
+class newDir(unittest.TestCase):
+    '''Makes a new temporary directory to put temp files. Nukes this directory
+    when finished. '''
+
     def setUp(self):
+        # save current directory, make new directory for temporary files
+        self.curwd = os.getcwd()
+        self.newdir = "temp"
+        try:
+            os.mkdir(os.path.join(self.curwd, self.newdir))
+        except OSError:
+            if not os.path.isdir(os.path.join(self.curwd, self.newdir)):
+                raise
+
+        os.chdir(os.path.join(self.curwd, self.newdir))
+
+    def tearDown(self):
+        os.chdir(self.curwd)
+        shutil.rmtree(os.path.join(self.curwd,self.newdir))
+
+
+class Tag(newDir, unittest.TestCase):
+    def setUp(self):
+
+        newDir.setUp(self)
+
         # create a fake BMTagger path
         self.testScript = "test.sh"
 
@@ -218,6 +242,19 @@ class Tag(unittest.TestCase):
         self.logfile = "test.log"
         with open(self.logfile, "w") as f:
             pass
+        self.fakeOutputs = ["test_db0.out",
+                            "test_db0.fastq",
+                            "test_db0_se_1.out",
+                            "test_db0_se_2.out",
+                            "test_db0_pe_1.fastq",
+                            "test_db0_pe_2.fastq",
+                            "test_db0_pe.out",
+                            "test_db1_pe.out",
+                            "test_db1_pe_1.fastq",
+                            "test_db1_pe_2.fastq"]
+        for fakeOutput in self.fakeOutputs:
+            with open(fakeOutput, "w") as f:
+                f.write("Read 1\nGATTACA\n+\nKTACRIA\n")
 
 
     def testNone(self):
@@ -230,7 +267,7 @@ class Tag(unittest.TestCase):
     def testBadScript(self):
         '''Should return nonzero exit code'''
         self.assertNotEqual(kd.tag(
-            infile = [self.testFile1], db_prefix = [], bmtagger_path =
+            infile = [self.testFile1], db_prefix = ['a'], bmtagger_path =
             "ls", single_end = True, prefix = "test",
             remove = True, debug = True, temp_dir = ".", logfile = self.logfile)[0], [0])
         
@@ -242,6 +279,7 @@ class Tag(unittest.TestCase):
             "test", remove = False, debug = False, temp_dir = "temp", logfile =
             self.logfile), ([0],
             ["./test.sh -q 1 -1 test1.fastq -b test_db.bitmask -x test_db.srprism -T temp -o test_db0.out"])) 
+
         self.assertEqual(kd.tag(infile = [self.testFile1], db_prefix =
             ["test_db"], bmtagger_path = "./test.sh", single_end = True, prefix =
             "test", remove = True, debug = False, temp_dir = "temp", logfile =
@@ -250,15 +288,16 @@ class Tag(unittest.TestCase):
 
         self.assertEqual(kd.tag(infile = [self.testFile1], db_prefix =
             ["test_db"], bmtagger_path = "./test.sh", single_end = True, prefix =
+            "test", remove = False, debug = True, temp_dir = "temp", logfile =
+            self.logfile), ([0],
+            ["./test.sh -q 1 -1 test1.fastq -b test_db.bitmask -x test_db.srprism -T temp -o test_db0.out --debug"])) 
+
+        self.assertEqual(kd.tag(infile = [self.testFile1], db_prefix =
+            ["test_db"], bmtagger_path = "./test.sh", single_end = True, prefix =
             "test", remove = True, debug = True, temp_dir = "temp", logfile =
             self.logfile), ([0],
             ["./test.sh -q 1 -1 test1.fastq -b test_db.bitmask -x test_db.srprism -T temp -o test_db0 --extract --debug"])) 
 
-        self.assertEqual(kd.tag(infile = [self.testFile1], db_prefix =
-            ["test_db"], bmtagger_path = "./test.sh", single_end = True, prefix =
-            "test", remove = False, debug = True, temp_dir = "temp", logfile =
-            self.logfile), ([0],
-            ["./test.sh -q 1 -1 test1.fastq -b test_db.bitmask -x test_db.srprism -T temp -o test_db0.out --debug"])) 
 
         self.assertEqual(kd.tag(infile = [self.testFile1], db_prefix =
             ["test_db"], bmtagger_path = "./test.sh", single_end = True, prefix =
@@ -274,6 +313,12 @@ class Tag(unittest.TestCase):
 
         self.assertEqual(kd.tag(infile = [self.testFile1, self.testFile2],
             db_prefix = ["test_db"], bmtagger_path = "./test.sh", single_end =
+            False, prefix = "test", remove = False, debug = False, temp_dir =
+            "temp", logfile = self.logfile), ([0], 
+            ["./test.sh -q 1 -1 test1.fastq -2 test2.fastq -b test_db.bitmask -x test_db.srprism -T temp -o test_db0_pe.out"])) 
+
+        self.assertEqual(kd.tag(infile = [self.testFile1, self.testFile2],
+            db_prefix = ["test_db"], bmtagger_path = "./test.sh", single_end =
             False, prefix = "test", remove = False, debug = True, temp_dir =
             "temp", logfile = self.logfile), ([0], 
             ["./test.sh -q 1 -1 test1.fastq -2 test2.fastq -b test_db.bitmask -x test_db.srprism -T temp -o test_db0_pe.out --debug"])) 
@@ -284,18 +329,13 @@ class Tag(unittest.TestCase):
             "temp", logfile = self.logfile), ([0], 
             ["./test.sh -q 1 -1 test1.fastq -2 test2.fastq -b test_db.bitmask -x test_db.srprism -T temp -o test_db0_pe --extract --debug"])) 
 
-        self.assertEqual(kd.tag(infile = [self.testFile1, self.testFile2],
-            db_prefix = ["test_db"], bmtagger_path = "./test.sh", single_end =
-            False, prefix = "test", remove = False, debug = False, temp_dir =
-            "temp", logfile = self.logfile), ([0], 
-            ["./test.sh -q 1 -1 test1.fastq -2 test2.fastq -b test_db.bitmask -x test_db.srprism -T temp -o test_db0_pe.out"])) 
-
     def testMultipleDB(self):
         self.assertEqual(kd.tag(infile = [self.testFile1, self.testFile2],
             db_prefix = ["test_db1", "test_db2"], bmtagger_path = "./test.sh",
             single_end = False, prefix = "test", remove = False, debug = False,
             temp_dir = "temp", logfile = self.logfile), 
             ([0,0], ["./test.sh -q 1 -1 test1.fastq -2 test2.fastq -b test_db1.bitmask -x test_db1.srprism -T temp -o test_db0_pe.out", "./test.sh -q 1 -1 test1.fastq -2 test2.fastq -b test_db2.bitmask -x test_db2.srprism -T temp -o test_db1_pe.out"])) 
+
         self.assertEqual(kd.tag(infile = [self.testFile1, self.testFile2],
             db_prefix = ["test_db1", "test_db2"], bmtagger_path = "./test.sh",
             single_end = False, prefix = "test", remove = True, debug = False,
@@ -307,6 +347,9 @@ class Tag(unittest.TestCase):
         os.remove(self.testScript)
         os.remove(self.logfile)
 
+        newDir.tearDown(self)
+
+
 class CheckFastq(unittest.TestCase):
     def tests(self):
         ''' True if file name ends in .fastq, else false '''
@@ -314,8 +357,11 @@ class CheckFastq(unittest.TestCase):
         self.assertFalse(kd.check_fastq("test.out"))
         self.assertFalse(kd.check_fastq(""))
 
-class CombineTagBase():
+class CombineTagBase(newDir):
     def setUp(self):
+
+        newDir.setUp(self)
+
         # create files to join
         self.db1_pe1_fastq = "pre_db1_pe_1.fastq"
         self.db1_pe2_fastq = "pre_db1_pe_2.fastq"
@@ -347,17 +393,6 @@ class CombineTagBase():
         self.headers = ["Read header in common1",
                         "Read header in common2",
                         "Read header in common3"]
-
-        # save current directory, make new directory for temporary files
-        self.curwd = os.getcwd()
-        self.newdir = "temp"
-        try:
-            os.mkdir(os.path.join(self.curwd, self.newdir))
-        except OSError:
-            if not os.path.isdir(os.path.join(self.curwd, self.newdir)):
-                raise
-
-        os.chdir(os.path.join(self.curwd, self.newdir))
 
         for fname in self.fastqs:
             with open(fname, "w") as f:
@@ -395,8 +430,7 @@ class CombineTagBase():
                         self.notcommon_out += 1
 
     def tearDown(self):
-        os.chdir(self.curwd)
-        shutil.rmtree(os.path.join(self.curwd,self.newdir))
+        newDir.tearDown(self)
 
 # Inherit the base class that does setUp and tearDown BEFORE inheriting
 # unittest.TestCase
@@ -412,7 +446,6 @@ class IntersectFastq(CombineTagBase, unittest.TestCase):
                 counter[read] += 1
                 self.assertTrue(read in self.sequences)
         os.remove("pre_se.fastq")
-        print(counter)
         for key in counter:
             self.assertTrue(key in self.sequences)
             self.assertEqual(counter[key], 1)
@@ -446,10 +479,6 @@ class CombineTag(CombineTagBase, unittest.TestCase):
         self.logfile = "logfile.log"
         with open(self.logfile, "w") as f:
             pass
-        print(self.common_fastq)
-        print(self.common_out)
-        print(self.notcommon_fastq)
-        print(self.notcommon_out)
 
     # since we tested union and intersect before, we just need to check that we
     # got the output filenames and the logging correct.
