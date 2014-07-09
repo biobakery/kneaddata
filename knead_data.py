@@ -594,7 +594,7 @@ def main():
             b_single_end)
 
     msg_trim_init = "\nNumber of reads after trimming:\n"
-    msg_trim_body = msg_num_reads(files)
+    msg_trim_body = msg_num_reads(outputs)
     print(msg_trim_init)
     print(msg_trim_body)
 
