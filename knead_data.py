@@ -261,19 +261,17 @@ def union_outfiles(lstrFiles, out_file):
     with open(out_file, "w") as f:
         for key in counter:
             f.write(key+"\n")
-    return 
 
-# TODO: Test which one (above or below) is faster
+    # TODO: Test which one (above or below) is faster
 
-'''
-# Dead code, for now. Tried to implement union using command line tools. 
-def union_outfiles(lstrFiles, out_file):
+    '''
+    # implementing union with command line tools
     strFiles = " ".join(lstrFiles)
-    # subprocess.call does not directly support redirection. Try to use
-    # subprocess.Popen, and manually pipe the stdout to a file
-    print(shlex.split("sort -u " + strFiles + " > " + out_file))
-    #subprocess.call(shlex.split("sort -u " + strFiles + " > " + out_file))
-'''
+    cmd = shlex.split("sort --unique " + strFiles)
+    with open(out_file, "w") as f:
+        subprocess.call(cmd, stdout=f)
+    '''
+    return 
 
 def combine_tag(llstrFiles, logfile, out_prefix, single_end):
     '''

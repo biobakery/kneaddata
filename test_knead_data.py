@@ -274,17 +274,10 @@ class Tag(newDir, unittest.TestCase):
     def testBuildsCorrectly(self):
         ''' Check the BMTagger call, provided correct inputs '''
 
-        self.assertEqual(kd.tag(infile = [self.testFile1], db_prefix =
-            ["test_db"], bmtagger_path = "./test.sh", single_end = True, prefix =
-            "test", remove = False, debug = False, temp_dir = "temp", logfile =
-            self.logfile), ([0],
-            ["./test.sh -q 1 -1 test1.fastq -b test_db.bitmask -x test_db.srprism -T temp -o test_db0.out"])) 
-
-        self.assertEqual(kd.tag(infile = [self.testFile1], db_prefix =
-            ["test_db"], bmtagger_path = "./test.sh", single_end = True, prefix =
-            "test", remove = True, debug = False, temp_dir = "temp", logfile =
-            self.logfile), ([0],
-            ["./test.sh -q 1 -1 test1.fastq -b test_db.bitmask -x test_db.srprism -T temp -o test_db0 --extract"])) 
+        # be very careful of the order of these tests. Run the ones that have
+        # the --debug flag set first, because otherwise you will remove the
+        # *_db[number]* files and the subsequent tests that rely on them will
+        # fail. 
 
         self.assertEqual(kd.tag(infile = [self.testFile1], db_prefix =
             ["test_db"], bmtagger_path = "./test.sh", single_end = True, prefix =
@@ -301,6 +294,18 @@ class Tag(newDir, unittest.TestCase):
 
         self.assertEqual(kd.tag(infile = [self.testFile1], db_prefix =
             ["test_db"], bmtagger_path = "./test.sh", single_end = True, prefix =
+            "test", remove = False, debug = False, temp_dir = "temp", logfile =
+            self.logfile), ([0],
+            ["./test.sh -q 1 -1 test1.fastq -b test_db.bitmask -x test_db.srprism -T temp -o test_db0.out"])) 
+
+        self.assertEqual(kd.tag(infile = [self.testFile1], db_prefix =
+            ["test_db"], bmtagger_path = "./test.sh", single_end = True, prefix =
+            "test", remove = True, debug = False, temp_dir = "temp", logfile =
+            self.logfile), ([0],
+            ["./test.sh -q 1 -1 test1.fastq -b test_db.bitmask -x test_db.srprism -T temp -o test_db0 --extract"])) 
+
+        self.assertEqual(kd.tag(infile = [self.testFile1], db_prefix =
+            ["test_db"], bmtagger_path = "./test.sh", single_end = True, prefix =
             "test", remove = False, debug = True, temp_dir = "temp", orphan=1,
             logfile = self.logfile), ([0],
             ["./test.sh -q 1 -1 test1.fastq -b test_db.bitmask -x test_db.srprism -T temp -o test_db0_se_1.out --debug"])) 
@@ -313,12 +318,6 @@ class Tag(newDir, unittest.TestCase):
 
         self.assertEqual(kd.tag(infile = [self.testFile1, self.testFile2],
             db_prefix = ["test_db"], bmtagger_path = "./test.sh", single_end =
-            False, prefix = "test", remove = False, debug = False, temp_dir =
-            "temp", logfile = self.logfile), ([0], 
-            ["./test.sh -q 1 -1 test1.fastq -2 test2.fastq -b test_db.bitmask -x test_db.srprism -T temp -o test_db0_pe.out"])) 
-
-        self.assertEqual(kd.tag(infile = [self.testFile1, self.testFile2],
-            db_prefix = ["test_db"], bmtagger_path = "./test.sh", single_end =
             False, prefix = "test", remove = False, debug = True, temp_dir =
             "temp", logfile = self.logfile), ([0], 
             ["./test.sh -q 1 -1 test1.fastq -2 test2.fastq -b test_db.bitmask -x test_db.srprism -T temp -o test_db0_pe.out --debug"])) 
@@ -328,6 +327,12 @@ class Tag(newDir, unittest.TestCase):
             False, prefix = "test", remove = True, debug = True, temp_dir =
             "temp", logfile = self.logfile), ([0], 
             ["./test.sh -q 1 -1 test1.fastq -2 test2.fastq -b test_db.bitmask -x test_db.srprism -T temp -o test_db0_pe --extract --debug"])) 
+
+        self.assertEqual(kd.tag(infile = [self.testFile1, self.testFile2],
+            db_prefix = ["test_db"], bmtagger_path = "./test.sh", single_end =
+            False, prefix = "test", remove = False, debug = False, temp_dir =
+            "temp", logfile = self.logfile), ([0], 
+            ["./test.sh -q 1 -1 test1.fastq -2 test2.fastq -b test_db.bitmask -x test_db.srprism -T temp -o test_db0_pe.out"])) 
 
     def testMultipleDB(self):
         self.assertEqual(kd.tag(infile = [self.testFile1, self.testFile2],
