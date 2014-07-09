@@ -174,10 +174,15 @@ def tag(infile, db_prefix, bmtagger_path, single_end, prefix, remove, debug,
         p.wait()
         ret_codes.append(p.returncode)
 
+    # if BMTagger produced correct output, merge the files from multiple
+    # databases
     if (outputs != []) and (all(ret == 0 for ret in ret_codes)):
-        combine_tag(outputs, logfile, prefix, single_end)
+        combined_prefix = prefix
+        if orphan != None:
+            combined_prefix = prefix + "_se_" + str(orphan)
+        combine_tag(outputs, logfile, combined_prefix, single_end)
 
-    if debug:
+    if not debug:
         for output_pair in outputs:
             for o in output_pair:
                 try:
@@ -205,6 +210,11 @@ def intersect_fastq(lstrFiles, out_file):
     lstrFiles:  a list of fastq file names (as strings)
     out_file:   output file to write the results. 
     '''
+    # optimize for the common case, where we are intersecting 1 file
+    if len(lstrFiles) == 1:
+        shutil.copy(lstrFiles[0], out_file)
+        return
+
     counter = collections.Counter()
     for fname in lstrFiles:
         with open(fname, "rU") as f:
@@ -226,6 +236,7 @@ def intersect_fastq(lstrFiles, out_file):
             # only includes reads that are in n or more files, for n input files
             if counter[key] >= num_files:
                 f.write(key+"\n")
+    return
 
 def union_outfiles(lstrFiles, out_file):
     '''
@@ -235,6 +246,12 @@ def union_outfiles(lstrFiles, out_file):
     lstrFiles:  a list of .out file names (as strings)
     out_file:   output file to write the results
     '''
+
+    # optimize for the common case, where we are unioning 1 file
+    if len(lstrFiles) == 1:
+        shutil.copy(lstrFiles[0], out_file)
+        return
+
     counter = collections.Counter()
     for fname in lstrFiles:
         with open(fname, "rU") as f:
@@ -244,6 +261,7 @@ def union_outfiles(lstrFiles, out_file):
     with open(out_file, "w") as f:
         for key in counter:
             f.write(key+"\n")
+    return 
 
 # TODO: Test which one (above or below) is faster
 
