@@ -23,9 +23,7 @@
 
 #SBATCH --mail-type=END
 
-source new-modules.sh
-module load python
-module load legacy
+module load centos6/python-2.7.3
 module load centos6/ncbi-blast-2.2.29+
 module load centos6/Trimmomatic-0.32
 

@@ -1,0 +1,26 @@
+#!/bin/bash 
+
+#SBATCH -n 1 #Number of cores 
+
+#SBATCH -t 360 #Runtime in minutes 
+
+#SBATCH -p serial_requeue #Partition to submit to 
+
+#SBATCH --mem=4000 # Total memory (in MB). See also --mem-per-cpu
+
+#SBATCH -J usearch-makedb
+
+#SBATCH --error=usearch-makedb.err
+#SBATCH --output=usearch-makedb.out
+
+#SBATCH --mail-user=andyshi@college.harvard.edu
+
+#SBATCH --mail-type=BEGIN
+
+#SBATCH --mail-type=END
+
+module load bio/usearch7.0.1001
+
+cd /n/huttenhower_lab_nobackup/data/kneadData/databases/humanGenome
+
+time usearch -makeudb_usearch Homo_sapiens_assembly19.fasta -output Homo_sapiens.udb

@@ -1,0 +1,27 @@
+#!/bin/bash 
+
+#SBATCH -N 1 # Number of machines to use
+
+#SBATCH -n 2 # Number of cores 
+
+#SBATCH -t 360 # Runtime in minutes 
+
+#SBATCH -p serial_requeue #Partition to submit to 
+
+#SBATCH --mem=7000 #Memory per cpu in MB (see also --mem)
+
+#SBATCH -J run-bwa-array
+
+#SBATCH -e run-bwa-human-%A_%a.err
+
+#SBATCH -o run-bwa-human-%A_%a.out
+
+module load centos6/bwa-0.7.7
+
+cd ~/kneadData/data/test_data/human-$SLURM_ARRAY_TASK_ID
+
+time bwa mem /n/huttenhower_lab_nobackup/data/kneadData/databases/humanGenome/Homo_sapiens_bwa human-$SLURM_ARRAY_TASK_ID.out.trimmed.1.fastq human-$SLURM_ARRAY_TASK_ID.out.trimmed.2.fastq > human-$SLURM_ARRAY_TASK_ID-bwa_pe.sam 
+
+time bwa mem /n/huttenhower_lab_nobackup/data/kneadData/databases/humanGenome/Homo_sapiens_bwa human-$SLURM_ARRAY_TASK_ID.out.trimmed.single.1.fastq > human-$SLURM_ARRAY_TASK_ID-bwa_se_1.sam 
+
+time bwa mem /n/huttenhower_lab_nobackup/data/kneadData/databases/humanGenome/Homo_sapiens_bwa human-$SLURM_ARRAY_TASK_ID.out.trimmed.single.2.fastq > human-$SLURM_ARRAY_TASK_ID-bwa_se_2.sam 
