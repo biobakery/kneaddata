@@ -8,11 +8,13 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("datasets", nargs="+", 
         help="A list of the different data sets you want to parse")
-    parser.add_argument("parent_dir", 
+    parser.add_argument("parent_dir", default = None,
             help="parent directory of the datasets")
     parser.add_argument("savefile", help="Output file for numpy array (as csv)")
 
     args = parser.parse_args()
+    if args.parent_dir == None:
+        args.parent_dir = os.getcwd()
     
     # assuming all of our data is paired end, and we are using BMTagger to
     # output the putative human reads in a .out file, instead of producing a
