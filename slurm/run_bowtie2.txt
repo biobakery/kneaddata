@@ -1,0 +1,26 @@
+#!/bin/bash 
+
+#SBATCH -n 1 #Number of cores 
+
+#SBATCH -t 360 #Runtime in minutes 
+
+#SBATCH -p serial_requeue #Partition to submit to 
+
+#SBATCH --mem=4000 # Total memory (in MB). See also --mem-per-cpu
+
+#SBATCH -J bowtie2
+
+#SBATCH --error=bowtie2.err
+#SBATCH --output=bowtie2.out
+
+#SBATCH --mail-user=andyshi@college.harvard.edu
+
+#SBATCH --mail-type=BEGIN
+
+#SBATCH --mail-type=END
+
+module load centos6/bowtie2-2.2.1
+
+cd /n/huttenhower_lab_nobackup/data/kneadData/data/test_data/testing
+
+time bowtie2 -x /n/huttenhower_lab_nobackup/data/kneadData/databases/humanGenome/Homo_sapiens -1 human-5.fir.fastq -2 human-5.sec.fastq -S human-5-bowtie2.sam
