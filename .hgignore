@@ -9,5 +9,7 @@ syntax: glob
 *.csv
 *.pdf
 *.ipynb
+*.xlsx
+*.sam
 
 syntax: regexp
