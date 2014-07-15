@@ -306,8 +306,6 @@ def combine_tag(llstrFiles, logfile, out_prefix, single_end):
     fIsFastq = check_fastq(fnames1[0])
 
     output_files = []
-    # TODO: If it's only 1 file (common case), just copy it over and skip the
-    # merging
     if fIsFastq:
         # If BMTagger outputs fastq files, we only want the lines in common
         # after tagging against all the databases
