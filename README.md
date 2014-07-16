@@ -44,7 +44,7 @@ Currently, KneadData is only supported on Linux and Macs.
 KneadData requires
 [Trimmomatic](http://www.usadellab.org/cms/?page=trimmomatic),
 [BMTagger](ftp://ftp.ncbi.nlm.nih.gov/pub/agarwala/bmtagger/), and [NCBI
-BLAST](http://www.ncbi.nlm.nih.gov/books/NBK1762/) Please see these respective
+BLAST](http://www.ncbi.nlm.nih.gov/books/NBK1762/). Please see these respective
 project websites for download and installation instructions. 
 
 # 3. Quick Start Guide
@@ -259,8 +259,3 @@ KneadData requires quite a bit of memory, around 8-9 gigabytes, to run.
                             additional arguments for Trimmomatic
     -d, --debug           If set, temporary files are not removed
 
-
-# 5. Contact
-
-Please feel free to contact Andy Shi at andyshi<span
-style="display:none">foo</span>@broadinstitute.org with any questions or issues. 
