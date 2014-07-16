@@ -11,15 +11,15 @@ You can access this repository with SSH or with HTTPS.
 
 Table of Contents
 -----------------
-1. Introduction
-2. Installation
-3. Quick Start Guide
+1. [Introduction](#introduction)
+2. [Installation](#installation)
+3. [Quick Start Guide](#quick-start-guide)
 
-    a. Data Locations
-    b. Indexing 
-    c. How to Run
+    1. [Data Locations](#data-locations)
+    2. [Indexing](#indexing)
+    3. [How to Run](#how-to-run)
 
-4. Detailed Documentation
+4. [Detailed Documentation](#detailed-documentation)
 
 # 1. Introduction
 
@@ -51,7 +51,7 @@ project websites for download and installation instructions.
 
 # 3. Quick Start Guide
 
-### a. Data Locations
+### 3.1. Data Locations
 
 KneadData requires reference sequences for the contamination you are trying to
 remove. If you wish to remove reads from a particular "host" (broadly defined,
@@ -73,7 +73,7 @@ using the resources below:
   [website](http://hgdownload.cse.ucsc.edu/downloads.html#human) to download
   this data. 
 
-### b. Generating KneadData Databases
+### 3.2. Generating KneadData Databases
 
 KneadData requires that your reference sequences (FASTA files) be indexed to
 form KneadData databases beforehand. This only needs to be done once per
@@ -105,7 +105,7 @@ All of the required KneadData database files will have file names prefixed by
 
 or see the [Detailed Documentation](#detailed-documentation) for more information.
 
-### c. How to Run
+### 3.3. How to Run
 
 After generating your database file, we can start to remove contaminant reads.
 As input, KneadData requires FASTQ files. It supports both single end and paired
