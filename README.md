@@ -14,9 +14,11 @@ Table of Contents
 1. Introduction
 2. Installation
 3. Quick Start Guide
+
     a. Data Locations
     b. Indexing 
     c. How to Run
+
 4. Detailed Documentation
 
 # 1. Introduction
