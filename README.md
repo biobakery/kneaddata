@@ -14,11 +14,6 @@ Table of Contents
 1. Introduction
 2. Installation
 3. Quick Start Guide
-
-    a. Data Locations
-    b. Indexing 
-    c. How to Run
-
 4. Detailed Documentation
 
 # 1. Introduction
@@ -260,4 +255,3 @@ KneadData requires quite a bit of memory, around 8-9 gigabytes, to run.
     -a TRIM_ARGS, --trim-args TRIM_ARGS
                             additional arguments for Trimmomatic
     -d, --debug           If set, temporary files are not removed
-
