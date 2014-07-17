@@ -28,6 +28,8 @@ class run_proc_thread(threading.Thread):
         self.command = command
 
     def run(self):
+        print(self.command)
+        print(shlex.split(self.command))
         out = subprocess.call(shlex.split(self.command))
 
 def run_proc(s_cmd):
@@ -126,9 +128,9 @@ def main():
 
 
     # makeblastdb
-    blastdb_ext = ["nhr", "nin", "nsq"]
+    blastdb_ext = [".nhr", ".nin", ".nsq"]
 
-    blastdb_files = map(lambda x: str(args.output_prefix + x), srprism_ext)
+    blastdb_files = map(lambda x: str(args.output_prefix + x), blastdb_ext)
     print("Checking for the following files:")
     print(blastdb_files)
 

@@ -553,7 +553,11 @@ def main():
 
     for db_prefix in args.reference_db:
         dbs = map(lambda x: str(db_prefix + x), const.DB_ENDINGS)
-        [checkfile(db, ftype="BMTagger database", fail_hard=True) for db in dbs]
+        checks = [checkfile(db, ftype="BMTagger database", fail_hard=False) for db in dbs]
+        for check in checks:
+            if check == 0:
+                print("Could not find file asdfasdfasdf")
+                sys.exit(1)
 
     # determine single-ended or pair ends
     b_single_end, files = is_single_end(args.infile1, args.infile2)
