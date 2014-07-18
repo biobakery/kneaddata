@@ -11,15 +11,15 @@ You can access this repository with SSH or with HTTPS.
 
 Table of Contents
 -----------------
-1. [Introduction](#introduction)
-2. [Installation](#installation)
-3. [Quick Start Guide](#quick-start-guide)
+1. Introduction
+2. Installation
+3. Quick Start Guide
 
-    1. [Data Locations](#data-locations)
-    2. [Indexing](#indexing)
-    3. [How to Run](#how-to-run)
+    1. Data Locations
+    2. Indexing
+    3. How to Run
 
-4. [Detailed Documentation](#detailed-documentation)
+4. Detailed Documentation
 
 # 1. Introduction
 
@@ -48,6 +48,32 @@ KneadData requires
 [BMTagger](ftp://ftp.ncbi.nlm.nih.gov/pub/agarwala/bmtagger/), and [NCBI
 BLAST](http://www.ncbi.nlm.nih.gov/books/NBK1762/). Please see these respective
 project websites for download and installation instructions. 
+
+### Configuration
+The BMTagger program needs to be able to find its executables, namely
+
++ `srprism`
++ `bmfilter`
++ `extract_fullseq`
++ `blastn` (included in NCBI blast)
+
+There are two ways to do this:
+
+1. Update your PATH. If my BMTagger and BLAST executables are in my `~/bin`
+   folder, you should run the following in your shell:
+
+        PATH=$PATH:~/bin
+        export PATH
+
+You may want to consider putting this in your `.bashrc` or `.bash_profile` file
+to make it permanent. 
+
+2. Use a `bmtagger.conf` file. This file is included with Knead Data. You can
+   set the locations of the above executables using the variables `SRPRISM`,
+   `BMFILTER`, `EXTRACT_FA`, and `BLASTN` respectively. Make sure this file is
+   in your working directory when you run Knead Data, i.e. if you are running
+   Knead Data from your home directory, copy this `bmtagger.conf` file to your
+   home directory also. 
 
 # 3. Quick Start Guide
 
