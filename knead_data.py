@@ -553,7 +553,9 @@ def main():
 
     for db_prefix in args.reference_db:
         dbs = map(lambda x: str(db_prefix + x), const.DB_ENDINGS)
+        print(dbs)
         checks = [checkfile(db, ftype="BMTagger database", fail_hard=False) for db in dbs]
+        print(checks)
         for check in checks:
             if check == 0:
                 print("Could not find file asdfasdfasdf")
