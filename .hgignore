@@ -11,5 +11,7 @@ syntax: glob
 *.ipynb
 *.xlsx
 *.sam
+*.html
+tags
 
 syntax: regexp
