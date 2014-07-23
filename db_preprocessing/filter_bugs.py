@@ -18,7 +18,7 @@ def filter_bugs(infile, outfile):
 
     regex = r'([A-Za-z]+) ([A-Za-z]+) *\n'
     bugs_list = ["Fusobacterium nucleatum"]
-    bugs = sets.Immutable(bugs_list)
+    bugs = sets.ImmutableSet(bugs_list)
 
     fKeep = False
     for line in f_in:
@@ -29,17 +29,14 @@ def filter_bugs(infile, outfile):
                 strBugName = match.group(1) + " " + match.group(2)
                 if strBugName in bugs:
                     fKeep = True
-                    print(new_line)
-                    f_out.write(new_line)
-                    continue
+                    print(line)
                 else:
-                    fIsBacteria = False
-                    continue
+                    fKeep = False
             else:
-                print("No match found in the following line: " + line)
+                fKeep = False
 
-        if fIsBacteria:
-            f_out.write(new_line)
+        if fKeep:
+            f_out.write(line)
 
     f_in.close()
     f_out.close()
