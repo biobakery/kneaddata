@@ -20,6 +20,7 @@ def convert(infile, outfile):
         # preserve upper and lower case
         new_line = line.replace('U', 'T')
         new_line = new_line.replace('u', 't')
+        new_line = new_line.replace(' ', '')
         f_out.write(new_line)
 
     f_in.close()
