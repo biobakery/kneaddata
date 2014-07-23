@@ -1,10 +1,13 @@
 '''
-Converts an RNA FASTA file to the corresponding cDNA file. Basically replaces
-all the Uracils in the sequence with Thymines
+Ad Hoc script to filter Human Transcriptome database FASTAs. Just prepends
+something to each FASTA header so we can distinguish it more easily when
+post-processing data
 '''
-import argparse
 
-def convert(infile, outfile):
+import argparse
+import re
+
+def filter_file(infile, outfile):
     '''
     Converts all the U to T from the input FASTA, infile. Writes the output to
     the output FASTA specified by outfile
@@ -13,14 +16,11 @@ def convert(infile, outfile):
     f_out = open(outfile, "w")
 
     for line in f_in:
-        # don't convert FASTA headers
+        new_line = None
         if line[0] == '>':
-            f_out.write(line)
-            continue
-        # preserve upper and lower case
-        new_line = line.replace('U', 'T')
-        new_line = new_line.replace('u', 't')
-        new_line = new_line.replace(' ', '')
+            new_line = '>' + "000001_Human_mRNA_" + line[1:]
+        else:
+            new_line = line
         f_out.write(new_line)
 
     f_in.close()
@@ -33,7 +33,7 @@ def main():
 
     args = parser.parse_args()
 
-    convert(args.infile, args.outfile)
+    filter_file(args.infile, args.outfile)
 
 if __name__ == '__main__':
     main()
