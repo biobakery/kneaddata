@@ -11,7 +11,7 @@ from collections import Counter
 import sys
 
 def getCount(strFname):
-    regex = r'\d\d\d\d\d\d_([A-Z][a-z]*)_([a-z]*)_'
+    regex = r'\d\d\d\d\d\d_([A-Z][a-z]*)_([A-Za-z-]*)_'
     counterCount = Counter()
 
     iTotalReads = 0
