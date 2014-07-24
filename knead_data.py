@@ -166,6 +166,7 @@ def tag(infile, db_prefix, bmtagger_path, single_end, prefix, remove, debug,
     
     print("BMTagger commands to run:")
     print(bmt_args)
+    '''
     procs = [subprocess.Popen(shlex.split(arg)) for arg in bmt_args]
 
     ret_codes = []
@@ -173,6 +174,13 @@ def tag(infile, db_prefix, bmtagger_path, single_end, prefix, remove, debug,
     for p in procs:
         p.wait()
         ret_codes.append(p.returncode)
+    '''
+
+    # no multithreading this time
+    ret_codes = []
+    for arg in bmt_args:
+        ret = subprocess.call(shlex.split(arg))
+        ret_codes.append(ret)
 
     # if BMTagger produced correct output, merge the files from multiple
     # databases
