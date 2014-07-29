@@ -43,6 +43,9 @@ def filter_bugs(infile, outfile):
 
         if fKeep:
             f_out.write(line)
+            # write to own separate file
+            with open("_".join(strBugName.split()), "a") as f:
+                f.write(line)
 
     f_in.close()
     f_out.close()
