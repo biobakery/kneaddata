@@ -103,6 +103,15 @@ def main():
             print("Aborting... ")
             sys.exit(1)
 
+    # make the log directory
+    try:
+        os.makedirs(args.logdir)
+    except OSError:
+        if os.path.isdir(args.logdir):
+            print("Log directory exists! Overwriting its contents...")
+        else:
+            raise
+
     # before running each command, check that output files don't already exist.
     
     threads = []
