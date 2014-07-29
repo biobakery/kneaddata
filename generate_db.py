@@ -23,14 +23,34 @@ def exists(s_cmd):
 
 
 class run_proc_thread(threading.Thread):
-    def __init__(self, command):
+    def __init__(self, command, name, logdir="log"):
         threading.Thread.__init__(self)
+
+        # command to call
         self.command = command
+
+        # name of the command (ie bmtool or srprism)
+        self.name = name
+
+        # directory to put log files
+        self.logdir = logdir
 
     def run(self):
         print(self.command)
         print(shlex.split(self.command))
-        out = subprocess.call(shlex.split(self.command))
+        p = subprocess.Popen(shlex.split(self.command), stdout =
+                subprocess.PIPE, stderr = subprocess.PIPE)
+        # returns (stdout, stderr)
+        p_outputs = p.communicate()
+
+        endings = [".out", ".err"]
+        logfiles = [os.path.join(self.logdir, self.name + ending) for ending in
+                endings]
+
+        for (logfile,output) in zip(logfiles, p_outputs):
+            with open(logfile, "w") as f:
+                f.write(output)
+        
 
 def run_proc(s_cmd):
     '''
@@ -58,9 +78,11 @@ def main():
     parser.add_argument("-b", "--bmtool-path", default="bmtool",
             help="path to bmtool executable")
     parser.add_argument("-s", "--srprism-path", default="srprism",
-        help="path to srprism executable")
+            help="path to srprism executable")
     parser.add_argument("-m", "--makeblastdb-path", default="makeblastdb",
-        help="path to makeblastdb executable")
+            help="path to makeblastdb executable")
+    parser.add_argument("-l", "--logdir", default="log",
+            help = "location to store log files")
 
     args = parser.parse_args()
 
@@ -92,8 +114,7 @@ def main():
             args.output_prefix + ".bitmask -A 0 -z -w 18")
         print("Command to be run:")
         print(cmd)
-        t = run_proc_thread(cmd)
-        t.start()
+        t = run_proc(cmd, "bmtool", args.logdir)
         threads.append(t)
     else:
         exists("bmtool")
@@ -120,8 +141,7 @@ def main():
             args.output_prefix + ".srprism -M 7168")
         print("Command to be run:")
         print(cmd)
-        t = run_proc_thread(cmd)
-        t.start()
+        t = run_proc(cmd, "srprism", args.logdir)
         threads.append(t)
     else:
         exists("srprism")
@@ -148,13 +168,12 @@ def main():
             " -dbtype nucl -out " + args.output_prefix)
         print("Command to be run:")
         print(cmd)
-        t = run_proc_thread(cmd)
-        t.start()
+        t = run_proc(cmd, "makeblastdb", args.logdir)
         threads.append(t)
     else:
         exists("makeblastdb")
     
-    # wait for all tasks to finish
+    # wait for all threads to finish
     for t in threads:
         t.join()
 
