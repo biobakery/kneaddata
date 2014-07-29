@@ -52,7 +52,7 @@ class run_proc_thread(threading.Thread):
                 f.write(output)
         
 
-def run_proc(s_cmd):
+def run_proc(s_cmd, name, logdir):
     '''
     Helper function to run a command in a new thread.
     input:     s_cmd (string), which is the command to be run
@@ -60,7 +60,7 @@ def run_proc(s_cmd):
     '''
     print("Command to be run:")
     print(s_cmd)
-    t = run_proc_thread(s_cmd)
+    t = run_proc_thread(s_cmd, name, logdir)
     t.start()
     return t
 
