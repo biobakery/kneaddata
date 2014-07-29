@@ -15,14 +15,16 @@ def filter_bugs(infile, outfile):
     f_in = open(infile, "r")
     f_out = open(outfile, "w")
 
-    regex = r'([A-Za-z]+) ([A-Za-z]+) *\n'
+    regex = r';([A-Za-z]+) ([A-Za-z]+).*\n'
+
     bugs_list = ["Fusobacterium nucleatum",
                  "Yersinia pestis",
-                 "Trichodesmium erythraeum"
+                 "Trichodesmium erythraeum",
                  "Treponema pallidum",
                  "Streptococcus sanguinis",
                  "Prevotella melaninogenica"]
     bugs = sets.ImmutableSet(bugs_list)
+    print(bugs)
 
     fKeep = False
     for line in f_in:
