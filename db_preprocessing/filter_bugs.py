@@ -10,14 +10,18 @@ import sets
 
 def filter_bugs(infile, outfile):
     '''
-    Converts all the U to T from the input FASTA, infile. Writes the output to
-    the output FASTA specified by outfile
+    Picks out specific bugs from the silva database.
     '''
     f_in = open(infile, "r")
     f_out = open(outfile, "w")
 
     regex = r'([A-Za-z]+) ([A-Za-z]+) *\n'
-    bugs_list = ["Fusobacterium nucleatum"]
+    bugs_list = ["Fusobacterium nucleatum",
+                 "Yersinia pestis",
+                 "Trichodesmium erythraeum"
+                 "Treponema pallidum",
+                 "Streptococcus sanguinis",
+                 "Prevotella melaninogenica"]
     bugs = sets.ImmutableSet(bugs_list)
 
     fKeep = False
