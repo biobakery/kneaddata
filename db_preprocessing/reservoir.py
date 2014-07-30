@@ -28,14 +28,16 @@ def fastaReader(filename):
     Reads a FASTA file. Returns an iterable, whose elements are each entry
     (header + sequence) in the FASTA file.
     '''
+    currHeader = None
     currRead = None
     with open(filename, "r") as f:
         for line in f:
             if line[0] == '>':
                 # that annoying "first read" case
                 if currRead != None:
-                    yield "".join(currRead)
-                currRead = [line]
+                    yield (currHeader, "".join(currRead))
+                currHeader = line
+                currRead = []
             else:
                 currRead.append(line)
 
@@ -59,7 +61,9 @@ def main():
     for fasta, outfile in zip(args.fastas, args.outfiles):
         lResult = sample(lElts = fastaReader(fasta), iKeep = args.num_samples)
         with open(outfile, "w") as f:
-            map(f.write, lResult)
+            for (header, seq) in lResult:
+                f.write(header)
+                f.write(seq)
 
 if __name__ == '__main__':
     main()
