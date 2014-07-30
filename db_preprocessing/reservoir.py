@@ -31,15 +31,17 @@ def fastaReader(filename):
     currHeader = None
     currRead = None
     with open(filename, "r") as f:
+        currHeader = f.next()
+        currRead = []
         for line in f:
             if line[0] == '>':
-                # that annoying "first read" case
-                if currRead != None:
-                    yield (currHeader, "".join(currRead))
+                yield (currHeader, "".join(currRead))
                 currHeader = line
                 currRead = []
             else:
                 currRead.append(line)
+        # flush the last read
+        yield (currHeader, "".join(currRead))
 
 def main():
     parser = argparse.ArgumentParser()
