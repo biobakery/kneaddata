@@ -29,7 +29,7 @@ class ReadCounter():
         pass
 
     def count(self, strFile, bSingleEnd):
-        if strFile[-(len(self.strFileType)):] != self.strFileType:
+        if not (strFile.endswith(self.strFileType)):
             raise Exception(strFile + " is not a " + self.strFileType + " file!")
 
         try:
@@ -111,9 +111,9 @@ class FastqCounter(ReadCounter):
         return (counter, self.iTotalReads)
 
 
-class BMTOutCounter(FastqCounter):
+class BMTOutCounter(ReadCounter, FastqCounter):
     def __init__(self, pattern=r'.*', combineName=lambda m: m):
-        FastqCounter.__init__(self, fileType="out", pattern=pattern,
+        ReadCounter.__init__(self, fileType="out", pattern=pattern,
                 combineName=combineName)
 
     def skip(self, strLine):
