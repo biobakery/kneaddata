@@ -9,7 +9,7 @@ def merge(infiles, outfile):
                 if strLine.startswith('@'):
                     continue
                 strSplit = strLine.split("\t")
-                if strSplit[2] == '*':
+                if strSplit[2] != '*':
                     setReads.add(strSplit[0])
 
     with open(outfile, "w") as fileOut:
