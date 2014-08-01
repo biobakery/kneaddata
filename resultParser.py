@@ -29,8 +29,8 @@ class ReadCounter():
         pass
 
     def count(self, strFile, bSingleEnd):
-        if not (strFile.endswith(self.strFileType)):
-            raise Exception(strFile + " is not a " + self.strFileType + " file!")
+        #if not (strFile.endswith(self.strFileType)):
+        #   #raise Exception(strFile + " is not a " + self.strFileType + " file!")
 
         try:
             f = open(strFile, "r")
@@ -55,6 +55,7 @@ class SamCounter(ReadCounter):
     def __init__(self, pattern=r'.*', combineName=lambda m: m):
         ReadCounter.__init__(self, fileType="sam", pattern=pattern,
                 combineName=combineName)
+        self.iTotalAligned = 0
 
     def skip(self, strLine):
         return (strLine[0] == '@')
@@ -70,9 +71,12 @@ class SamCounter(ReadCounter):
                 self.counter[strOrganism] += 1
 
     def processPairedEnd(self):
-        for strOrganism in keys(self.counter):
+        for strOrganism in (self.counter).iterkeys():
             if self.counter[strOrganism] % 2 != 0:
-                raise Exception("Invalid sam file for paired end reads!")
+                print("Invalid sam file for paired end reads!")
+                print("You may have some non-unique reads here!")
+                print(self.counter)
+                print(self.iTotalAligned)
             self.counter[strOrganism] /= 2
 
         self.iTotalAligned /= 2
@@ -95,8 +99,8 @@ class FastqCounter(ReadCounter):
         bSkip = True
         if (self.iLineCounter % self.iLineMod) == 0:
             bSkip = False
-            iLineCounter = 0
-        iLineCounter += 1
+            self.iLineCounter = 0
+        self.iLineCounter += 1
         return bSkip
 
     def processLine(self, strLine):
@@ -105,15 +109,17 @@ class FastqCounter(ReadCounter):
             strOrganism = self.combineName(match)
             self.counter[strOrganism] += 1
             self.iTotalReads += 1
+        else:
+            print strLine
 
     def get(self):
         counter = ReadCounter.get(self)
         return (counter, self.iTotalReads)
 
 
-class BMTOutCounter(ReadCounter, FastqCounter):
+class BMTOutCounter(FastqCounter):
     def __init__(self, pattern=r'.*', combineName=lambda m: m):
-        ReadCounter.__init__(self, fileType="out", pattern=pattern,
+        FastqCounter.__init__(self, pattern=pattern,
                 combineName=combineName)
 
     def skip(self, strLine):

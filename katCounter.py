@@ -3,6 +3,9 @@ import argparse
 import numpy as np
 import itertools
 
+def combine(match):
+    return (str(match.group(1)))
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("-b", "--bowtie2", nargs="+", default=[],
@@ -16,27 +19,35 @@ def main():
 
     args = parser.parse_args()
 
-    regex = r'^([A-Za-z_]+):'
+    regex = r'([A-Za-z_]+):'
 
-    katCounterSams = resultParser.SamCounter(pattern=regex)
-    katCounterFastq = resultParser.FastqCounter(pattern=regex)
-    katCounterBMT = resultParser.BMTOutCounter(pattern=regex)
-    
     for f in args.orig:
         print("Original input file: " + f)
-        print(katCounterFastq.count(f, bSingleEnd=False))
+        katCounterFastq = resultParser.FastqCounter(pattern=regex,
+                combineName=combine)
+        katCounterFastq.count(f, bSingleEnd=False)
+        print(katCounterFastq.get())
 
     for f in args.bowtie2:
+        katCounterSams = resultParser.SamCounter(pattern=regex,
+                combineName=combine)
         print("Bowtie2 output file: " + f)
-        print(katCounterSams.count(f, bSingleEnd=False))
+        katCounterSams.count(f, bSingleEnd=True)
+        print(katCounterSams.get())
 
     for f in args.bwa:
+        katCounterSams = resultParser.SamCounter(pattern=regex,
+                combineName=combine)
         print("BWA output file: " + f)
-        print(katCounterSams.count(f, bSingleEnd=False))
+        katCounterSams.count(f, bSingleEnd=True)
+        print(katCounterSams.get())
 
     for f in args.bmtagger:
+        katCounterBMT = resultParser.BMTOutCounter(pattern=regex,
+                combineName=combine)
         print("BMTagger output file: " + f)
-        print(katCounterBMT.count(f, bSingleEnd=False))
+        katCounterBMT.count(f, bSingleEnd=False)
+        print(katCounterBMT.get())
 
     return 0
 
