@@ -14,7 +14,7 @@ def merge(infiles, outfile):
 
     with open(outfile, "w") as fileOut:
         for strRead in setReads:
-            fileOut.write(strRead)
+            fileOut.write(strRead + "\n")
     return(len(setReads))
 
 def main():
