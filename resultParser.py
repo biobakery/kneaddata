@@ -60,7 +60,7 @@ class SamCounter(ReadCounter):
         return (strLine[0] == '@')
 
     def processLine(self, strLine):
-        lstrSplitLine = line.split("\t")
+        lstrSplitLine = strLine.split("\t")
         # alignment!
         if lstrSplitLine[2].strip() != '*':
             self.iTotalAligned += 1
