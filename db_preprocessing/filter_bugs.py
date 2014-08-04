@@ -1,9 +1,3 @@
-'''
-Ad Hoc script to filter Silva database FASTAs. First, it changes U's to T's.
-Then, it removes spaces in the sequence entries. Finally, it removes sequences
-that are not from bacteria or archaea.
-'''
-
 import argparse
 import re
 import sets

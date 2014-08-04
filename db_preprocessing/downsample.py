@@ -6,10 +6,6 @@ import argparse
 import random
 
 def downsample(infile, outfile, fltProp):
-    '''
-    Converts all the U to T from the input FASTA, infile. Writes the output to
-    the output FASTA specified by outfile
-    '''
     f_in = open(infile, "r")
     f_out = open(outfile, "w")
 
