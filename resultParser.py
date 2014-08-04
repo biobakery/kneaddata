@@ -25,10 +25,7 @@ class ReadCounter():
     def processLine(self, strLine):
         self.counter[strLine] += 1
 
-    def processPairedEnd(self):
-        pass
-
-    def count(self, strFile, bSingleEnd):
+    def count(self, strFile):
         #if not (strFile.endswith(self.strFileType)):
         #   #raise Exception(strFile + " is not a " + self.strFileType + " file!")
 
@@ -43,19 +40,19 @@ class ReadCounter():
             print("Could not find file " + strFile)
             self.iTotalAligned = None
             self.counter = None
-
-        if not bSingleEnd:
-            self.processPairedEnd()
-
-    def get(self):
         return self.counter
+
+    def reset(self):
+        self.counter = collections.Counter()
 
 
 class SamCounter(ReadCounter):
+    '''Counts unique, aligned reads in a SAM file'''
     def __init__(self, pattern=r'.*', combineName=lambda m: m):
         ReadCounter.__init__(self, fileType="sam", pattern=pattern,
                 combineName=combineName)
-        self.iTotalAligned = 0
+        # dict for storing reads we've seen already
+        self.readSet = dict()
 
     def skip(self, strLine):
         return (strLine[0] == '@')
@@ -64,27 +61,18 @@ class SamCounter(ReadCounter):
         lstrSplitLine = strLine.split("\t")
         # alignment!
         if lstrSplitLine[2].strip() != '*':
-            self.iTotalAligned += 1
-            match = re.search(self.strPattern, lstrSplitLine[0])
-            if match:
-                strOrganism = self.combineName(match)
-                self.counter[strOrganism] += 1
-
-    def processPairedEnd(self):
-        for strOrganism in (self.counter).iterkeys():
-            if self.counter[strOrganism] % 2 != 0:
-                print("Invalid sam file for paired end reads!")
-                print("You may have some non-unique reads here!")
-                print(self.counter)
-                print(self.iTotalAligned)
-            self.counter[strOrganism] /= 2
-
-        self.iTotalAligned /= 2
-
-    def get(self):
-        counter = ReadCounter.get(self)
-        return (counter, self.iTotalAligned)
-
+            # add read to set to avoid double-counting
+            strReadName = lstrSplitLine[0].strip()
+            if not (strReadName in self.readSet):
+                self.iTotalAligned += 1
+                self.readSet[strReadName] = 1
+                match = re.search(self.strPattern, lstrSplitLine[0])
+                if match:
+                    strOrganism = self.combineName(match)
+                    self.counter[strOrganism] += 1
+                else:
+                    print("No match found on the following line:")
+                    print(strLine)
 
 class FastqCounter(ReadCounter):
     def __init__(self, pattern=r'.*', combineName=lambda m: m):
@@ -92,7 +80,6 @@ class FastqCounter(ReadCounter):
                 combineName=combineName)
         self.iLineCounter = 0
         self.iLineMod = 4
-        self.iTotalReads = 0
 
     def skip(self, strLine):
         # only consider every 4th line
@@ -111,11 +98,6 @@ class FastqCounter(ReadCounter):
             self.iTotalReads += 1
         else:
             print strLine
-
-    def get(self):
-        counter = ReadCounter.get(self)
-        return (counter, self.iTotalReads)
-
 
 class BMTOutCounter(FastqCounter):
     def __init__(self, pattern=r'.*', combineName=lambda m: m):
