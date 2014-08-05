@@ -1,7 +1,7 @@
 import argparse
 import resultParser
 import mergesams
-
+import os
 
 '''
 Input file specifications:
@@ -89,26 +89,58 @@ def main():
 
     arrResults = np.zeros((args.aligners,iLenFieldNames))
     
-    # count the `original' files
     for input_index in range(args.aligners):
         arrTempResult = np.zeros(iLenFieldNames)
         # lInput = [original, combined, silva, human]
         for i in range(len(lInput)):
-            if i == 1 # and is sam and does not exist
-                # merge files, make a BMTOutCounter
-            elif isSam:
+            fileCounters = []
+            if all([fname.endswith(".fastq") for fname in lInput[i]]):
+                fileCounters = [(resultParser.FastqCounter(pattern=REGEX,
+                    combineName=combine),fname) for fname in lInput[i]]
+            # check if all files are SAMs
+            elif all([fname.endswith(".sam") for fname in lInput[i]]):
                 # make a SamCounter for each of the files
-            elif isOut:
+                fileCounters = [(resultParser.SamCounter(pattern=REGEX,
+                    combineName=combine),fname) for fname in lInput[i]]
+            # check if all files are .out
+            elif all([fname.endswith(".out") for fname in lInput[i]]):
                 # make a BMTOutCounter for each of the files
+                fileCounters = [(resultParser.BMTOutCounter(pattern=REGEX,
+                    combineName=combine),fname) for fname in lInput[i]]
             else:
-                # you done fcked up, A-ARON
+                print("File name did not match")
 
             # map and count everything
+            lCounters = [c.count(f) for c,f in fileCounters]
+            print(lCounters)
 
             # store answer
+            if lCounters == []:
+                print("Could not count files")
+                continue
+            elif i == 0:
+                arrTempResult[0] = sum([sum(c.values()) for c in lCounters])
+                arrTempResult[1] = sum([c["Human mRNA"] for c in lCounters])
+                arrTempResult[2] = sum([c["Silva rRNA"] for c in lCounters])
+            elif i == 1:
+                arrTempResult[3] = sum([sum(c.values()) for c in lCounters])
+                arrTempResult[4] = sum([c["Human mRNA"] for c in lCounters])
+                arrTempResult[5] = sum([c["Silva rRNA"] for c in lCounters])
+            elif i == 2:
+                arrTempResult[6] = sum([sum(c.values()) for c in lCounters])
+                arrTempResult[7] = sum([c["Human mRNA"] for c in lCounters])
+            elif i == 3:
+                arrTempResult[8] = sum([sum(c.values()) for c in lCounters])
+                arrTempResult[9] = sum([c["Silva rRNA"] for c in lCounters])
+            else:
+                print("More than 4 input files!")
+
         arrResults[input_index] = arrTempResult
+    print(arrResults)
 
-
+    # save the file as a csv
+    np.savetxt(args.output, arrResults, fmt="%d", delimiter=",", newline="\n",
+            header=",".join(FIELDNAMES), comments="")
         
 if __name__ == '__main__'():
     main()

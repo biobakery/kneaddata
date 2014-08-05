@@ -38,7 +38,6 @@ class ReadCounter():
                     self.processLine(line)
         except IOError:
             print("Could not find file " + strFile)
-            self.iTotalAligned = None
             self.counter = None
         return self.counter
 
@@ -64,7 +63,6 @@ class SamCounter(ReadCounter):
             # add read to set to avoid double-counting
             strReadName = lstrSplitLine[0].strip()
             if not (strReadName in self.readSet):
-                self.iTotalAligned += 1
                 self.readSet[strReadName] = 1
                 match = re.search(self.strPattern, lstrSplitLine[0])
                 if match:
