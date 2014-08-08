@@ -1,12 +1,9 @@
 # Constants for the knead_data script. 
 
 # File endings for BMTagger's required database files
-DB_ENDINGS =    [".bitmask", ".srprism.amp", 
-                ".srprism.idx", ".srprism.imp",
-                ".srprism.map", ".srprism.pmp", 
-                ".srprism.rmp", ".srprism.ss",
-                ".srprism.ssa", ".srprism.ssd", 
-                ".nhr", ".nin", ".nsq"]
+DB_ENDINGS =    [".1.bt2", ".2.bt2", ".3.bt2", ".4.bt2", ".rev.1.bt2", 
+                 ".rev.2.bt2"]
+    
 
 # Trimmomatic file endings for single end and paired end, respectively
 TRIM_SE_ENDING = ".trimmed.fastq"
