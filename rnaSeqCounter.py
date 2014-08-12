@@ -3,12 +3,6 @@ import resultParser
 import mergesams
 import os
 
-'''
-Input file specifications:
-Aligner name, original, combined, silva, human [newline]
-Aligner name, original, combined, silva, human [newline]
-...
-'''
 
 # constants
 # regex to match the FASTA headers
@@ -30,13 +24,14 @@ def combine(match):
     return (str(match.group(1) + " " + match.group(2)))
 
 
+''' 
+Given an input file, returns a list of lists of string lists. Each entry in
+the big list are all the files for each aligner. Each entry in each sublist
+is a list of the files for original, silva, human, and combined. Some
+entries may be empty in the 3rd level list. 
+'''
+'''
 def read_input(strInfile, iNumAligners, fir_delim=",", sec_delim=None):
-    ''' 
-    Given an input file, returns a list of lists of string lists. Each entry in
-    the big list are all the files for each aligner. Each entry in each sublist
-    is a list of the files for original, silva, human, and combined. Some
-    entries may be empty in the 3rd level list. 
-    '''
     # for sanity checks
     iLineCounter = 0
     strAlignerName = None
@@ -59,6 +54,9 @@ def read_input(strInfile, iNumAligners, fir_delim=",", sec_delim=None):
     print("Input files:")
     print(lllInFiles)
     return(lllInFiles)
+'''
+
+def getInputs(
 
 
 def main():
