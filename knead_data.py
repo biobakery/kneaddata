@@ -123,7 +123,7 @@ def _generate_bowtie2_commands( infile_list, db_prefix_list, bowtie2_path,
         cmd += list(dict_to_cmd_opts(bowtie2_opts))
         cmd += [ "-x", base ]
         if is_paired:
-            cmd += [ "-1", infile_list[0] 
+            cmd += [ "-1", infile_list[0],
                      "-2", infile_list[1] ]
         else:
             cmd += [ "-U", infile_list[0] ]
