@@ -125,25 +125,31 @@ def dict_to_cmd_opts_iter(opts_dict, sep=" ", singlesep=" "):
 
 def _generate_bowtie2_commands( infile_list, db_prefix_list, bowtie2_path, 
                                 output_prefix, bowtie2_opts, tmp_dir ):
-    db_prefix_bases = _prefix_bases(db_prefix_list)
+    #db_prefix_bases = _prefix_bases(db_prefix_list)
+    db_prefix_bases = db_prefix_list
     for base in db_prefix_bases:
-        is_paried = len(infile_list) == 2
+        is_paired = (len(infile_list) == 2)
         cmd = [bowtie2_path] 
         cmd += list(dict_to_cmd_opts_iter(bowtie2_opts))
         # Huh? Don't we need the full path name to the database here?
+        # temporarily solved by not using the _prefix_bases function
         cmd += [ "-x", base ]
         if is_paired:
             cmd += [ "-1", infile_list[0],
                      "-2", infile_list[1],
-                     "--al-conc", output_prefix + "_contaminants",
-                     "--un-conc", output_prefix + "_cleaned"]
+                     "--al-conc", output_prefix + "_contam.fastq",
+                     "--un-conc", output_prefix + "_clean.fastq"]
         else:
             cmd += [ "-U", infile_list[0],
-                     "--al", output_prefix + "_contaminants",
-                     "--un", output_prefix + "_cleaned"]
+                     "--al", output_prefix + "_contam.fastq",
+                     "--un", output_prefix + "_clean.fastq"]
 
-        output_str =  "_".join(os.path.basename(f) for f in infile_list)
-        output_str += "_" + base + ".sam"
+        #output_str =  "_".join(os.path.basename(f) for f in infile_list)
+        #output_str += "_" + base + ".sam"
+        # Maybe the file name is too long? Trying with a generic file name
+        # shorter filename works. The full path was messing up the file name
+        # or something. Got to change this to something short but descriptive
+        output_str = "output.sam"
         output_str = os.path.join(tmp_dir, output_str)
         cmd += [ "-S", output_str ]
         yield cmd
@@ -207,16 +213,19 @@ def align(infile_list, db_prefix_list, output_prefix, logfile, tmp_dir,
     commands_to_run = list(commands_to_run)
     
     procs_running = list()
+
+    # get this thing to wait until all are done
+    # the while loop is suspect
     while commands_to_run:
         cmd = commands_to_run.pop()
-        n_running = _poll_workers(procs_running)
-        if n_running >= n_procs:
-            commands_to_run.append(cmd)
-            time.sleep(0.5)
-        else:
-            print("Running bowtie2 command: " + " ".join(cmd))
-            proc = subprocess.Popen(cmd)
-            procs_running.append((proc, cmd))
+        #n_running = _poll_workers(procs_running)
+        #if n_running >= n_procs:
+            #commands_to_run.append(cmd)
+            #time.sleep(0.5)
+        #else:
+        print("Running bowtie2 command: " + " ".join(cmd))
+        proc = subprocess.call(cmd)
+        #procs_running.append((proc, cmd))
 
 
 def tag(infile_list, db_prefix_list, logfile, temp_dir, prefix,
