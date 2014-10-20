@@ -71,7 +71,7 @@ def trim(infile, trimlen, prefix, trimmomatic_path,
                        + " " + prefix + ".trimmed.fastq " + "MINLEN:" 
                        + str(trimlen) + " " + addl_args)
     else:
-        trim_arg = str(trim_path + " PE -phred33 " + infile[0] + " " 
+        trim_arg = str(trimmomatic_path + " PE -phred33 " + infile[0] + " " 
                        + infile[1] + " " + prefix + ".trimmed.1.fastq " 
                        + prefix + ".trimmed.single.1.fastq " + prefix 
                        + ".trimmed.2.fastq " + prefix 
