@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 '''
 generate_db.py
 Author: Andy Shi
