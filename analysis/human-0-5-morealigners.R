@@ -1,5 +1,6 @@
 library("ggplot2")
 
+setwd("C:/Users/User1/Dropbox/Research/Huttenhower/analysis")
 # load data from hand-curated csv file
 data <- read.csv("human-0-5-morealigners-aggregated.csv", header=T)
 

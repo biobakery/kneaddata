@@ -12,6 +12,7 @@ syntax: glob
 *.xlsx
 *.sam
 *.html
+*.emf
 tags
 
 syntax: regexp
