@@ -142,5 +142,5 @@ def main():
     np.savetxt(args.output, arrResults, fmt="%d", delimiter=",", newline="\n",
             header=",".join(FIELDNAMES), comments="")
         
-if __name__ == '__main__'():
+if __name__ == '__main__':
     main()
