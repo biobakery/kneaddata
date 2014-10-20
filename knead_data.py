@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 '''
 knead_data.py
 Author: Andy Shi
