@@ -138,7 +138,6 @@ def _generate_bowtie2_commands( infile_list, db_prefix_list, bowtie2_path,
         is_paired = (len(infile_list) == 2)
         cmd = [bowtie2_path] 
         cmd += list(dict_to_cmd_opts_iter(bowtie2_opts))
-        # Huh? Don't we need the full path name to the database here?
         cmd += [ "-x", fullpath ]
         
         output_str = output_prefix + "_" + basename
@@ -790,15 +789,24 @@ def main():
     # files, fork a thread for each file, and run BMTagger in each thread.
 
     # Start aligning
+    pos_orphan = (len(files_to_align) > 1)
+    orphan_count = 1
     for files_list in files_to_align:
+        prefix = args.output_prefix
+        if pos_orphan and (len(files_list) == 1):
+            prefix = args.output_prefix + "se_" + str(orphan_count)
+            orphan_count += 1
+        elif len(files_list) == 2:
+            prefix = args.output_prefix + "pe"
+
         if args.bmtagger:
             tag(infile_list = files_list, db_prefix_list = args.reference_db,
                 logfile = logfile, temp_dir = tempdir, 
-                prefix = args.output_prefix)
+                prefix = prefix)
         else:
             align(infile_list = files_list, db_prefix_list = args.reference_db, 
-                  output_prefix = args.output_prefix, logfile = logfile, 
-                  tmp_dir = tempdir, bowtie2_path = args.bowtie2_path )
+                  output_prefix = prefix, logfile = logfile, 
+                  tmp_dir = tempdir, bowtie2_path = args.bowtie2_path)
 
     print("Finished removing contaminants")
 
