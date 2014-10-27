@@ -207,6 +207,8 @@ def align(infile_list, db_prefix_list, output_prefix, logfile, tmp_dir,
 
     if not bowtie2_path:
         bowtie2_path = find_on_path("bowtie2")
+        if not bowtie2_path:
+            raise Exception("Could not find Bowtie2 path")
 
     commands_to_run = _generate_bowtie2_commands( infile_list, db_prefix_list,
             bowtie2_path, output_prefix, bowtie2_opts, tmp_dir )
