@@ -66,7 +66,7 @@ def trim(infile, trimlen, prefix, trimmomatic_path,
     Summary: Calls Trimmomatic to trim reads based on quality
     '''
 
-    single_end = len(infile) == 1
+    single_end = (len(infile) == 1)
     trim_arg = ""
     if single_end:
         trim_arg = str(trimmomatic_path + " SE -phred33 " + infile[0] 
@@ -271,7 +271,6 @@ def tag(infile_list, db_prefix_list, logfile, temp_dir, prefix,
                         databases of the format [db_prefix].srprism.* and 
                         [db_prefix].[blastdb file extensions]
         bmtagger_path:  path to the bmtagger.sh executable
-        single_end:     True/False, single end or paired ends
         prefix:         prefix for output files
         remove:         True/False, remove the reads from the input files 
                         (make a copy first) or not. 
@@ -495,11 +494,13 @@ def combine_tag(llstrFiles, logfile, out_prefix):
         f.write("\nRead counts after tagging:\n")
         f.write(msg_to_print)
 
+    single_end = True
     # Get the file names and concat them into strings (separated by spaces)
     fnames1 = [f[0] for f in llstrFiles]
     fnames2 = []
     if len(llstrFiles[0]) == 2:
         fnames2 = [f[1] for f in llstrFiles]
+        single_end = False
 
     # Check if it was .fastq or not
     fIsFastq = check_fastq(fnames1[0])
