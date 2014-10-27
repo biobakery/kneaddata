@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 '''
 knead_data.py
 Author: Andy Shi
@@ -86,21 +88,26 @@ def trim(infile, trimlen, prefix, trimmomatic_path,
 
 def _prefix_bases(db_prefix_list):
     """From a list of absolute or relative paths, returns an iterator of the
-    basename of all files. If more than one file as the same basename (but have
-    different paths), the basenames get post-fixed with indices (starting from
-    0), based on how their basenames sort
+    following tuple:
+    (basename of all the files, full path of all the files)
+    
+    If more than one file as the same basename (but have different paths), the
+    basenames get post-fixed with indices (starting from 0), based on how their
+    basenames sort
 
     :param db_prefix_list: A list of databases' paths. Can be absolute or
     relative paths.
     """
-    bases = sorted([ os.path.basename(p) for p in db_prefix_list ])
-    for name, group in itertools.groupby(bases):
+    # sort by basename, but keep full path
+    bases = sorted([ (os.path.basename(p), p) for p in db_prefix_list ], 
+            key = lambda x: x[0])
+    for name, group in itertools.groupby(bases, key=lambda x: x[0]):
         group = list(group)
         if len(group) > 1:
             for i, item in enumerate(group):
-                yield "%s_%i"%(item, i)
+                yield ("%s_%i"%(item[0], i), item[1])
         else:
-            yield group[0]
+            yield (group[0][0], group[0][1])
 
 
 def dict_to_cmd_opts_iter(opts_dict, sep=" ", singlesep=" "):
@@ -125,44 +132,52 @@ def dict_to_cmd_opts_iter(opts_dict, sep=" ", singlesep=" "):
 
 def _generate_bowtie2_commands( infile_list, db_prefix_list, bowtie2_path, 
                                 output_prefix, bowtie2_opts, tmp_dir ):
-    #db_prefix_bases = _prefix_bases(db_prefix_list)
-    db_prefix_bases = db_prefix_list
-    for base in db_prefix_bases:
+    db_prefix_bases = _prefix_bases(db_prefix_list)
+    #db_prefix_bases = db_prefix_list
+    for basename, fullpath in db_prefix_bases:
         is_paired = (len(infile_list) == 2)
         cmd = [bowtie2_path] 
         cmd += list(dict_to_cmd_opts_iter(bowtie2_opts))
         # Huh? Don't we need the full path name to the database here?
-        # temporarily solved by not using the _prefix_bases function
-        cmd += [ "-x", base ]
+        cmd += [ "-x", fullpath ]
+        
+        output_str = output_prefix + "_" + basename
         if is_paired:
             cmd += [ "-1", infile_list[0],
                      "-2", infile_list[1],
-                     "--al-conc", output_prefix + "_contam.fastq",
-                     "--un-conc", output_prefix + "_clean.fastq"]
+                     "--al-conc", output_str + "_contam.fastq",
+                     "--un-conc", output_str + "_clean.fastq"]
         else:
             cmd += [ "-U", infile_list[0],
-                     "--al", output_prefix + "_contam.fastq",
-                     "--un", output_prefix + "_clean.fastq"]
+                     "--al", output_str + "_contam.fastq",
+                     "--un", output_str + "_clean.fastq"]
 
         #output_str =  "_".join(os.path.basename(f) for f in infile_list)
         #output_str += "_" + base + ".sam"
         # Maybe the file name is too long? Trying with a generic file name
         # shorter filename works. The full path was messing up the file name
         # or something. Got to change this to something short but descriptive
-        output_str = "output.sam"
-        output_str = os.path.join(tmp_dir, output_str)
-        cmd += [ "-S", output_str ]
+        sam_out = os.path.join(tmp_dir, output_str + ".sam")
+        cmd += [ "-S", sam_out ]
         yield cmd
 
 
 def _poll_workers(popen_list):
+    """ Polls a list of processes initialized by subprocess.Popen. Returns the
+    number of processes still running and a list of those processes. If one or
+    more of the processes returned with non-zero exit code, raises an error. 
+
+    popen_list: a list of objects from subprocess.Popen
+    """
     failures = list()
     still_running = 0
-    polls = [ (proc.poll(), cmd) for proc, cmd in popen_list ]
-    for val, cmd in polls:
+    polls = [ (proc.poll(), proc, cmd) for proc, cmd in popen_list ]
+    procs_still_running = list()
+    for val, p, cmd in polls:
         if val is None:
             still_running += 1
-        elif val > 0:
+            procs_still_running.append((p, cmd))
+        elif val != 0:
             failures.append((val, cmd))
             
     if failures:
@@ -170,7 +185,7 @@ def _poll_workers(popen_list):
                 for cmd, val in failures ]
         raise OSError("The following commands failed: "+msg)
     else:
-        return still_running
+        return (still_running, procs_still_running)
 
 """
     :keyword save_contaminants: Boolean; Option to save reads judged as 
@@ -216,18 +231,24 @@ def align(infile_list, db_prefix_list, output_prefix, logfile, tmp_dir,
     
     procs_running = list()
 
-    # get this thing to wait until all are done
-    # the while loop is suspect
+    # poll to see if we can run more Bowtie2 instances
     while commands_to_run:
         cmd = commands_to_run.pop()
-        #n_running = _poll_workers(procs_running)
-        #if n_running >= n_procs:
-            #commands_to_run.append(cmd)
-            #time.sleep(0.5)
-        #else:
-        print("Running bowtie2 command: " + " ".join(cmd))
-        proc = subprocess.call(cmd)
-        #procs_running.append((proc, cmd))
+        n_running, procs_running = _poll_workers(procs_running)
+        if n_running >= n_procs:
+            commands_to_run.append(cmd)
+            time.sleep(0.5)
+        else:
+            print("Running bowtie2 command: " + " ".join(cmd))
+            proc = subprocess.Popen(cmd)
+            procs_running.append((proc, cmd))
+
+    # wait for everything to finish after we started running all the processes
+    ret_codes = [p.wait() for p, cmd in procs_running]
+
+    # TODO: Merge output from multiple instances of Bowtie 2. Need to intersect
+    # the cleaned FASTQs. Don't do anything with the contaminated FASTQs. 
+    return(ret_codes, commands_to_run)
 
 
 def tag(infile_list, db_prefix_list, logfile, temp_dir, prefix,
@@ -326,10 +347,12 @@ def tag(infile_list, db_prefix_list, logfile, temp_dir, prefix,
     print("BMTagger commands to run:")
     print(bmt_args)
 
+    # similar to what we did for Bowtie2
+    # Poll to see if we can run more BMTagger instances. 
     procs_running = list()
     while bmt_args:
         cmd = bmt_args.pop() 
-        n_running = _poll_workers(procs_running)
+        n_running, procs_running = _poll_workers(procs_running)
     if n_running >= n_procs:
         bmt_args.append(cmd)
         time.sleep(0.5)
@@ -337,6 +360,9 @@ def tag(infile_list, db_prefix_list, logfile, temp_dir, prefix,
         print("Running BMTagger command: " + cmd)
         proc = subprocess.Popen(shlex.split(cmd))
         procs_running.append((proc, cmd))
+
+    # wait for everything to finish after we started running all the processes
+    ret_codes = [p.wait() for p, cmd in procs_running]
 
     # if BMTagger produced correct output, merge the files from multiple
     # databases
