@@ -141,15 +141,19 @@ def _generate_bowtie2_commands( infile_list, db_prefix_list, bowtie2_path,
         cmd += [ "-x", fullpath ]
         
         output_str = output_prefix + "_" + basename
+        outputs_to_combine = list()
         if is_paired:
             cmd += [ "-1", infile_list[0],
                      "-2", infile_list[1],
-                     "--al-conc", output_str + "_contam.fastq",
-                     "--un-conc", output_str + "_clean.fastq"]
+                     "--al-conc", output_str + "_contam_%.fastq",
+                     "--un-conc", output_str + "_clean_%.fastq"]
+            outputs_to_combine = [output_str + "_clean_1.fastq", 
+                                  output_str + "_clean_2.fastq"]
         else:
             cmd += [ "-U", infile_list[0],
                      "--al", output_str + "_contam.fastq",
                      "--un", output_str + "_clean.fastq"]
+            outputs_to_combine = [output_str + "_clean.fastq"]
 
         #output_str =  "_".join(os.path.basename(f) for f in infile_list)
         #output_str += "_" + base + ".sam"
@@ -158,7 +162,7 @@ def _generate_bowtie2_commands( infile_list, db_prefix_list, bowtie2_path,
         # or something. Got to change this to something short but descriptive
         sam_out = os.path.join(tmp_dir, output_str + ".sam")
         cmd += [ "-S", sam_out ]
-        yield cmd
+        yield (cmd, outputs_to_combine)
 
 
 def _poll_workers(popen_list):
@@ -229,10 +233,11 @@ def align(infile_list, db_prefix_list, output_prefix, logfile, tmp_dir,
     commands_to_run = list(commands_to_run)
     
     procs_running = list()
+    outputs = list()
 
     # poll to see if we can run more Bowtie2 instances
     while commands_to_run:
-        cmd = commands_to_run.pop()
+        cmd, output_to_combine = commands_to_run.pop()
         n_running, procs_running = _poll_workers(procs_running)
         if n_running >= n_procs:
             commands_to_run.append(cmd)
@@ -241,12 +246,16 @@ def align(infile_list, db_prefix_list, output_prefix, logfile, tmp_dir,
             print("Running bowtie2 command: " + " ".join(cmd))
             proc = subprocess.Popen(cmd)
             procs_running.append((proc, cmd))
+            outputs.append(output_to_combine)
 
     # wait for everything to finish after we started running all the processes
     ret_codes = [p.wait() for p, cmd in procs_running]
 
-    # TODO: Merge output from multiple instances of Bowtie 2. Need to intersect
-    # the cleaned FASTQs. Don't do anything with the contaminated FASTQs. 
+    # if Bowtie2 produced correct output, merge the files from multiple
+    # databases
+    if (outputs != []):
+        combine_tag(outputs, logfile, output_prefix)
+
     return(ret_codes, commands_to_run)
 
 
@@ -282,6 +291,8 @@ def tag(infile_list, db_prefix_list, logfile, temp_dir, prefix,
         these executions
     Summary: Uses BMTagger to tag and potentially remove unwanted reads
     '''
+    single_end = (len(infile) == 1)
+
     # quick check of inputs
     if single_end:
         if len(infile) != 1:
@@ -366,10 +377,7 @@ def tag(infile_list, db_prefix_list, logfile, temp_dir, prefix,
     # if BMTagger produced correct output, merge the files from multiple
     # databases
     if (outputs != []):
-        combined_prefix = prefix
-        if orphan != None:
-            combined_prefix = prefix + "_se_" + str(orphan)
-        combine_tag(outputs, logfile, combined_prefix, single_end)
+        combine_tag(outputs, logfile, prefix)
 
     if not debug:
         for output_pair in outputs:
@@ -462,16 +470,18 @@ def union_outfiles(lstrFiles, out_file):
     '''
     return 
 
-def combine_tag(llstrFiles, logfile, out_prefix, single_end):
+def combine_tag(llstrFiles, logfile, out_prefix):
     '''
     Summary: Combines output if we run BMTagger on multiple databases.
     Input:
         llstrFiles: a list of lists of BMTagger outputs. This is passed in from
         the tag function. The 'inner lists' are of length 1 or 2
         logfile: the file used to log statistics about the files
+        out_prefix: Prefix for the output files. 
 
     Output:
-        the log file is updated with read counts
+        Returns a list of output files. Additionally, the log file is updated
+        with read counts for the different input and output files.
     '''
     # get read counts
     msgs = [[str(f + ": " + str(get_num_reads(f))) for f in pair] for pair in llstrFiles]
@@ -498,7 +508,7 @@ def combine_tag(llstrFiles, logfile, out_prefix, single_end):
     if fIsFastq:
         # If BMTagger outputs fastq files, we only want the lines in common
         # after tagging against all the databases
-        output_file = out_prefix + "_pe_1.fastq"
+        output_file = out_prefix + "_1.fastq"
         if single_end:
             output_file = out_prefix + ".fastq"
 
@@ -507,8 +517,9 @@ def combine_tag(llstrFiles, logfile, out_prefix, single_end):
         if fnames2 != []:
             if single_end:
                 raise Exception("Cannot have single end file with two different .fastq's per database")
-            output_file = out_prefix + "_pe_2.fastq"
-            intersect_fastq(fnames1, output_file)
+            output_file = out_prefix + "_2.fastq"
+            # potential bug here. changed from fnames1 to fnames2
+            intersect_fastq(fnames2, output_file)
             output_files.append(output_file)
     else:
         # Otherwise, if we generate .out files, we want the unique lines from
@@ -794,10 +805,10 @@ def main():
     for files_list in files_to_align:
         prefix = args.output_prefix
         if pos_orphan and (len(files_list) == 1):
-            prefix = args.output_prefix + "se_" + str(orphan_count)
+            prefix = args.output_prefix + "_se_" + str(orphan_count)
             orphan_count += 1
         elif len(files_list) == 2:
-            prefix = args.output_prefix + "pe"
+            prefix = args.output_prefix + "_pe"
 
         if args.bmtagger:
             tag(infile_list = files_list, db_prefix_list = args.reference_db,
