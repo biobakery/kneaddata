@@ -260,7 +260,7 @@ def align(infile_list, db_prefix_list, output_prefix, logfile, tmp_dir,
 
 
 def tag(infile_list, db_prefix_list, logfile, temp_dir, prefix,
-        bmtagger_path=None, n_procs=2, remove=False, debug=False, orphan=None):
+        bmtagger_path=None, n_procs=2, remove=False, debug=False):
     '''
     Runs BMTagger on a single-end sequence file or a paired-end duo of sequence
     files.
@@ -302,7 +302,11 @@ def tag(infile_list, db_prefix_list, logfile, temp_dir, prefix,
         if len(infile) != 2:
             print("Improper call to BMTagger!")
             return([],[])
-
+    
+    if not bmtagger_path:
+        bmtagger_path = find_on_path("bmtagger.sh")
+        if not bmtagger_path:
+            raise Exception("Could not find BMTagger path!")
 
     db_len = len(db_prefix)
     bmt_args = [None for i in range(db_len)]
@@ -315,6 +319,8 @@ def tag(infile_list, db_prefix_list, logfile, temp_dir, prefix,
         out_prefix = None
         if single_end:
             if remove:
+                # TODO: Change this so that we print out the basename of the db
+                # You can refactor this whole part
                 out_prefix = prefix + "_db" + str(i)
                 if orphan != None:
                     out_prefix = prefix + "_db" + str(i) + "_se_" + str(orphan)
@@ -687,33 +693,40 @@ def main():
     # note: argparse converts dashes '-' in argument prefixes to underscores '_' 
     parser = argparse.ArgumentParser()
     parser.add_argument("-1", "--infile1", help="input FASTQ file", 
-                        required = True)
+                        required=True)
     parser.add_argument("-2", "--infile2", help="input FASTQ file mate",
                         default=None)
-    parser.add_argument("--trimlen", type=int, help="length to trim reads",
-                        default=60)
     parser.add_argument("-o", "--output-prefix",
                         help="prefix for all output files")
     parser.add_argument("-db", "--reference-db", nargs = "+", default=[],
-                        help="prefix for reference databases used in BMTagger")
+                        help="prefix for reference databases used for either Bowtie2 or BMTagger")
+ 
     # Consider using a params file
-    parser.add_argument("-t", "--trim-path", 
-                        required=True, help="path to Trimmomatic")
+    parser.add_argument("-t", "--trim-path", required=True,
+                        help="path to Trimmomatic .jar executable")
     parser.add_argument("--bowtie2-path", default=None,
                         help="path to bowtie2 if not found on $PATH")
-    # don't know how to read in a "dictionary" for the additional arguments
-    #parser.add_argument("--bowtie2-args", default=
     #parser.add_argument("-c", "--save-contaminants-to", help="File path",
     #                    default=False, action="store_true")
+    parser.add_argument("--trimlen", type=int, default=60,
+                        help="minimum length for a trimmed read in Trimmomatic")
     parser.add_argument("-m", "--max-mem", default="500m", 
                         help="Maximum amount of memory that will be used by "
                         "Trimmomatic, as a string, ie 500m or 8g")
     parser.add_argument("-a", "--trim-args", default="",
                         help="additional arguments for Trimmomatic")
-    parser.add_argument("-d", "--debug", default=False, action="store_true",
-                        help="If set, temporary files are not removed")
+    # don't know how to read in a "dictionary" for the additional arguments
+    #parser.add_argument("--bowtie2-args", help="Additional arguments for Bowtie 2")
+    parser.add_argument("--nprocs", type=int, default=2, 
+                        help="Maximum number of processes to run")
     parser.add_argument("--bmtagger", default=False, action="store_true",
                         help="If set, use BMTagger to identify contaminant reads")
+    parser.add_argument("--extract", default=False, action="store_true",
+                        help="Only has an effect if --bmtagger is set. If this is set, knead_data outputs cleaned FASTQs, without contaminant reads. Else, output a list or lists of contaminant reads.")
+    parser.add_argument("--bmtagger-path", default=None,
+                        help="path to BMTagger executable if not found in $PATH")
+    parser.add_argument("-d", "--debug", default=False, action="store_true",
+                        help="If set, temporary files are not removed")
     args = parser.parse_args()
 
     # check inputs
@@ -727,19 +740,22 @@ def main():
         paths.append(args.infile2)
     [checkfile(p, fail_hard=True) for p in paths]
 
+    # TODO: Fix this to include BMTagger paths
+    '''
     for db_prefix in args.reference_db:
         dbs = map(lambda x: str(db_prefix + x), const.DB_ENDINGS)
         print(dbs)
-        checks = [ ( checkfile( db, ftype="Bowtie2 database", 
+        checks = [ ( checkfile( db, ftype="reference database", 
                                 fail_hard=False), db) 
                    for db in dbs ]
         print(checks)
         for check, db in checks:
             if check == 0:
-                raise OSError("Could not find Bowtie2 database file " + db)
+                raise OSError("Could not find reference database file " + db)
+    '''
 
     # determine single-ended or pair ends
-    b_single_end = args.infile2 is None
+    b_single_end = (args.infile2 is None)
     files = [args.infile1] if b_single_end else [args.infile1, args.infile2]
 
     # Get number of reads initially, then log
@@ -814,11 +830,14 @@ def main():
         if args.bmtagger:
             tag(infile_list = files_list, db_prefix_list = args.reference_db,
                 logfile = logfile, temp_dir = tempdir, 
-                prefix = prefix)
+                prefix = prefix, bmtagger_path = args.bmtagger_path,
+                n_procs = args.nprocs, remove = args.extract,
+                debug = args.debug)
         else:
             align(infile_list = files_list, db_prefix_list = args.reference_db, 
                   output_prefix = prefix, logfile = logfile, 
-                  tmp_dir = tempdir, bowtie2_path = args.bowtie2_path)
+                  tmp_dir = tempdir, bowtie2_path = args.bowtie2_path,
+                  n_procs = args.nprocs)
 
     print("Finished removing contaminants")
 
