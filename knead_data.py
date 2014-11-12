@@ -277,28 +277,16 @@ def tag(infile_list, db_prefix_list, logfile, temp_dir, prefix,
                      list(s) of reads identified as contaminants.
     :keyword debug: Boolean; If True, BMTagger does not delete temporary files
     """
-    single_end = (len(infile) == 1)
+    single_end = (len(infile_list) == 1)
 
-    # quick check of inputs
-    if single_end:
-        if len(infile) != 1:
-            print("Improper call to BMTagger!")
-            return([],[])
-
-    else:
-        if len(infile) != 2:
-            print("Improper call to BMTagger!")
-            return([],[])
-    
     if not bmtagger_path:
         bmtagger_path = find_on_path("bmtagger.sh")
         if not bmtagger_path:
             raise Exception("Could not find BMTagger path!")
 
-    db_list = _prefix_bases(db_prefix)
+    db_list = _prefix_bases(db_prefix_list)
     bmt_args = [None for d in db_list]
 
-    # correctly manage the output prefix
     outputs = [None for d in db_list]
     # build arguments
     for (i, (basename, fullpath)) in enumerate(db_list):
@@ -308,7 +296,7 @@ def tag(infile_list, db_prefix_list, logfile, temp_dir, prefix,
                 out_prefix = prefix + "_" + basename + "_clean"
                 bmt_args[i] = [bmtagger_path, 
                               " -q", "1",
-                              "-1", infile[0],
+                              "-1", infile_list[0],
                               "-b", str(basename + ".bitmask"),
                               "-x", str(basename + ".srprism"),
                               "-T", temp_dir, 
@@ -320,7 +308,7 @@ def tag(infile_list, db_prefix_list, logfile, temp_dir, prefix,
                 out_prefix = prefix + "_" + basename + "_contam.out"
                 bmt_args[i] = [bmtagger_path, 
                               " -q", "1",
-                              "-1", infile[0],
+                              "-1", infile_list[0],
                               "-b", str(basename + ".bitmask"),
                               "-x", str(basename + ".srprism"),
                               "-T", temp_dir, 
@@ -333,8 +321,8 @@ def tag(infile_list, db_prefix_list, logfile, temp_dir, prefix,
                 out_prefix = prefix + "_" + basename + "_clean"
                 bmt_args[i] = [bmtagger_path, 
                               " -q", "1",
-                              "-1", infile[0],
-                              "-2", infile[1],
+                              "-1", infile_list[0],
+                              "-2", infile_list[1],
                               "-b", str(basename + ".bitmask"),
                               "-x", str(basename + ".srprism"),
                               "-T", temp_dir, 
@@ -347,8 +335,8 @@ def tag(infile_list, db_prefix_list, logfile, temp_dir, prefix,
                 out_prefix = prefix + "_" + basename + "_contam.out"
                 bmt_args[i] = [bmtagger_path, 
                               " -q", "1",
-                              "-1", infile[0],
-                              "-2", infile[1],
+                              "-1", infile_list[0],
+                              "-2", infile_list[1],
                               "-b", str(basename + ".bitmask"),
                               "-x", str(basename + ".srprism"),
                               "-T", temp_dir, 
