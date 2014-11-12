@@ -16,7 +16,6 @@ import re
 import itertools
 import collections
 import time
-import utils
 
 import constants_knead_data as const
 
@@ -133,7 +132,6 @@ def dict_to_cmd_opts_iter(opts_dict, sep=" ", singlesep=" "):
 def _generate_bowtie2_commands( infile_list, db_prefix_list, bowtie2_path, 
                                 output_prefix, bowtie2_opts, tmp_dir ):
     db_prefix_bases = _prefix_bases(db_prefix_list)
-    #db_prefix_bases = db_prefix_list
     for basename, fullpath in db_prefix_bases:
         is_paired = (len(infile_list) == 2)
         cmd = [bowtie2_path] 
@@ -155,11 +153,6 @@ def _generate_bowtie2_commands( infile_list, db_prefix_list, bowtie2_path,
                      "--un", output_str + "_clean.fastq"]
             outputs_to_combine = [output_str + "_clean.fastq"]
 
-        #output_str =  "_".join(os.path.basename(f) for f in infile_list)
-        #output_str += "_" + base + ".sam"
-        # Maybe the file name is too long? Trying with a generic file name
-        # shorter filename works. The full path was messing up the file name
-        # or something. Got to change this to something short but descriptive
         sam_out = os.path.join(tmp_dir, output_str + ".sam")
         cmd += [ "-S", sam_out ]
         yield (cmd, outputs_to_combine)
@@ -190,11 +183,6 @@ def _poll_workers(popen_list):
     else:
         return (still_running, procs_still_running)
 
-"""
-    :keyword save_contaminants: Boolean; Option to save reads judged as 
-                                contaminants to a separate file, sharing the 
-                                same `result_prefix`
-"""    
 
 def align(infile_list, db_prefix_list, output_prefix, logfile, tmp_dir,
           bowtie2_path=None, n_procs=2, bowtie2_opts=dict()):
@@ -210,7 +198,7 @@ def align(infile_list, db_prefix_list, output_prefix, logfile, tmp_dir,
                            can be specified. Uses subprocesses to run bowtie2 
                            in parallel.
     :param output_prefix: String; Prefix of the output file
-    :param logfile: String; File path to location of log file.
+    :param logfile: String; File path to location of log file
     :param tmp_dir: String; Path name to the temporary for holding bowtie2 
                     sam file output
     :keyword bowtie2_path: String; File path to the bowtie2 binary's location.
@@ -261,35 +249,34 @@ def align(infile_list, db_prefix_list, output_prefix, logfile, tmp_dir,
 
 def tag(infile_list, db_prefix_list, logfile, temp_dir, prefix,
         bmtagger_path=None, n_procs=2, remove=False, debug=False):
-    '''
+    """
     Runs BMTagger on a single-end sequence file or a paired-end duo of sequence
-    files.
-    input:
-        infile:         a list of length 1 or 2 (for single and paired ends,
-                        respectively) 
-        db_prefix:      prefix of the BMTagger databases. BMTagger needs 
-                        databases of the format [db_prefix].srprism.* and 
-                        [db_prefix].[blastdb file extensions]
-        bmtagger_path:  path to the bmtagger.sh executable
-        prefix:         prefix for output files
-        remove:         True/False, remove the reads from the input files 
-                        (make a copy first) or not. 
-        debug:          Boolean. If True, BMTagger does not delete temporary
-                        files
-        temp_dir:       Directory to put BMTagger's temporary files
+    files. Returns a tuple (ret_codes, bmt_args). Both are lists, each which has
+    the same number of elements as the number of databases. THe first contains
+    the return codes for each of the BMTagger executions, and the second
+    contains the command line calls for these executions.
 
-    output:
-        prefix.out:             a list of the contaminant reads
-        prefix_depleted.fastq:  the input fastq with the unwanted reads removed
-
-    returns:
-        (ret_codes, bmt_args)   
-        Both are lists, each which has the same number of elements as the number
-        of databases. THe first contains the return codes for each of the
-        BMTagger executions, and the second contains the command line calls for
-        these executions
-    Summary: Uses BMTagger to tag and potentially remove unwanted reads
-    '''
+    :param infile_list: List; a list of input files in FASTQ format. A list of
+                        length 1 is interpreted as a single-end sequence file,
+                        while a list of length 2 is interpreted as a paired-end
+                        sequence duo
+    :param db_prefix_list: List; Prefixes of the BMTagger databases. BMTagger
+                           needs databases of the format db_prefix.bitmask, 
+                           db_prefix.srprism.*, and db_prefix.{blastdb file
+                           extensions} for any fixed db_prefix (see
+                           const.BMTAGGER_DB_ENDINGS for full list of endings).
+                           Multiple databases can be specified. Uses
+                           subprocesses to run BMTagger in parallel
+    :param logfile: String; File path to location of log file
+    :param temp_dir: String; Path name to temporary directory for BMTagger
+    :param prefix: String; prefix for output files
+    :keyword bmtagger_path: String; file path to the bmtagger.sh executable
+    :keyword n_procs: Int; Max number of BMTagger subprocesses to run
+    :keyword remove: Boolean; If True, output cleaned FASTQ files with reads
+                     identified as contaminants removed. Otherwise, outputs
+                     list(s) of reads identified as contaminants.
+    :keyword debug: Boolean; If True, BMTagger does not delete temporary files
+    """
     single_end = (len(infile) == 1)
 
     # quick check of inputs
@@ -308,56 +295,67 @@ def tag(infile_list, db_prefix_list, logfile, temp_dir, prefix,
         if not bmtagger_path:
             raise Exception("Could not find BMTagger path!")
 
-    db_len = len(db_prefix)
-    bmt_args = [None for i in range(db_len)]
+    db_list = _prefix_bases(db_prefix)
+    bmt_args = [None for d in db_list]
 
     # correctly manage the output prefix
-    outputs = [None for i in range(db_len)]
+    outputs = [None for d in db_list]
     # build arguments
-    for i in range(db_len):
-        db = db_prefix[i]
+    for (i, (basename, fullpath)) in enumerate(db_list):
         out_prefix = None
         if single_end:
             if remove:
-                # TODO: Change this so that we print out the basename of the db
-                # You can refactor this whole part
-                out_prefix = prefix + "_db" + str(i)
-                if orphan != None:
-                    out_prefix = prefix + "_db" + str(i) + "_se_" + str(orphan)
-                bmt_args[i] = str(bmtagger_path + " -q 1 -1 " + infile[0] + 
-                        " -b " + db + ".bitmask -x " + db + ".srprism -T " + 
-                        temp_dir + " -o " + out_prefix + " --extract") 
+                out_prefix = prefix + "_" + basename + "_clean"
+                bmt_args[i] = [bmtagger_path, 
+                              " -q", "1",
+                              "-1", infile[0],
+                              "-b", str(basename + ".bitmask"),
+                              "-x", str(basename + ".srprism"),
+                              "-T", temp_dir, 
+                              "-o", out_prefix,
+                              "--extract"] 
                 outputs[i] = [out_prefix + const.BMTAGGER_SE_ENDING]
 
             else:
-                out_prefix = prefix + "_db" + str(i) + ".out"
-                if orphan != None:
-                    out_prefix = str(prefix + "_db" + str(i) + "_se_" +
-                            str(orphan) + ".out") 
-                    bmt_args[i] = str(bmtagger_path + " -q 1 -1 " + infile[0] +
-                            " -b " + db + ".bitmask -x " + db + ".srprism -T " +
-                            temp_dir + " -o " + out_prefix)
+                out_prefix = prefix + "_" + basename + "_contam.out"
+                bmt_args[i] = [bmtagger_path, 
+                              " -q", "1",
+                              "-1", infile[0],
+                              "-b", str(basename + ".bitmask"),
+                              "-x", str(basename + ".srprism"),
+                              "-T", temp_dir, 
+                              "-o", out_prefix]
                 outputs[i] = [out_prefix]
 
 
         else:
             if remove:
-                out_prefix = prefix + "_db" + str(i) + "_pe"
-                bmt_args[i] = str(bmtagger_path + " -q 1 -1 " + infile[0] + 
-                        " -2 " + infile[1] + " -b " + db + ".bitmask -x " + db +
-                        ".srprism -T " + temp_dir + " -o " + out_prefix + 
-                        " --extract")
+                out_prefix = prefix + "_" + basename + "_clean"
+                bmt_args[i] = [bmtagger_path, 
+                              " -q", "1",
+                              "-1", infile[0],
+                              "-2", infile[1],
+                              "-b", str(basename + ".bitmask"),
+                              "-x", str(basename + ".srprism"),
+                              "-T", temp_dir, 
+                              "-o", out_prefix,
+                              "--extract"]
                 outputs[i] = [out_prefix + ending for ending in
                         const.BMTAGGER_PE_ENDINGS]
                                             
             else:
-                out_prefix = prefix + "_db" + str(i) + "_pe" + ".out"
-                bmt_args[i] = str(bmtagger_path + " -q 1 -1 " + infile[0] + 
-                        " -2 " + infile[1] + " -b " + db + ".bitmask -x " + db +
-                        ".srprism -T " + temp_dir + " -o " + out_prefix)
+                out_prefix = prefix + "_" + basename + "_contam.out"
+                bmt_args[i] = [bmtagger_path, 
+                              " -q", "1",
+                              "-1", infile[0],
+                              "-2", infile[1],
+                              "-b", str(basename + ".bitmask"),
+                              "-x", str(basename + ".srprism"),
+                              "-T", temp_dir, 
+                              "-o", out_prefix]
                 outputs[i] = [out_prefix]
         if debug:
-            bmt_args[i] = bmt_args[i] + " --debug"
+            bmt_args[i] += ["--debug"]
     
     print("BMTagger commands to run:")
     print(bmt_args)
@@ -372,8 +370,8 @@ def tag(infile_list, db_prefix_list, logfile, temp_dir, prefix,
         bmt_args.append(cmd)
         time.sleep(0.5)
     else:
-        print("Running BMTagger command: " + cmd)
-        proc = subprocess.Popen(shlex.split(cmd))
+        print("Running BMTagger command: " + str(cmd))
+        proc = subprocess.Popen(cmd)
         procs_running.append((proc, cmd))
 
     # wait for everything to finish after we started running all the processes
@@ -740,10 +738,12 @@ def main():
         paths.append(args.infile2)
     [checkfile(p, fail_hard=True) for p in paths]
 
-    # TODO: Fix this to include BMTagger paths
-    '''
     for db_prefix in args.reference_db:
-        dbs = map(lambda x: str(db_prefix + x), const.DB_ENDINGS)
+        dbs = None
+        if args.bmtagger:
+            dbs = map(lambda x: str(db_prefix + x), const.BMTAGGER_DB_ENDINGS)
+        else:
+            dbs = map(lambda x: str(db_prefix + x), const.BOWTIE2_DB_ENDINGS)
         print(dbs)
         checks = [ ( checkfile( db, ftype="reference database", 
                                 fail_hard=False), db) 
@@ -752,7 +752,6 @@ def main():
         for check, db in checks:
             if check == 0:
                 raise OSError("Could not find reference database file " + db)
-    '''
 
     # determine single-ended or pair ends
     b_single_end = (args.infile2 is None)
