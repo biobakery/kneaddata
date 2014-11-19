@@ -1,7 +1,7 @@
-KneadData User Guide v0.2
+KneadData User Guide v0.3
 ========================
 
-Last updated on October 27, 2014.
+Last updated on November 19, 2014.
 
 Authors: Andy Shi and Aleksandar Kostic  
 Huttenhower Lab, Harvard School of Public Health,  
@@ -41,11 +41,17 @@ the files.
 + [GZ](https://bitbucket.org/biobakery/kneaddata/get/v0.1.tar.gz)
 + [BZ](https://bitbucket.org/biobakery/kneaddata/get/v0.1.tar.bz2)
 
+Or
+
++ `pip install -e 'hg+https://bitbucket.org/biobakery/kneaddata@master#egg=knead_datalib-dev'`
+
 Currently, KneadData is only supported on Linux and Macs. 
 
 KneadData requires
 [Trimmomatic](http://www.usadellab.org/cms/?page=trimmomatic), and 
 [Bowtie 2](http://bowtie-bio.sourceforge.net/bowtie2/index.shtml). 
+
+If installing via pip, Trimmomatic is optional.
 
 The following dependencies are optional:
 [BMTagger](ftp://ftp.ncbi.nlm.nih.gov/pub/agarwala/bmtagger/) and [NCBI
