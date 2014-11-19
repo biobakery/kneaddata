@@ -142,7 +142,6 @@ def trim_biopython(infiles, trimlen, prefix, trimmomatic_path=None, **kwargs):
     try:
         total_written = pool.map(_trim_biopython, _args())
     except Exception as e:
-        import pdb; pdb.set_trace()
         return (1, str(e))
 
     return(0, "")
