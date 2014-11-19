@@ -16,8 +16,15 @@ import re
 import itertools
 import collections
 import time
+import multiprocessing
 
-import constants_knead_data as const
+try:
+    import bz2
+    import gzip
+except ImportError:
+    pass
+
+from knead_datalib import constants_knead_data as const
 
 
 def find_on_path(bin_str):
@@ -35,7 +42,7 @@ def find_on_path(bin_str):
     return False
 
 
-def trim(infile, trimlen, prefix, trimmomatic_path, 
+def trim_trimmomatic(infile, trimlen, prefix, trimmomatic_path, 
          java_mem="500m", addl_args=str()):
     '''
     Trim a sequence file using trimmomatic. 
@@ -83,6 +90,62 @@ def trim(infile, trimlen, prefix, trimmomatic_path,
     print("Trimmomatic command that will be run: " + cmd)
     ret = subprocess.call(shlex.split(cmd))
     return(ret, cmd)
+
+
+def _trim_biopython((in_fname, out_fname, minlen)):
+    """ accepts a tuple; intended to work with multiprocessing
+    """
+    from Bio import SeqIO
+
+    def _open(f, *args, **kwargs):
+        if f == '-':
+            return sys.stdin
+        elif f.endswith(".bz2"):
+            return bz2.BZ2File(f, *args, **kwargs)
+        elif f.endswith("gzip") or f.endswith("gz"):
+            return gzip.GzipFile(f, *args, **kwargs)
+        else:
+            return open(f, *args, **kwargs)
+
+    def _detect_seqformat(guess_from):
+        guess_from = os.path.split(guess_from)[-1]
+        if re.search(r'\.f.*q(\.gz|\.bz2)?$', guess_from): #fastq, fnq, fq
+            return 'fastq'
+        elif re.search(r'\.f.*a(\.gz|\.bz2)?$', guess_from): #fasta, fna, fa
+            return 'fasta'
+        elif guess_from.endswith('.sff'):
+            return 'sff'
+
+    in_fmt, out_fmt = map(_detect_seqformat, (in_fname, out_fname))
+    in_f, out_f = _open(in_fname, 'r'), _open(out_fname, 'w')
+    in_seqs = SeqIO.parse(in_f, in_fmt)
+    lenfilter = lambda seq: len(seq) > minlen
+    out_seqs = itertools.ifilter(lenfilter, in_seqs)
+    seqs_written = SeqIO.write(out_seqs, out_f, out_fmt)
+
+    return seqs_written
+
+
+def trim_biopython(infiles, trimlen, prefix, trimmomatic_path=None, **kwargs):
+    ''' Trim with biopython
+    '''
+
+    pool = multiprocessing.Pool(2)
+    def _args():
+        if len(infiles) > 1:
+            for i, in_fname in enumerate(infile):
+                out_fname = "%s.%i.trimmed.fastq"%(prefix, i)
+                yield (in_fname, out_fname, trimlen)
+        else:
+            yield (infiles[0], prefix+".trimmed.fastq", trimlen)
+
+    try:
+        total_written = pool.map(_trim_biopython, _args())
+    except Exception as e:
+        import pdb; pdb.set_trace()
+        return (1, str(e))
+
+    return(0, "")
 
 
 def _prefix_bases(db_prefix_list):
@@ -688,7 +751,7 @@ def main():
                         help="prefix for reference databases used for either Bowtie2 or BMTagger")
  
     # Consider using a params file
-    parser.add_argument("-t", "--trim-path", required=True,
+    parser.add_argument("-t", "--trim-path", required=False,
                         help="path to Trimmomatic .jar executable")
     parser.add_argument("--bowtie2-path", default=None,
                         help="path to bowtie2 if not found on $PATH")
@@ -713,6 +776,9 @@ def main():
                         help="path to BMTagger executable if not found in $PATH")
     parser.add_argument("-d", "--debug", default=False, action="store_true",
                         help="If set, temporary files are not removed")
+    parser.add_argument("-B", "--biopython", default=False, action="store_true",
+                        help=("If set, use biopython instead of trimmomatic "
+                              "to trim"))
     args = parser.parse_args()
 
     # check inputs
@@ -721,9 +787,11 @@ def main():
         args.output_prefix = args.infile1 + "_output"
 
     # check for the existence of required files/paths
-    paths = [args.infile1, args.trim_path]
+    paths = [args.infile1]
     if args.infile2 != None:
         paths.append(args.infile2)
+    if args.trim_path:
+        paths.append(args.trim_path)
     [checkfile(p, fail_hard=True) for p in paths]
 
     for db_prefix in args.reference_db:
@@ -759,7 +827,11 @@ def main():
         f.write(msg_init)
         f.write(msg)
 
-    print("Running Trimmomatic...")
+    print("Trimming...")
+
+    trim = trim_trimmomatic
+    if not args.trim_path or args.biopython:
+        trim = trim_biopython
 
     trim(files, 
          trimlen    = args.trimlen, trimmomatic_path = args.trim_path, 
