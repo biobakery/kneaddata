@@ -13,6 +13,9 @@ syntax: glob
 *.sam
 *.html
 *.emf
+#*
+*~
 tags
 
 syntax: regexp
+.*\.egg-info.*
