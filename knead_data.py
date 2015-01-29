@@ -346,7 +346,8 @@ def tag(infile_list, db_prefix_list, logfile, temp_dir, prefix,
         if not bmtagger_path:
             raise Exception("Could not find BMTagger path!")
 
-    db_list = _prefix_bases(db_prefix_list)
+    print(db_prefix_list)
+    db_list = list(_prefix_bases(db_prefix_list))
     bmt_args = [None for d in db_list]
 
     outputs = [None for d in db_list]
@@ -357,7 +358,7 @@ def tag(infile_list, db_prefix_list, logfile, temp_dir, prefix,
             if remove:
                 out_prefix = prefix + "_" + basename + "_clean"
                 bmt_args[i] = [bmtagger_path, 
-                              " -q", "1",
+                              "-q", "1",
                               "-1", infile_list[0],
                               "-b", str(basename + ".bitmask"),
                               "-x", str(basename + ".srprism"),
@@ -369,7 +370,7 @@ def tag(infile_list, db_prefix_list, logfile, temp_dir, prefix,
             else:
                 out_prefix = prefix + "_" + basename + "_contam.out"
                 bmt_args[i] = [bmtagger_path, 
-                              " -q", "1",
+                              "-q", "1",
                               "-1", infile_list[0],
                               "-b", str(basename + ".bitmask"),
                               "-x", str(basename + ".srprism"),
@@ -382,7 +383,7 @@ def tag(infile_list, db_prefix_list, logfile, temp_dir, prefix,
             if remove:
                 out_prefix = prefix + "_" + basename + "_clean"
                 bmt_args[i] = [bmtagger_path, 
-                              " -q", "1",
+                              "-q", "1",
                               "-1", infile_list[0],
                               "-2", infile_list[1],
                               "-b", str(basename + ".bitmask"),
@@ -396,7 +397,7 @@ def tag(infile_list, db_prefix_list, logfile, temp_dir, prefix,
             else:
                 out_prefix = prefix + "_" + basename + "_contam.out"
                 bmt_args[i] = [bmtagger_path, 
-                              " -q", "1",
+                              "-q", "1",
                               "-1", infile_list[0],
                               "-2", infile_list[1],
                               "-b", str(basename + ".bitmask"),
@@ -410,26 +411,33 @@ def tag(infile_list, db_prefix_list, logfile, temp_dir, prefix,
     print("BMTagger commands to run:")
     print(bmt_args)
 
+    if not bmt_args: # no databases specified
+        return ([], [])
+
     # similar to what we did for Bowtie2
     # Poll to see if we can run more BMTagger instances. 
+    procs_ran = list()
     procs_running = list()
     while bmt_args:
         cmd = bmt_args.pop() 
         n_running, procs_running = _poll_workers(procs_running)
-    if n_running >= n_procs:
-        bmt_args.append(cmd)
-        time.sleep(0.5)
-    else:
-        print("Running BMTagger command: " + str(cmd))
-        proc = subprocess.Popen(cmd)
-        procs_running.append((proc, cmd))
+        if n_running >= n_procs:
+            bmt_args.append(cmd)
+            time.sleep(0.5)
+        else:
+            print("Running BMTagger command: " + str(cmd))
+            proc = subprocess.Popen(cmd)
+            procs_running.append((proc, cmd))
+            procs_ran.append(cmd)
 
     # wait for everything to finish after we started running all the processes
     ret_codes = [p.wait() for p, cmd in procs_running]
 
     # if BMTagger produced correct output, merge the files from multiple
     # databases
-    if (outputs != []):
+    #if (outputs != []):
+    set_retcodes = set(ret_codes)
+    if (len(set_retcodes) == 1) and (0 in set_retcodes):
         combine_tag(outputs, logfile, prefix)
 
     if not debug:
@@ -441,9 +449,11 @@ def tag(infile_list, db_prefix_list, logfile, temp_dir, prefix,
                     print("Could not remove file " + str(o))
                     print("OS Error {0}: {1}".format(e.errno, e.strerror))
 
-    return (ret_codes, bmt_args)
+    print(procs_ran)
+    return (ret_codes, procs_ran)
 
 
+# TODO: this is a pretty bad way of doing this. consider doing what Randall did
 def check_fastq(strFname):
     '''
     Returns True if file strFname is a fastq file (based on file extension)
@@ -537,7 +547,8 @@ def combine_tag(llstrFiles, logfile, out_prefix):
         with read counts for the different input and output files.
     '''
     # get read counts
-    msgs = [[str(f + ": " + str(get_num_reads(f))) for f in pair] for pair in llstrFiles]
+    msgs = [[str(f + ": " + str(get_num_reads(f))) for f in pair] for pair in
+            llstrFiles]
 
     # flatten the list
     msg_flattened = itertools.chain.from_iterable(msgs)
@@ -557,6 +568,7 @@ def combine_tag(llstrFiles, logfile, out_prefix):
         single_end = False
 
     # Check if it was .fastq or not
+    # TODO: Instead of this method, try passing in another parameter? 
     fIsFastq = check_fastq(fnames1[0])
 
     output_files = []
@@ -875,11 +887,11 @@ def main():
     # files, fork a thread for each file, and run BMTagger in each thread.
 
     # Start aligning
-    pos_orphan = (len(files_to_align) > 1)
+    possible_orphan = (len(files_to_align) > 1)
     orphan_count = 1
     for files_list in files_to_align:
         prefix = args.output_prefix
-        if pos_orphan and (len(files_list) == 1):
+        if possible_orphan and (len(files_list) == 1):
             prefix = args.output_prefix + "_se_" + str(orphan_count)
             orphan_count += 1
         elif len(files_list) == 2:
