@@ -1,0 +1,30 @@
+#!/bin/bash 
+
+#SBATCH -n 1 #Number of cores 
+
+#SBATCH -t 360 #Runtime in minutes 
+
+#SBATCH -p serial_requeue #Partition to submit to 
+
+#SBATCH --mem=1000 # Total memory (in MB). See also --mem-per-cpu
+
+#SBATCH -J uclust
+
+#SBATCH --error=uclust.err
+#SBATCH --output=uclust.out
+
+#SBATCH --mail-user=andyshi@college.harvard.edu
+
+#SBATCH --mail-type=BEGIN
+
+#SBATCH --mail-type=END
+
+module load bio/uclust-1.2.22
+
+base_db=silva_small.fasta
+out=silva_small_95
+sorted=silva_small-sorted.fasta
+
+cd ~/kneadData/database/silva/silva_v115/uclust
+time uclust --sort $base_db --output $sorted
+time uclust --input $sorted --uc $out --id 0.90
