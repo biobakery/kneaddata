@@ -197,7 +197,7 @@ def _generate_bowtie2_commands( infile_list, db_prefix_list, bowtie2_path,
     for basename, fullpath in db_prefix_bases:
         is_paired = (len(infile_list) == 2)
         cmd = [bowtie2_path] 
-        cmd += list(dict_to_cmd_opts_iter(bowtie2_opts))
+        #cmd += list(dict_to_cmd_opts_iter(bowtie2_opts))
         cmd += [ "-x", fullpath ]
         
         output_str = output_prefix + "_" + basename
@@ -215,6 +215,7 @@ def _generate_bowtie2_commands( infile_list, db_prefix_list, bowtie2_path,
                      "--un", output_str + "_clean.fastq"]
             outputs_to_combine = [output_str + "_clean.fastq"]
 
+        cmd += shlex.split(bowtie2_opts)
         sam_out = os.path.join(tmp_dir, output_str + ".sam")
         cmd += [ "-S", sam_out ]
         yield (cmd, outputs_to_combine)
@@ -272,6 +273,9 @@ def align(infile_list, db_prefix_list, output_prefix, logfile, tmp_dir,
                          For boolean options, use the key/value pattern 
                          of { "my-option": "" }.
     """
+    # for now, we are not using dictionaries for bowtie2 additional arguments.
+    # Just reading them in as a string, including the hyphens, and using
+    # shlex.split to process them into a list
 
     if not bowtie2_path:
         bowtie2_path = find_on_path("bowtie2")
@@ -776,7 +780,8 @@ def main():
     parser.add_argument("-a", "--trim-args", default="",
                         help="additional arguments for Trimmomatic")
     # don't know how to read in a "dictionary" for the additional arguments
-    #parser.add_argument("--bowtie2-args", help="Additional arguments for Bowtie 2")
+    parser.add_argument("--bowtie2-args", default="",
+            help="Additional arguments for Bowtie 2")
     parser.add_argument("--nprocs", type=int, default=2, 
                         help="Maximum number of processes to run")
     parser.add_argument("--bmtagger", default=False, action="store_true",
@@ -907,7 +912,7 @@ def main():
             align(infile_list = files_list, db_prefix_list = args.reference_db, 
                   output_prefix = prefix, logfile = logfile, 
                   tmp_dir = tempdir, bowtie2_path = args.bowtie2_path,
-                  n_procs = args.nprocs)
+                  n_procs = args.nprocs, bowtie2_opts = args.bowtie2_args)
 
     print("Finished removing contaminants")
 
