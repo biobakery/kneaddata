@@ -458,6 +458,7 @@ def tag(infile_list, db_prefix_list, logfile, temp_dir, prefix,
 
 
 # TODO: this is a pretty bad way of doing this. consider doing what Randall did
+# in _trim_biopython
 def check_fastq(strFname):
     '''
     Returns True if file strFname is a fastq file (based on file extension)
@@ -903,16 +904,28 @@ def main():
             prefix = args.output_prefix + "_pe"
 
         if args.bmtagger:
-            tag(infile_list = files_list, db_prefix_list = args.reference_db,
-                logfile = logfile, temp_dir = tempdir, 
-                prefix = prefix, bmtagger_path = args.bmtagger_path,
-                n_procs = args.nprocs, remove = args.extract,
-                debug = args.debug)
+            ret_codes, commands = tag(infile_list = files_list, db_prefix_list =
+                    args.reference_db, logfile = logfile, temp_dir = tempdir,
+                    prefix = prefix, bmtagger_path = args.bmtagger_path, n_procs
+                    = args.nprocs, remove = args.extract, debug = args.debug)
         else:
-            align(infile_list = files_list, db_prefix_list = args.reference_db, 
-                  output_prefix = prefix, logfile = logfile, 
-                  tmp_dir = tempdir, bowtie2_path = args.bowtie2_path,
-                  n_procs = args.nprocs, bowtie2_opts = args.bowtie2_args)
+            ret_codes, commands = align(infile_list = files_list, db_prefix_list
+                    = args.reference_db, output_prefix = prefix, logfile =
+                    logfile, tmp_dir = tempdir, bowtie2_path =
+                    args.bowtie2_path, n_procs = args.nprocs, bowtie2_opts =
+                    args.bowtie2_args)
+
+    # check that everything returned correctly
+    
+    # gather non-zero return codes
+    zeros = [i for (i, ret_code) in enumerate(ret_codes) if ret_code != 0]
+    if len(zeros) > 0:
+        for index in zeros:
+            print("The following command failed with return code %d"
+                    %ret_codes[i])
+            print(str(commands[i]))
+        sys.exit(1)
+
 
     print("Finished removing contaminants")
 
