@@ -459,16 +459,15 @@ If you want to specify additional arguments for Bowtie2 using the
 `--bowtie2-args` flag, you will need to enclose them in quotes, and add a space
 before the first argument. For example:
 
-`./knead_data.py ... --bowtie2-args " --very-fast -p 2`
+`./knead_data.py ... --bowtie2-args " --very-fast -p 2"`
 
 Similarly, to specify additional arguments for Trimmomatic, enclosing quotes
 should also be used:
 
-`./knead_data.py ... --trim-args "LEADING:3 TRAILING:3`
+`./knead_data.py ... --trim-args "LEADING:3 TRAILING:3"`
 
 ### Memory
 
 KneadData requires quite a bit of memory when running with BMTagger, around 8-9
 gigabytes. When running with Bowtie2, KneadData only requires around 2-4
 gigabytes.
-
