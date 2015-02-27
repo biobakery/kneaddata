@@ -1,7 +1,7 @@
 KneadData User Guide v0.3
 ========================
 
-Last updated on November 19, 2014.
+Last updated on February 27, 2015.
 
 Authors: Andy Shi and Aleksandar Kostic  
 Huttenhower Lab, Harvard School of Public Health,  
@@ -37,9 +37,9 @@ bacterial 16S sequences, or other user-defined sources.
 To download the latest stable release, use one of the links below and extract
 the files.
 
-+ [ZIP](https://bitbucket.org/biobakery/kneaddata/get/v0.1.zip)
-+ [GZ](https://bitbucket.org/biobakery/kneaddata/get/v0.1.tar.gz)
-+ [BZ](https://bitbucket.org/biobakery/kneaddata/get/v0.1.tar.bz2)
++ [ZIP](https://bitbucket.org/biobakery/kneaddata/get/v0.3.zip)
++ [GZ](https://bitbucket.org/biobakery/kneaddata/get/v0.3.tar.gz)
++ [BZ](https://bitbucket.org/biobakery/kneaddata/get/v0.3.tar.bz2)
 
 Or
 
@@ -399,23 +399,16 @@ To run with BMTagger, execute
     ./knead_data.py -1 seq1.fastq -2 seq2.fastq -db bact_rrna_db human_rna_db -t ~/bin/Trimmomatic/trimmomatic-0.32.jar --bmtagger --bmtagger-path ~/bin/bmtagger.sh -o seq_contams
 
 
-### A Note on Memory
-
-KneadData requires quite a bit of memory when running with BMTagger, around 8-9
-gigabytes. When running with Bowtie2, KneadData only requires around 2-4
-gigabytes.
-
-
 # 4. Detailed Documentation
 
 This documentation can be accessed via `./knead_data.py -h`.
 
     usage: knead_data.py [-h] -1 INFILE1 [-2 INFILE2] [-o OUTPUT_PREFIX]
-                        [-db REFERENCE_DB [REFERENCE_DB ...]] -t TRIM_PATH
+                        [-db REFERENCE_DB [REFERENCE_DB ...]] [-t TRIM_PATH]
                         [--bowtie2-path BOWTIE2_PATH] [--trimlen TRIMLEN]
-                        [-m MAX_MEM] [-a TRIM_ARGS] [--nprocs NPROCS]
-                        [--bmtagger] [--extract] [--bmtagger-path BMTAGGER_PATH]
-                        [-d]
+                        [-m MAX_MEM] [-a TRIM_ARGS] [--bowtie2-args BOWTIE2_ARGS]
+                        [--nprocs NPROCS] [--bmtagger] [--extract]
+                        [--bmtagger-path BMTAGGER_PATH] [-d] [-B]
 
     optional arguments:
     -h, --help            show this help message and exit
@@ -438,6 +431,8 @@ This documentation can be accessed via `./knead_data.py -h`.
                             Trimmomatic, as a string, ie 500m or 8g
     -a TRIM_ARGS, --trim-args TRIM_ARGS
                             additional arguments for Trimmomatic
+    --bowtie2-args BOWTIE2_ARGS
+                            Additional arguments for Bowtie 2
     --nprocs NPROCS       Maximum number of processes to run
     --bmtagger            If set, use BMTagger to identify contaminant reads
     --extract             Only has an effect if --bmtagger is set. If this is
@@ -447,3 +442,33 @@ This documentation can be accessed via `./knead_data.py -h`.
     --bmtagger-path BMTAGGER_PATH
                             path to BMTagger executable if not found in $PATH
     -d, --debug           If set, temporary files are not removed
+    -B, --biopython       If set, use biopython instead of trimmomatic to trim
+
+## Usage Notes
+
+### Trimmomatic Additional Arguments
+
+In our testing, we noticed that more aggressive settings for quality trimming
+can help remove more unwanted sequences, especially those that are low in
+quality. To do this, specify the `LEADING:3` and `TRAILING:3` arguments for
+Trimmomatic. See below for more details.
+
+### Additional Arguments
+
+If you want to specify additional arguments for Bowtie2 using the
+`--bowtie2-args` flag, you will need to enclose them in quotes, and add a space
+before the first argument. For example:
+
+`./knead_data.py ... --bowtie2-args " --very-fast -p 2`
+
+Similarly, to specify additional arguments for Trimmomatic, enclosing quotes
+should also be used:
+
+`./knead_data.py ... --trim-args "LEADING:3 TRAILING:3`
+
+### Memory
+
+KneadData requires quite a bit of memory when running with BMTagger, around 8-9
+gigabytes. When running with Bowtie2, KneadData only requires around 2-4
+gigabytes.
+
