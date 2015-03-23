@@ -1,7 +1,7 @@
 import os
 from setuptools import setup, find_packages
 
-here = os.path.realpath(os.path.dirname(__file__))
+here = os.path.abspath(os.path.dirname(__file__))
 setup(
     name='knead-datalib',
     version='0.0.1',
