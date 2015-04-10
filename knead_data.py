@@ -785,12 +785,12 @@ def main():
                         help="path to bowtie2 if not found on $PATH")
     #parser.add_argument("-c", "--save-contaminants-to", help="File path",
     #                    default=False, action="store_true")
-    #parser.add_argument("--trimlen", type=int, default=60,
-                        #help="minimum length for a trimmed read in Trimmomatic")
+    parser.add_argument("--trimlen", type=int, default=60,
+                        help="minimum length for a trimmed read in Trimmomatic")
     parser.add_argument("-m", "--max-mem", default="500m", 
                         help="Maximum amount of memory that will be used by "
                         "Trimmomatic, as a string, ie 500m or 8g")
-    parser.add_argument("-a", "--trim-args", default="SLIDINGWINDOW:4:20 MINLEN:60",
+    parser.add_argument("-a", "--trim-args", default="SLIDINGWINDOW:4:20",
                         help="additional arguments for Trimmomatic")
     # don't know how to read in a "dictionary" for the additional arguments
     parser.add_argument("--bowtie2-args", default="",
