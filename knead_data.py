@@ -75,16 +75,28 @@ def trim_trimmomatic(infile, trimlen, prefix, trimmomatic_path,
     single_end = (len(infile) == 1)
     trim_arg = ""
     if single_end:
-        trim_arg = str(trimmomatic_path + " SE -phred33 " + infile[0] 
-                       + " " + prefix + ".trimmed.fastq " + "MINLEN:" 
-                       + str(trimlen) + " " + addl_args)
+        trim_arg = ('%s SE -phred 33 %s %s.trimmed.fastq %s MINLEN:%d'
+                %(trimmomatic_path, infile[0], prefix, addl_args, trimlen))
+        
+        '''
+        trim_arg = str(trimmomatic_path + " SE -phred33 " + infile[0] + " " 
+                        + prefix + ".trimmed.fastq " + "MINLEN:" + str(trimlen)
+                        + " " + addl_args)
+        '''
     else:
+        trim_arg = ('%s PE -phred33 %s %s %s.trimmed.1.fastq \
+                %s.trimmed.single.1.fastq %s.trimmed.2.fastq \
+                %s.trimmed.single.2.fastq %s MINLEN:%d' 
+                %(trimmomatic_path, infile[0], infile[1], prefix, prefix,
+                    prefix, prefix, addl_args, trimlen))
+        '''
         trim_arg = str(trimmomatic_path + " PE -phred33 " + infile[0] + " " 
                        + infile[1] + " " + prefix + ".trimmed.1.fastq " 
                        + prefix + ".trimmed.single.1.fastq " + prefix 
                        + ".trimmed.2.fastq " + prefix 
                        + ".trimmed.single.2.fastq " + "MINLEN:" 
                        + str(trimlen) + " " + addl_args)
+        '''
 
     cmd = "java -Xmx" + java_mem + " -d64 -jar " + trim_arg
     print("Trimmomatic command that will be run: " + cmd)
@@ -773,12 +785,12 @@ def main():
                         help="path to bowtie2 if not found on $PATH")
     #parser.add_argument("-c", "--save-contaminants-to", help="File path",
     #                    default=False, action="store_true")
-    parser.add_argument("--trimlen", type=int, default=60,
-                        help="minimum length for a trimmed read in Trimmomatic")
+    #parser.add_argument("--trimlen", type=int, default=60,
+                        #help="minimum length for a trimmed read in Trimmomatic")
     parser.add_argument("-m", "--max-mem", default="500m", 
                         help="Maximum amount of memory that will be used by "
                         "Trimmomatic, as a string, ie 500m or 8g")
-    parser.add_argument("-a", "--trim-args", default="",
+    parser.add_argument("-a", "--trim-args", default="SLIDINGWINDOW:4:20 MINLEN:60",
                         help="additional arguments for Trimmomatic")
     # don't know how to read in a "dictionary" for the additional arguments
     parser.add_argument("--bowtie2-args", default="",
