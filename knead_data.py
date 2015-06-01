@@ -75,7 +75,7 @@ def trim_trimmomatic(infile, trimlen, prefix, trimmomatic_path,
     single_end = (len(infile) == 1)
     trim_arg = ""
     if single_end:
-        trim_arg = ('%s SE -phred 33 %s %s.trimmed.fastq %s MINLEN:%d'
+        trim_arg = ('%s SE -phred33 %s %s.trimmed.fastq %s MINLEN:%d'
                 %(trimmomatic_path, infile[0], prefix, addl_args, trimlen))
         
         '''
