@@ -306,7 +306,7 @@ def align(infile_list, db_prefix_list, output_prefix, logfile, tmp_dir,
         cmd, output_to_combine = commands_to_run.pop()
         n_running, procs_running = _poll_workers(procs_running)
         if n_running >= n_procs:
-            commands_to_run.append(cmd)
+            commands_to_run.append((cmd, output_to_combine))
             time.sleep(0.5)
         else:
             print("Running bowtie2 command: " + " ".join(cmd))
