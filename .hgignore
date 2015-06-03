@@ -16,6 +16,8 @@ syntax: glob
 #*
 *~
 tags
+env
+Trimmomatic*
 
 syntax: regexp
 .*\.egg-info.*

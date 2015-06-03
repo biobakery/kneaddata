@@ -27,6 +27,8 @@ except ImportError:
 from knead_datalib import constants_knead_data as const
 
 
+here = os.path.abspath(os.path.dirname(__file__))
+
 def find_on_path(bin_str):
     """ Finds an executable living on the shells PATH variable.
     :param bin_str: String; executable to find
@@ -780,6 +782,8 @@ def main():
  
     # Consider using a params file
     parser.add_argument("-t", "--trim-path", required=False,
+                        default=os.path.join(
+                            here, "Trimmomatic-0.33/trimmomatic-0.33.jar"),
                         help="path to Trimmomatic .jar executable")
     parser.add_argument("--bowtie2-path", default=None,
                         help="path to bowtie2 if not found on $PATH")
