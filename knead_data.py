@@ -17,6 +17,7 @@ import itertools
 import collections
 import time
 import multiprocessing
+import logging
 
 try:
     import bz2
@@ -101,7 +102,7 @@ def trim_trimmomatic(infile, trimlen, prefix, trimmomatic_path,
         '''
 
     cmd = "java -Xmx" + java_mem + " -d64 -jar " + trim_arg
-    print("Trimmomatic command that will be run: " + cmd)
+    logging.debug("Trimmomatic command that will be run: " + cmd)
     ret = subprocess.call(shlex.split(cmd))
     return(ret, cmd)
 
@@ -147,14 +148,14 @@ def trim_biopython(infiles, trimlen, prefix, trimmomatic_path=None, **kwargs):
     pool = multiprocessing.Pool(2)
     def _args():
         if len(infiles) > 1:
-            for i, in_fname in enumerate(infile):
+            for i, in_fname in enumerate(infiles):
                 out_fname = "%s.%i.trimmed.fastq"%(prefix, i)
                 yield (in_fname, out_fname, trimlen)
         else:
             yield (infiles[0], prefix+".trimmed.fastq", trimlen)
 
     try:
-        total_written = pool.map(_trim_biopython, _args())
+        pool.map(_trim_biopython, _args())
     except Exception as e:
         return (1, str(e))
 
@@ -311,13 +312,13 @@ def align(infile_list, db_prefix_list, output_prefix, logfile, tmp_dir,
             commands_to_run.append((cmd, output_to_combine))
             time.sleep(0.5)
         else:
-            print("Running bowtie2 command: " + " ".join(cmd))
+            logging.debug("Running bowtie2 command: " + " ".join(cmd))
             proc = subprocess.Popen(cmd)
             procs_running.append((proc, cmd))
             outputs.append(output_to_combine)
 
     # wait for everything to finish after we started running all the processes
-    ret_codes = [p.wait() for p, cmd in procs_running]
+    ret_codes = [p.wait() for p, _ in procs_running]
 
     # if Bowtie2 produced correct output, merge the files from multiple
     # databases
@@ -364,7 +365,7 @@ def tag(infile_list, db_prefix_list, logfile, temp_dir, prefix,
         if not bmtagger_path:
             raise Exception("Could not find BMTagger path!")
 
-    print(db_prefix_list)
+    logging.debug(db_prefix_list)
     db_list = list(_prefix_bases(db_prefix_list))
     bmt_args = [None for d in db_list]
 
@@ -426,8 +427,8 @@ def tag(infile_list, db_prefix_list, logfile, temp_dir, prefix,
         if debug:
             bmt_args[i] += ["--debug"]
     
-    print("BMTagger commands to run:")
-    print(bmt_args)
+    logging.debug("BMTagger commands to run:")
+    logging.debug(bmt_args)
 
     if not bmt_args: # no databases specified
         return ([], [])
@@ -443,13 +444,13 @@ def tag(infile_list, db_prefix_list, logfile, temp_dir, prefix,
             bmt_args.append(cmd)
             time.sleep(0.5)
         else:
-            print("Running BMTagger command: " + str(cmd))
+            logging.debug("Running BMTagger command: " + str(cmd))
             proc = subprocess.Popen(cmd)
             procs_running.append((proc, cmd))
             procs_ran.append(cmd)
 
     # wait for everything to finish after we started running all the processes
-    ret_codes = [p.wait() for p, cmd in procs_running]
+    ret_codes = [p.wait() for p, _ in procs_running]
 
     # if BMTagger produced correct output, merge the files from multiple
     # databases
@@ -464,10 +465,11 @@ def tag(infile_list, db_prefix_list, logfile, temp_dir, prefix,
                 try:
                     os.remove(o)
                 except OSError as e:
-                    print("Could not remove file " + str(o))
-                    print("OS Error {0}: {1}".format(e.errno, e.strerror))
+                    logging.exception(e)
+                    logging.warning("Could not remove file " + str(o))
+                    
 
-    print(procs_ran)
+    logging.debug("processes run: %s", procs_ran)
     return (ret_codes, procs_ran)
 
 
@@ -503,8 +505,9 @@ def intersect_fastq(lstrFiles, out_file):
                 try:
                     read = ("".join(lines)).strip()
                 except TypeError:
-                    print("Error encountered!!")
-                    print("You probably passed in a bad fastq file, one that doesn't have 4 lines per read")
+                    logging.critical("You probably passed in a bad fastq"
+                                     " file, one that doesn't have 4 lines"
+                                     " per read")
                     raise
                 else:
                     counter[read] += 1
@@ -570,13 +573,8 @@ def combine_tag(llstrFiles, logfile, out_prefix):
             llstrFiles]
 
     # flatten the list
-    msg_flattened = itertools.chain.from_iterable(msgs)
-    msg_to_print = "\n".join(msg_flattened)
-    print("Read counts after tagging:")
-    print(msg_to_print)
-    with open(logfile, "a") as f:
-        f.write("\nRead counts after tagging:\n")
-        f.write(msg_to_print)
+    for msg in itertools.chain.from_iterable(msgs):
+        logging.info("Read counts after tagging: %s", msg)
 
     single_end = True
     # Get the file names and concat them into strings (separated by spaces)
@@ -618,12 +616,8 @@ def combine_tag(llstrFiles, logfile, out_prefix):
             raise Exception("You have two different .out files for each database")
 
     # Get the read counts for the newly merged files
-    joined_read_msgs_print = msg_num_reads(output_files)
-    print("Read counts after merging from multiple databases:")
-    print(joined_read_msgs_print)
-    with open(logfile, "a") as f:
-        f.write("\nRead counts after merging from multiple databases:\n")
-        f.write(joined_read_msgs_print)
+    logging.info("Read counts after merging from multiple databases: %s",
+                 msg_num_reads(output_files))
     return output_files
 
 def checkfile(fname, ftype="file", fail_hard=False):
@@ -697,7 +691,7 @@ def checktrim_output(output_prefix, b_single_end):
         # means that something went wrong with Trimmomatic
         for i in range(len_endings):
             if checks[i] == 0:
-                print("Could not find file " + outputs[i])
+                logging.critical("Could not find file %s",outputs[i])
                 return(False, outputs, ll_new_inputs)
         
         if checks[0] == 1 and checks[1] == 1:
@@ -733,8 +727,8 @@ def get_num_reads(strFname):
     try:
         out = subprocess.check_output(shlex.split(cmd))
     except subprocess.CalledProcessError as e:
-        print("Command " + str(e.cmd) + " failed with return code " +
-                str(e.returncode))
+        logging.warning("Command %s failed with return code %i ",
+                        str(e.cmd), str(e.returncode))
         return None
     else:
         # match to get the line numbers
@@ -748,7 +742,8 @@ def get_num_reads(strFname):
             return(num_reads)
         else:
             # should not happen
-            print("This should not happen. Can't find the regex in wc output!")
+            logging.critical("This should not happen. "
+                             "Can't find the regex in wc output!")
             return None
    
    
@@ -767,54 +762,103 @@ def msg_num_reads(lstrFiles):
     return ("\n".join([f + ": " + str(get_num_reads(f)) for f in lstrFiles]))
 
 
-def main():
-    # parse command line arguments
-    # note: argparse converts dashes '-' in argument prefixes to underscores '_' 
+def handle_cli():
+    """parse command line arguments
+    note: argparse converts dashes '-' in argument prefixes to
+    underscores '_'
+    """
     parser = argparse.ArgumentParser()
-    parser.add_argument("-1", "--infile1", help="input FASTQ file", 
-                        required=True)
-    parser.add_argument("-2", "--infile2", help="input FASTQ file mate",
-                        default=None)
-    parser.add_argument("-o", "--output-prefix",
-                        help="prefix for all output files")
-    parser.add_argument("-db", "--reference-db", nargs = "+", default=[],
-                        help="prefix for reference databases used for either Bowtie2 or BMTagger")
- 
-    # Consider using a params file
-    parser.add_argument("-t", "--trim-path", required=False,
-                        default=os.path.join(
-                            here, "Trimmomatic-0.33/trimmomatic-0.33.jar"),
-                        help="path to Trimmomatic .jar executable")
-    parser.add_argument("--bowtie2-path", default=None,
-                        help="path to bowtie2 if not found on $PATH")
+    parser.add_argument(
+        "-1", "--infile1",
+        help="input FASTQ file", 
+        required=True)
+    parser.add_argument(
+        "-2", "--infile2",
+        help="input FASTQ file mate",
+        default=None)
+    parser.add_argument(
+        "-o", "--output-prefix",
+        help="prefix for all output files")
+    parser.add_argument(
+        "-db", "--reference-db",
+        nargs = "+", default=[],
+        help=("prefix for reference databases used for either"
+              " Bowtie2 or BMTagger"))
+     # Consider using a params file
+    parser.add_argument(
+        "-t", "--trim-path",
+        required=False,
+        default=os.path.join(here, "Trimmomatic-0.33/trimmomatic-0.33.jar"),
+        help="path to Trimmomatic .jar executable")
+    parser.add_argument(
+        "--bowtie2-path",
+        default=None, help="path to bowtie2 if not found on $PATH")
     #parser.add_argument("-c", "--save-contaminants-to", help="File path",
     #                    default=False, action="store_true")
-    parser.add_argument("--trimlen", type=int, default=60,
-                        help="minimum length for a trimmed read in Trimmomatic")
-    parser.add_argument("-m", "--max-mem", default="500m", 
-                        help="Maximum amount of memory that will be used by "
-                        "Trimmomatic, as a string, ie 500m or 8g")
-    parser.add_argument("-a", "--trim-args", default="SLIDINGWINDOW:4:20",
-                        help="additional arguments for Trimmomatic")
+    parser.add_argument(
+        "--trimlen",
+        type=int, default=60,
+        help="minimum length for a trimmed read in Trimmomatic")
+    parser.add_argument(
+        "-m", "--max-mem",
+        default="500m", 
+        help=("Maximum amount of memory that will be used by "
+              "Trimmomatic, as a string, ie 500m or 8g"))
+    parser.add_argument(
+        "-a", "--trim-args",
+        default="SLIDINGWINDOW:4:20",
+        help="additional arguments for Trimmomatic")
     # don't know how to read in a "dictionary" for the additional arguments
-    parser.add_argument("--bowtie2-args", default="",
-            help="Additional arguments for Bowtie 2")
-    parser.add_argument("--nprocs", type=int, default=2, 
-                        help="Maximum number of processes to run")
-    parser.add_argument("--bmtagger", default=False, action="store_true",
-                        help="If set, use BMTagger to identify contaminant reads")
-    parser.add_argument("--extract", default=False, action="store_true",
-                        help="Only has an effect if --bmtagger is set. If this is set, knead_data outputs cleaned FASTQs, without contaminant reads. Else, output a list or lists of contaminant reads.")
-    parser.add_argument("--bmtagger-path", default=None,
-                        help="path to BMTagger executable if not found in $PATH")
-    parser.add_argument("-d", "--debug", default=False, action="store_true",
-                        help="If set, temporary files are not removed")
-    parser.add_argument("-B", "--biopython", default=False, action="store_true",
-                        help=("If set, use biopython instead of trimmomatic "
-                              "to trim"))
-    args = parser.parse_args()
+    parser.add_argument(
+        "--bowtie2-args",
+        default="",
+        help="Additional arguments for Bowtie 2")
+    parser.add_argument(
+        "--nprocs",
+        type=int, default=2, 
+        help="Maximum number of processes to run")
+    parser.add_argument(
+        "--bmtagger",
+        default=False, action="store_true",
+        help="If set, use BMTagger to identify contaminant reads")
+    parser.add_argument(
+        "--extract",
+        default=False, action="store_true",
+        help=("Only has an effect if --bmtagger is set. If this is set,"
+              " knead_data outputs cleaned FASTQs, without contaminant reads."
+              " Else, output a list or lists of contaminant reads."))
+    parser.add_argument(
+        "--bmtagger-path",
+        default=None,
+        help="path to BMTagger executable if not found in $PATH")
+    parser.add_argument(
+        "-B", "--biopython",
+        default=False, action="store_true",
+        help=("If set, use biopython instead of trimmomatic to trim"))
+    parser.add_argument(
+        '-l', '--logging',
+        default="INFO",
+        help=("Logging verbosity, options are debug, info, warning,"
+              " and critical. If set to debug, temporary files are not"
+              " removed"))
+    return parser.parse_args()
 
-    # check inputs
+
+def setup_logging(loglevel, logfile):
+    fmt = "%(asctime)s %(levelname)s: %(message)s"
+
+    logger = logging.getLogger()
+    logger.setLevel(getattr(logging, loglevel.upper()))
+    logging.basicConfig(format=fmt)
+
+    filehandler = logging.FileHandler(logfile)
+    filehandler.setLevel(logging.DEBUG)
+    filehandler.setFormatter(logging.Formatter(fmt=fmt))
+    logger.addHandler(filehandler)
+
+
+def check_missing_files(args):
+    """check inputs"""
     # deal with missing prefix
     if args.output_prefix == None:
         args.output_prefix = args.infile1 + "_output"
@@ -825,7 +869,9 @@ def main():
         paths.append(args.infile2)
     if args.trim_path:
         paths.append(args.trim_path)
-    [checkfile(p, fail_hard=True) for p in paths]
+    
+    for p in paths:
+        checkfile(p, fail_hard=True)
 
     for db_prefix in args.reference_db:
         dbs = None
@@ -833,34 +879,40 @@ def main():
             dbs = map(lambda x: str(db_prefix + x), const.BMTAGGER_DB_ENDINGS)
         else:
             dbs = map(lambda x: str(db_prefix + x), const.BOWTIE2_DB_ENDINGS)
-        print(dbs)
+        logging.debug(dbs)
         checks = [ ( checkfile( db, ftype="reference database", 
                                 fail_hard=False), db) 
                    for db in dbs ]
-        print(checks)
+        logging.debug(checks)
         for check, db in checks:
             if check == 0:
-                raise OSError("Could not find reference database file " + db)
+                logging.critical("Could not find reference database file %s",
+                                 db)
+                sys.exit(1)
+
+
+def main():
+    args = handle_cli()
+
+    logfile = args.output_prefix + ".log"
+    setup_logging(args.logging, logfile)
+
+    check_missing_files(args)
 
     # determine single-ended or pair ends
     b_single_end = (args.infile2 is None)
     files = [args.infile1] if b_single_end else [args.infile1, args.infile2]
 
     # Get number of reads initially, then log
-    msg_init = "\nInitial number of reads:\n"
     msg = msg_num_reads(files)
-    print(msg_init)
-    print(msg)
+    logging.info("Initial number of reads: "+msg)
 
     # Log file. Create a new one the first time, then keep appending to it.
-    logfile = args.output_prefix + ".log"
-    with open(logfile, "w") as f:
-        f.write("Running knead_data.py with the following arguments (from argparse):\n"
-                + str(args))
-        f.write(msg_init)
-        f.write(msg)
 
-    print("Trimming...")
+    logging.debug("Running knead_data.py with the following"
+                  " arguments (from argparse): %s", str(args))
+
+    logging.info("Trimming...")
 
     trim = trim_trimmomatic
     if not args.trim_path or args.biopython:
@@ -874,24 +926,19 @@ def main():
     # TODO: run part of the pipeline (if you have the output, either overwrite
     # or do the next step)
 
-    print("Finished running Trimmomatic. Checking output files exist... ")
+    logging.info("Finished running Trimmomatic. "
+                 "Checking output files exist... ")
 
     # check that Trimmomatic's output files exist
     b_continue, outputs, files_to_align = checktrim_output(args.output_prefix, 
             b_single_end)
 
-    msg_trim_init = "\nNumber of reads after trimming:\n"
     msg_trim_body = msg_num_reads(outputs)
-    print(msg_trim_init)
-    print(msg_trim_body)
-
-    with open(logfile, "a") as f:
-        f.write(msg_trim_init)
-        f.write(msg_trim_body)
+    logging.info("Number of reads after trimming: %s", msg_trim_body)
 
     if not b_continue:
-        print("Trimmomatic produced no non-empty files.")
-        print("Terminating the pipeline...")
+        logging.crit("Trimmomatic just produced empty files.")
+        logging.crit("Terminating the pipeline...")
         sys.exit(1)
 
     # make temporary directory for Bowtie2 files
@@ -900,9 +947,9 @@ def main():
         os.makedirs(tempdir)
     except OSError:
         if os.path.isdir(tempdir):
-            print("Temporary directory already exists! Using it...")
+            logging.warning("Temporary directory already exists! Using it...")
         else:
-            print("Cannot make the temporary directory")
+            logging.crit("Cannot make the temporary directory")
             raise
 
     # TODO: Add parallelization. Use command line utility 'split' to split the
@@ -934,23 +981,24 @@ def main():
     # check that everything returned correctly
     
     # gather non-zero return codes
-    zeros = [i for (i, ret_code) in enumerate(ret_codes) if ret_code != 0]
-    if len(zeros) > 0:
-        for index in zeros:
-            print("The following command failed with return code %d"
-                    %ret_codes[i])
-            print(str(commands[i]))
+    fails = [(i, ret_code) for i, ret_code in enumerate(ret_codes)
+             if ret_code != 0]
+    if len(fails) > 0:
+        for i, ret_code in fails:
+            logging.crit("The following command failed with return code %d: %s",
+                         ret_code, commands[i])
         sys.exit(1)
 
 
-    print("Finished removing contaminants")
+    logging.info("Finished removing contaminants")
 
-    if not args.debug:
-        print("Removing temporary files...")
+    if not logging.getLogger().isEnabledFor(logging.DEBUG):
+        logging.debug("Removing temporary files...")
         for output in outputs:
             os.remove(output)
         shutil.rmtree(tempdir)
-    print("Done!")
+        
+    logging.info("Done!")
 
 if __name__ == '__main__':
     main()
