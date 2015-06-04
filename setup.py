@@ -9,9 +9,6 @@ setup(
     description='',
     packages=['knead_datalib'],
     zip_safe=False,
-    install_requires=[
-        'biopython'
-    ],
     classifiers=[
         "Development Status :: 3 - Alpha"
     ],
