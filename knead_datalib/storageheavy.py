@@ -9,20 +9,20 @@ import itertools
 import subprocess
 import collections
 
-
 from . import constants_knead_data as const
+from . import divvy_threads, try_create_dir
 
-
-
-def _generate_bowtie2_commands( infile_list, db_prefix_list, bowtie2_path, 
-                                output_prefix, bowtie2_opts, tmp_dir ):
+def _generate_bowtie2_commands( infile_list, db_prefix_list,
+                                bowtie2_path, output_prefix,
+                                bowtie2_opts, tmp_dir, threads ):
     db_prefix_bases = _prefix_bases(db_prefix_list)
     for basename, fullpath in db_prefix_bases:
         is_paired = (len(infile_list) == 2)
         cmd = [bowtie2_path] 
         #cmd += list(dict_to_cmd_opts_iter(bowtie2_opts))
         cmd += [ "-x", fullpath ]
-        
+        cmd += [ "--threads", str(threads) ]
+
         output_str = output_prefix + "_" + basename
         outputs_to_combine = list()
         if is_paired:
@@ -38,8 +38,8 @@ def _generate_bowtie2_commands( infile_list, db_prefix_list, bowtie2_path,
                      "--un", output_str + "_clean.fastq"]
             outputs_to_combine = [output_str + "_clean.fastq"]
 
-        cmd += shlex.split(bowtie2_opts)
-        sam_out = os.path.join(tmp_dir, output_str + ".sam")
+        cmd += bowtie2_opts
+        sam_out = os.path.join(tmp_dir, os.path.basename(output_str) + ".sam")
         cmd += [ "-S", sam_out ]
         yield (cmd, outputs_to_combine)
 
@@ -70,8 +70,8 @@ def _poll_workers(popen_list):
         return (still_running, procs_still_running)
 
 
-def align(infile_list, db_prefix_list, output_prefix, logfile, tmp_dir,
-          bowtie2_path=None, n_procs=2, bowtie2_opts=dict()):
+def align(infile_list, db_prefix_list, output_prefix, tmp_dir,
+          bowtie2_path=None, n_procs=None, bowtie2_opts=dict()):
 
     """Align a single-end sequence file or a paired-end duo of sequence
     files using bowtie2.
@@ -84,7 +84,6 @@ def align(infile_list, db_prefix_list, output_prefix, logfile, tmp_dir,
                            can be specified. Uses subprocesses to run bowtie2 
                            in parallel.
     :param output_prefix: String; Prefix of the output file
-    :param logfile: String; File path to location of log file
     :param tmp_dir: String; Path name to the temporary for holding bowtie2 
                     sam file output
     :keyword bowtie2_path: String; File path to the bowtie2 binary's location.
@@ -105,8 +104,16 @@ def align(infile_list, db_prefix_list, output_prefix, logfile, tmp_dir,
         if not bowtie2_path:
             raise Exception("Could not find Bowtie2 path")
 
-    commands_to_run = _generate_bowtie2_commands( infile_list, db_prefix_list,
-            bowtie2_path, output_prefix, bowtie2_opts, tmp_dir )
+    if not n_procs:
+        n_procs = len(db_prefix_list)
+
+    commands_to_run = _generate_bowtie2_commands( infile_list,
+                                                  db_prefix_list,
+                                                  bowtie2_path,
+                                                  output_prefix,
+                                                  bowtie2_opts,
+                                                  tmp_dir,
+                                                  n_procs )
     commands_to_run = list(commands_to_run)
     
     procs_running = list()
@@ -121,22 +128,32 @@ def align(infile_list, db_prefix_list, output_prefix, logfile, tmp_dir,
             time.sleep(0.5)
         else:
             logging.debug("Running bowtie2 command: " + " ".join(cmd))
-            proc = subprocess.Popen(cmd)
+            proc = subprocess.Popen(cmd, stdout=subprocess.PIPE,
+                                    stderr=subprocess.PIPE)
             procs_running.append((proc, cmd))
             outputs.append(output_to_combine)
 
     # wait for everything to finish after we started running all the processes
-    ret_codes = [p.wait() for p, _ in procs_running]
+    for p, cmd in procs_running:
+        stdout, stderr = p.communicate()
+        cmd = " ".join(cmd)
+        logging.debug("bowtie2 command `%s' Complete", cmd)
+        if stdout:
+            logging.debug("bowtie2 command `%s' stdout: %s", cmd, stdout)
+        if stderr:
+            logging.debug("bowtie2 command `%s' stderr: %s", cmd, stderr)
+
+    ret_codes = [p.returncode for p, _ in procs_running]
 
     # if Bowtie2 produced correct output, merge the files from multiple
     # databases
     if (outputs != []):
-        combine_tag(outputs, logfile, output_prefix)
+        combine_tag(outputs, output_prefix)
 
     return(ret_codes, commands_to_run)
 
 
-def tag(infile_list, db_prefix_list, logfile, temp_dir, prefix,
+def tag(infile_list, db_prefix_list, temp_dir, prefix,
         bmtagger_path=None, n_procs=2, remove=False, debug=False):
     """
     Runs BMTagger on a single-end sequence file or a paired-end duo of sequence
@@ -156,7 +173,6 @@ def tag(infile_list, db_prefix_list, logfile, temp_dir, prefix,
                            const.BMTAGGER_DB_ENDINGS for full list of endings).
                            Multiple databases can be specified. Uses
                            subprocesses to run BMTagger in parallel
-    :param logfile: String; File path to location of log file
     :param temp_dir: String; Path name to temporary directory for BMTagger
     :param prefix: String; prefix for output files
     :keyword bmtagger_path: String; file path to the bmtagger.sh executable
@@ -253,19 +269,28 @@ def tag(infile_list, db_prefix_list, logfile, temp_dir, prefix,
             time.sleep(0.5)
         else:
             logging.debug("Running BMTagger command: " + str(cmd))
-            proc = subprocess.Popen(cmd)
+            proc = subprocess.Popen(cmd, stderr=subprocess.PIPE,
+                                    stdout=subprocess.PIPE)
             procs_running.append((proc, cmd))
             procs_ran.append(cmd)
 
     # wait for everything to finish after we started running all the processes
-    ret_codes = [p.wait() for p, _ in procs_running]
+    for p, cmd in procs_running:
+        stdout, stderr = p.communicate()
+        logging.debug("BMTagger command `%s' Complete", cmd)
+        if stdout:
+            logging.debug("BMTagger command `%s' stdout: %s", cmd, stdout)
+        if stderr:
+            logging.debug("BMTagger command `%s' stderr: %s", cmd, stderr)
+
+    ret_codes = [p.returncode for p, _ in procs_running]
 
     # if BMTagger produced correct output, merge the files from multiple
     # databases
     #if (outputs != []):
     set_retcodes = set(ret_codes)
     if (len(set_retcodes) == 1) and (0 in set_retcodes):
-        combine_tag(outputs, logfile, prefix)
+        combine_tag(outputs, prefix)
 
     if not debug:
         for output_pair in outputs:
@@ -363,13 +388,12 @@ def union_outfiles(lstrFiles, out_file):
     '''
     return 
 
-def combine_tag(llstrFiles, logfile, out_prefix):
+def combine_tag(llstrFiles, out_prefix):
     '''
     Summary: Combines output if we run BMTagger on multiple databases.
     Input:
         llstrFiles: a list of lists of BMTagger outputs. This is passed in from
         the tag function. The 'inner lists' are of length 1 or 2
-        logfile: the file used to log statistics about the files
         out_prefix: Prefix for the output files. 
 
     Output:
@@ -662,8 +686,8 @@ def find_on_path(bin_str):
     return False
 
 
-def trim_trimmomatic(infile, trimlen, prefix, trimmomatic_path, 
-         java_mem="500m", addl_args=str()):
+def trim(infile, trimlen, prefix, trimmomatic_path, 
+         java_mem="500m", addl_args=list(), threads=1):
     '''
     Trim a sequence file using trimmomatic. 
         infile:     input fastq file list (either length 1 or length 2)
@@ -673,7 +697,8 @@ def trim_trimmomatic(infile, trimlen, prefix, trimmomatic_path,
         prefix:     prefix for outputs
         java_mem:   string, ie "500m" or "8g"; specifies how much memory
                     the Java VM is allowed to use
-        addl_args:  string of additional arguments for Trimmomatic
+        addl_args:  list of string, additional arguments for Trimmomatic
+        threads:    int, number of threads for Trimmomatic to use
 
     output: 4 files for paired end
         (1) prefix.trimmed.1.fastq: trimmed first pair-end file
@@ -695,38 +720,39 @@ def trim_trimmomatic(infile, trimlen, prefix, trimmomatic_path,
     single_end = (len(infile) == 1)
     trim_arg = ""
     if single_end:
-        trim_arg = ('%s SE -phred33 %s %s.trimmed.fastq %s MINLEN:%d'
-                %(trimmomatic_path, infile[0], prefix, addl_args, trimlen))
+        trim_arg = (
+            '%s SE -threads %s -phred33 %s %s.trimmed.fastq %s'
+            %(trimmomatic_path, threads, infile[0], prefix, " ".join(addl_args))
+        )
         
-        '''
-        trim_arg = str(trimmomatic_path + " SE -phred33 " + infile[0] + " " 
-                        + prefix + ".trimmed.fastq " + "MINLEN:" + str(trimlen)
-                        + " " + addl_args)
-        '''
     else:
-        trim_arg = ('%s PE -phred33 %s %s %s.trimmed.1.fastq \
-                %s.trimmed.single.1.fastq %s.trimmed.2.fastq \
-                %s.trimmed.single.2.fastq %s MINLEN:%d' 
-                %(trimmomatic_path, infile[0], infile[1], prefix, prefix,
-                    prefix, prefix, addl_args, trimlen))
-        '''
-        trim_arg = str(trimmomatic_path + " PE -phred33 " + infile[0] + " " 
-                       + infile[1] + " " + prefix + ".trimmed.1.fastq " 
-                       + prefix + ".trimmed.single.1.fastq " + prefix 
-                       + ".trimmed.2.fastq " + prefix 
-                       + ".trimmed.single.2.fastq " + "MINLEN:" 
-                       + str(trimlen) + " " + addl_args)
-        '''
+        trim_arg = (
+            '%s PE -threads %s -phred33 %s %s %s.trimmed.1.fastq \
+            %s.trimmed.single.1.fastq %s.trimmed.2.fastq \
+            %s.trimmed.single.2.fastq %s' 
+            %(trimmomatic_path, threads, infile[0], infile[1], prefix, prefix,
+              prefix, prefix, " ".join(addl_args))
+        )
 
     cmd = "java -Xmx" + java_mem + " -d64 -jar " + trim_arg
-    logging.debug("Trimmomatic command that will be run: " + cmd)
-    ret = subprocess.call(shlex.split(cmd))
-    return(ret, cmd)
+    logging.debug("Running trimmomatic with: " + cmd)
+    proc = subprocess.Popen(shlex.split(cmd),
+                            stderr=subprocess.PIPE,
+                            stdout=subprocess.PIPE)
+    stdout, stderr = proc.communicate()
+    logging.debug("Trimmomatic run complete.")
+    if stdout:
+        logging.debug("Trimmomatic stdout: "+stdout)
+    if stderr:
+        logging.debug("Trimmomatic stderr: "+stderr)
+    return(proc.returncode, cmd)
 
 
 def storage_heavy(args):
-    logfile = args.output_prefix + ".log"
     check_missing_files(args)
+
+    trim_threads, bowtie_threads = divvy_threads(args)
+    output_prefix = os.path.join(args.output_dir, args.output_prefix)
 
     # determine single-ended or pair ends
     b_single_end = (args.infile2 is None)
@@ -736,18 +762,14 @@ def storage_heavy(args):
     msg = msg_num_reads(files)
     logging.info("Initial number of reads: "+msg)
 
-    # Log file. Create a new one the first time, then keep appending to it.
-
-    logging.debug("Running knead_data.py with the following"
-                  " arguments (from argparse): %s", str(args))
-
     logging.info("Trimming...")
-
-    trim = trim_trimmomatic
     trim(files, 
-         trimlen    = args.trimlen, trimmomatic_path = args.trim_path, 
-         prefix     = args.output_prefix, java_mem   = args.max_mem, 
-         addl_args  = args.trim_args)
+         threads          = trim_threads,
+         trimlen          = args.trimlen,
+         trimmomatic_path = args.trim_path, 
+         prefix           = output_prefix,
+         java_mem         = args.max_mem, 
+         addl_args        = args.trim_args)
     
     # TODO: run part of the pipeline (if you have the output, either overwrite
     # or do the next step)
@@ -756,8 +778,8 @@ def storage_heavy(args):
                  "Checking output files exist... ")
 
     # check that Trimmomatic's output files exist
-    b_continue, outputs, files_to_align = checktrim_output(args.output_prefix, 
-            b_single_end)
+    b_continue, outputs, files_to_align = checktrim_output(output_prefix, 
+                                                           b_single_end)
 
     msg_trim_body = msg_num_reads(outputs)
     logging.info("Number of reads after trimming: %s", msg_trim_body)
@@ -768,50 +790,49 @@ def storage_heavy(args):
         sys.exit(1)
 
     # make temporary directory for Bowtie2 files
-    tempdir = args.output_prefix + "_temp"
-    try:
-        os.makedirs(tempdir)
-    except OSError:
-        if os.path.isdir(tempdir):
-            logging.warning("Temporary directory already exists! Using it...")
-        else:
-            logging.crit("Cannot make the temporary directory")
-            raise
+    tempdir = output_prefix + "_temp"
+    try_create_dir(tempdir)
 
     # TODO: Add parallelization. Use command line utility 'split' to split the
     # files, fork a thread for each file, and run BMTagger in each thread.
 
     # Start aligning
+    logging.info("Decontaminating")
     possible_orphan = (len(files_to_align) > 1)
     orphan_count = 1
     for files_list in files_to_align:
-        prefix = args.output_prefix
+        prefix = output_prefix
         if possible_orphan and (len(files_list) == 1):
-            prefix = args.output_prefix + "_se_" + str(orphan_count)
+            prefix = output_prefix + "_se_" + str(orphan_count)
             orphan_count += 1
         elif len(files_list) == 2:
-            prefix = args.output_prefix + "_pe"
+            prefix = output_prefix + "_pe"
 
         if args.bmtagger:
-            ret_codes, commands = tag(infile_list = files_list, db_prefix_list =
-                    args.reference_db, logfile = logfile, temp_dir = tempdir,
-                    prefix = prefix, bmtagger_path = args.bmtagger_path, n_procs
-                    = args.nprocs, remove = args.extract, debug = args.debug)
+            ret_codes, commands = tag(infile_list    = files_list,
+                                      db_prefix_list = args.reference_db,
+                                      temp_dir       = tempdir,
+                                      prefix         = prefix,
+                                      bmtagger_path  = args.bmtagger_path,
+                                      n_procs        = args.threads,
+                                      remove         = args.extract,
+                                      debug          = args.debug)
         else:
-            ret_codes, commands = align(infile_list = files_list, db_prefix_list
-                    = args.reference_db, output_prefix = prefix, logfile =
-                    logfile, tmp_dir = tempdir, bowtie2_path =
-                    args.bowtie2_path, n_procs = args.nprocs, bowtie2_opts =
-                    args.bowtie2_args)
+            ret_codes, commands = align(infile_list    = files_list,
+                                        db_prefix_list = args.reference_db,
+                                        output_prefix  = prefix,
+                                        tmp_dir        = tempdir,
+                                        bowtie2_path   = args.bowtie2_path,
+                                        n_procs        = bowtie_threads,
+                                        bowtie2_opts   = args.bowtie2_args)
 
     # check that everything returned correctly
-    
     # gather non-zero return codes
     fails = [(i, ret_code) for i, ret_code in enumerate(ret_codes)
              if ret_code != 0]
     if len(fails) > 0:
         for i, ret_code in fails:
-            logging.crit("The following command failed with return code %d: %s",
+            logging.crit("The following command failed with return code %s: %s",
                          ret_code, commands[i])
         sys.exit(1)
 

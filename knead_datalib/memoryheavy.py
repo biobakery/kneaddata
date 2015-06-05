@@ -4,11 +4,11 @@ import sys
 import logging
 import tempfile
 import subprocess
-from math import floor, ceil
 from functools import partial
 from contextlib import contextmanager
-from multiprocessing import cpu_count
 from itertools import tee, izip_longest
+
+from . import divvy_threads
 
 
 def rmext(name_str, all=False):
@@ -43,22 +43,30 @@ def sliding_window(it, l, fill=None):
 
 def trimmomatic(fastq_in, fastq_out, filter_args_list, jar_path,
                 maxmem="500m", threads=1):
-    return subprocess.Popen(["java", "-Xmx"+maxmem, "-d64",
-                             "-jar", jar_path,
-                             "SE", "-threads", str(threads),
-                             fastq_in, fastq_out]+filter_args_list)
+    args = ["java", "-Xmx"+maxmem, "-d64",
+            "-jar", jar_path,
+            "SE", "-threads", str(threads),
+            fastq_in, fastq_out]
+    args += filter_args_list
+    logging.debug("Running trimmomatic with arguments %s", args)
+    return subprocess.Popen(args, stderr=subprocess.PIPE,
+                            stdout=subprocess.PIPE)
 
 
 def bowtie2(index_str, input_fastq, output_clean_fastq,
             output_con_fastq, threads):
-    return subprocess.Popen(["bowtie2", "--very-sensitive",
-                             "-x", index_str,
-                             "-U", input_fastq,
-                             "--un", output_clean_fastq,
-                             "--al", output_con_fastq,
-                             "-S", os.devnull,
-                             "--threads", str(threads),
-                             '--quiet'])
+    args = ["bowtie2", "--very-sensitive",
+            "-x", index_str,
+            "-U", input_fastq,
+            "--un", output_clean_fastq,
+            "--al", output_con_fastq,
+            "-S", os.devnull,
+            "--threads", str(threads),
+            '--quiet']
+    logging.debug("Running bowtie2 with arguments %s", args)
+    return subprocess.Popen(args, stderr=subprocess.PIPE,
+                            stdout=subprocess.PIPE)
+
 
 
 @contextmanager
@@ -77,7 +85,7 @@ def decontaminate_reads(in_fname, index_strs, output_prefix,
     tmpfilebases = ['filter']+map(os.path.basename, index_strs[:-1])
 
     with mktempfifo(tmpfilebases) as filenames:
-        clean_file = os.path.join(output_dir, output_prefix+"_clean.fastq")
+        clean_file = os.path.join(output_dir, output_prefix+".fastq")
         filter_proc = trimmomatic(in_fname, filenames[0],
                                   filter_args_list, filter_jar_path,
                                   threads=trim_threads)
@@ -93,8 +101,14 @@ def decontaminate_reads(in_fname, index_strs, output_prefix,
                               bowtie_threads)
 
         procs = [filter_proc]+list(_procs())
-        for proc in procs:
-            retcode = proc.wait()
+        names = ["trimmomatic"] + [ "bowtie2 (%s)"%(idx) for idx in index_strs ]
+        for proc, name in zip(procs, names):
+            stdout, stderr = proc.communicate()
+            if stdout:
+                logging.debug("%s stdout: %s", name, stdout)
+            if stderr:
+                logging.debug("%s stderr: %s", name, stderr)
+            retcode = proc.returncode
             if retcode:
                 sys.exit(1)
 
@@ -112,19 +126,8 @@ def check_args(args):
                         args.output_dir)
         os.mkdir(args.output_dir)
 
-    len_arg = ["MINLEN:"+str(args.trimlen)]
-    args.trim_args = len_arg+args.trim_args.split(' ')
-
     return args
 
-
-def divvy_threads(args):
-    avail_cpus = args.threads or cpu_count()-1
-    n_consumers = len(args.reference_db)
-    trim_threads = 1
-    align_threads = max(1, floor(avail_cpus/float(n_consumers)))
-    return int(trim_threads), int(align_threads)
-    
 
 def memory_heavy(args):
     args = check_args(args)
