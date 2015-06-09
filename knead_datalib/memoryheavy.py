@@ -54,8 +54,8 @@ def trimmomatic(fastq_in, fastq_out, filter_args_list, jar_path,
 
 
 def bowtie2(index_str, input_fastq, output_clean_fastq,
-            output_con_fastq, threads):
-    args = ["bowtie2", "--very-sensitive",
+            output_con_fastq, threads, bowtie2_path="bowtie2"):
+    args = [bowtie2_path, "--very-sensitive",
             "-x", index_str,
             "-U", input_fastq,
             "--un", output_clean_fastq,
@@ -81,7 +81,7 @@ def mktempfifo(names=("a",)):
 
 def decontaminate_reads(in_fname, index_strs, output_prefix,
                         output_dir, filter_args_list, filter_jar_path,
-                        trim_threads, bowtie_threads):
+                        trim_threads, bowtie_threads, bowtie2_path="bowtie2"):
     tmpfilebases = ['filter']+map(os.path.basename, index_strs[:-1])
 
     with mktempfifo(tmpfilebases) as filenames:
@@ -98,7 +98,7 @@ def decontaminate_reads(in_fname, index_strs, output_prefix,
                 contam_file = os.path.join(output_dir, contam_name)
                 in_next = in_next or clean_file
                 yield bowtie2(index_str, in_cur, in_next, contam_file,
-                              bowtie_threads)
+                              bowtie_threads, bowtie2_path=bowtie2_path)
 
         procs = [filter_proc]+list(_procs())
         names = ["trimmomatic"] + [ "bowtie2 (%s)"%(idx) for idx in index_strs ]
@@ -126,6 +126,9 @@ def check_args(args):
                         args.output_dir)
         os.mkdir(args.output_dir)
 
+    if not args.bowtie2_path:
+        args.bowtie2_path = "bowtie2"
+
     return args
 
 
@@ -135,7 +138,7 @@ def memory_heavy(args):
     decontaminate_reads(args.infile1, args.reference_db,
                         args.output_prefix, args.output_dir,
                         args.trim_args, args.trim_path, trim_threads,
-                        bowtie_threads)
+                        bowtie_threads, bowtie2_path=args.bowtie2_path)
     
 
     
