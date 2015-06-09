@@ -37,7 +37,7 @@ def handle_cli():
         help=("prefix for reference databases used for either"
               " Bowtie2 or BMTagger"))
     group1.add_argument(
-        "-o", "--output-prefix",
+        "-o", "--output-prefix", default="knead_out",
         help="prefix for all output files")
     group1.add_argument(
         "-D", "--output-dir", default=os.getcwd(),
