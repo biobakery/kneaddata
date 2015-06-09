@@ -4,6 +4,7 @@ import sys
 import logging
 import tempfile
 import subprocess
+from glob import glob
 from functools import partial
 from contextlib import contextmanager
 from itertools import tee, izip_longest
@@ -104,13 +105,19 @@ def decontaminate_reads(in_fname, index_strs, output_prefix,
         names = ["trimmomatic"] + [ "bowtie2 (%s)"%(idx) for idx in index_strs ]
         for proc, name in zip(procs, names):
             stdout, stderr = proc.communicate()
-            if stdout:
-                logging.debug("%s stdout: %s", name, stdout)
-            if stderr:
-                logging.debug("%s stderr: %s", name, stderr)
             retcode = proc.returncode
             if retcode:
-                sys.exit(1)
+                log = logging.critical
+                log("%s exited with exit status %d", name, retcode)
+            else:
+                log = logging.debug
+            if stdout:
+                log("%s stdout: %s", name, stdout)
+            if stderr:
+                log("%s stderr: %s", name, stderr)
+
+            if retcode:
+                sys.exit(retcode)
 
 
 def check_args(args):
@@ -118,7 +125,7 @@ def check_args(args):
         args.output_prefix = rmext(os.path.basename(args.infile1), all=True)
 
     if args.infile2:
-        logging.crit("memory heavy strategy only supports single-end reads")
+        logging.critical("memory heavy strategy only supports single-end reads")
         sys.exit(1)
 
     if not os.path.exists(args.output_dir):
@@ -128,6 +135,11 @@ def check_args(args):
 
     if not args.bowtie2_path:
         args.bowtie2_path = "bowtie2"
+
+    for db_base in args.reference_db:
+        if not glob(db_base+"*"):
+            logging.critical("Unable to find database `%s'", db_base)
+            sys.exit(1)
 
     return args
 
