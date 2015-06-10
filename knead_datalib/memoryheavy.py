@@ -2,14 +2,11 @@ import os
 import re
 import sys
 import logging
-import tempfile
 import subprocess
 from glob import glob
-from functools import partial
-from contextlib import contextmanager
 from itertools import tee, izip_longest
 
-from . import divvy_threads
+from . import divvy_threads, mktempfifo, process_return
 
 
 def rmext(name_str, all=False):
@@ -70,16 +67,6 @@ def bowtie2(index_str, input_fastq, output_clean_fastq,
 
 
 
-@contextmanager
-def mktempfifo(names=("a",)):
-    tmpdir = tempfile.mkdtemp()
-    names = map(partial(os.path.join, tmpdir), names)
-    map(os.mkfifo, names)
-    yield names
-    map(os.remove, names)
-    os.rmdir(tmpdir)
-
-
 def decontaminate_reads(in_fname, index_strs, output_prefix,
                         output_dir, filter_args_list, filter_jar_path,
                         trim_threads, bowtie_threads, bowtie2_path="bowtie2"):
@@ -106,19 +93,7 @@ def decontaminate_reads(in_fname, index_strs, output_prefix,
         for proc, name in zip(procs, names):
             stdout, stderr = proc.communicate()
             retcode = proc.returncode
-            if retcode:
-                log = logging.critical
-                log("%s exited with exit status %d", name, retcode)
-            else:
-                log = logging.debug
-            if stdout:
-                log("%s stdout: %s", name, stdout)
-            if stderr:
-                log("%s stderr: %s", name, stderr)
-
-            if retcode:
-                sys.exit(retcode)
-
+            process_return(name, retcode, stdout, stderr)
 
 def check_args(args):
     if not args.output_prefix:
