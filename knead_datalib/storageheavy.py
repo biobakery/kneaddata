@@ -8,6 +8,9 @@ import logging
 import itertools
 import subprocess
 import collections
+from functools import partial
+from multiprocessing import Pool
+from .tandem import trf
 
 from . import constants_knead_data as const
 from . import divvy_threads, try_create_dir
@@ -147,10 +150,11 @@ def align(infile_list, db_prefix_list, output_prefix, tmp_dir,
 
     # if Bowtie2 produced correct output, merge the files from multiple
     # databases
+    combined_outs = []
     if (outputs != []):
-        combine_tag(outputs, output_prefix)
+        combined_outs = combine_tag(outputs, output_prefix)
 
-    return(ret_codes, commands_to_run)
+    return(ret_codes, commands_to_run, combined_outs)
 
 
 def tag(infile_list, db_prefix_list, temp_dir, prefix,
@@ -289,8 +293,9 @@ def tag(infile_list, db_prefix_list, temp_dir, prefix,
     # databases
     #if (outputs != []):
     set_retcodes = set(ret_codes)
+    combined_outs = []
     if (len(set_retcodes) == 1) and (0 in set_retcodes):
-        combine_tag(outputs, prefix)
+        combined_outs = combine_tag(outputs, prefix)
 
     if not debug:
         for output_pair in outputs:
@@ -303,7 +308,7 @@ def tag(infile_list, db_prefix_list, temp_dir, prefix,
                     
 
     logging.debug("processes run: %s", procs_ran)
-    return (ret_codes, procs_ran)
+    return (ret_codes, procs_ran, combined_outs)
 
 
 # TODO: this is a pretty bad way of doing this. consider doing what Randall did
@@ -755,6 +760,29 @@ def trim(infile, trimlen, prefix, trimmomatic_path,
     return(proc.returncode, cmd)
 
 
+def _apply_multi(func, tup):
+    return func(*tup)
+
+
+def run_trf(fastqs, outs, match=2, mismatch=7, delta=7, pm=80, pi=10, minscore=50,
+        maxperiod=500, generate_fastq=True, dat=False, mask=False, html=False,
+        trf_path="trf", n_procs=None):
+    nfastqs = len(fastqs)
+    if not n_procs:
+        n_procs = nfastqs
+    apply_trf = partial(_apply_multi, trf)
+    trf_args = (match, mismatch, delta, pm, pi, minscore, maxperiod,
+            generate_fastq, dat, mask, html, trf_path)
+
+    def _gen_args(fastqs, outs):
+        for (fastq, out) in zip(fastqs, outs):
+            yield (fastq, out) + trf_args
+
+    pool = Pool(processes=n_procs)
+    res = pool.map_async(apply_trf, _gen_args(fastqs, outs))
+    res.get()
+
+
 def storage_heavy(args):
     check_missing_files(args)
 
@@ -819,23 +847,51 @@ def storage_heavy(args):
         elif len(files_list) == 2:
             prefix = output_prefix + "_pe"
 
+        trf_out_base = None
+        if args.trf:
+            trf_out_base = prefix
+            prefix = prefix + "_pre_tandem"
+
         if args.bmtagger:
-            ret_codes, commands = tag(infile_list    = files_list,
-                                      db_prefix_list = args.reference_db,
-                                      temp_dir       = tempdir,
-                                      prefix         = prefix,
-                                      bmtagger_path  = args.bmtagger_path,
-                                      n_procs        = args.threads,
-                                      remove         = args.extract,
-                                      debug          = debug)
+            ret_codes, commands, c_outs = tag(infile_list    = files_list,
+                                              db_prefix_list = args.reference_db,
+                                              temp_dir       = tempdir,
+                                              prefix         = prefix,
+                                              bmtagger_path  = args.bmtagger_path,
+                                              n_procs        = args.threads,
+                                              remove         = args.extract,
+                                              debug          = debug)
         else:
-            ret_codes, commands = align(infile_list    = files_list,
-                                        db_prefix_list = args.reference_db,
-                                        output_prefix  = prefix,
-                                        tmp_dir        = tempdir,
-                                        bowtie2_path   = args.bowtie2_path,
-                                        n_procs        = bowtie_threads,
-                                        bowtie2_opts   = args.bowtie2_args)
+            ret_codes, commands, c_outs = align(infile_list   = files_list,
+                                               db_prefix_list = args.reference_db,
+                                               output_prefix  = prefix,
+                                               tmp_dir        = tempdir,
+                                               bowtie2_path   = args.bowtie2_path,
+                                               n_procs        = bowtie_threads,
+                                               bowtie2_opts   = args.bowtie2_args)
+        # run TRF (within loop)
+        # iterate over all outputs from combining (there should either be 1 or
+        # 2)
+        if args.trf:
+            trf_outs = [trf_out_base + ".fastq"]
+            if len(c_outs) == 2:
+                trf_outs = [trf_out_base + str(i+1) + ".fastq" for i in
+                        xrange(2)]
+            run_trf(fastqs = c_outs, 
+                    outs = trf_outs, 
+                    match = args.match,
+                    mismatch = args.mismatch, 
+                    delta = args.delta, 
+                    pm = args.pm,
+                    pi = args.pi, 
+                    minscore = args.minscore, 
+                    maxperiod = args.maxperiod, 
+                    generate_fastq = args.no_generate_fastq, 
+                    dat = args.dat, 
+                    mask = args.mask, 
+                    html = args.html, 
+                    trf_path = args.trf_path,
+                    n_procs = bowtie_threads)
 
     # check that everything returned correctly
     # gather non-zero return codes

@@ -16,6 +16,16 @@ from knead_datalib import try_create_dir
 here = os.path.abspath(os.path.dirname(__file__))
 
 
+def parse_positive_int(string):
+    try:
+        val = int(string)
+    except ValueError:
+        raise argparse.ArgumentTypeError("Unable to parse %s to int" %string) 
+    if val <= 0:
+        raise argparse.ArgumentTypeError("%s is not a positive integer" %string)
+    return val
+
+
 def handle_cli():
     """parse command line arguments
     note: argparse converts dashes '-' in argument prefixes to
@@ -44,7 +54,7 @@ def handle_cli():
         help="where to put all output files")
     group1.add_argument(
         "--threads",
-        type=int, default=None, 
+        type=parse_positive_int, default=None, 
         help=("Maximum number of processes to run."
               " Default uses all but one available CPUs"))
     group1.add_argument(
@@ -70,7 +80,7 @@ def handle_cli():
         help="path to Trimmomatic .jar executable")
     group2.add_argument(
         "--trimlen",
-        type=int, default=60,
+        type=parse_positive_int, default=60,
         help="minimum length for a trimmed read in Trimmomatic")
     group2.add_argument(
         "-m", "--max-mem",
@@ -109,6 +119,60 @@ def handle_cli():
         default=None,
         help="path to BMTagger executable if not found in $PATH")
 
+    group5 = parser.add_argument_group("trf arguments")
+    group5.add_argument(
+            "--trf",
+            default=False, action="store_true",
+            help="If set, use TRF to remove and/or mask tandem repeats")
+    group5.add_argument(
+            "--trf-path",
+            default="trf",
+            help="Path to TRF executable if not found in $PATH")
+    group5.add_argument(
+            "--match", type=parse_positive_int,
+            default=2, 
+            help="TRF matching weight")
+    group5.add_argument(
+            "--mismatch", type=parse_positive_int,
+            default=7, 
+            help="TRF mismatching penalty")
+    group5.add_argument(
+            "--delta", type=parse_positive_int,
+            default=7, 
+            help="TRF indel penalty")
+    group5.add_argument(
+            "--pm", type=parse_positive_int,
+            default=80,
+            help="TRF match probability (whole number)")
+    group5.add_argument(
+            "--pi", type=parse_positive_int,
+            default=10,
+            help="TRF indel probability (whole number)")
+    group5.add_argument(
+            "--minscore", type=parse_positive_int,
+            default=50, 
+            help="TRF minimum alignment score to report")
+    group5.add_argument(
+            "--maxperiod", type=parse_positive_int,
+            default=500, 
+            help="TRF maximum period size to report")
+    group5.add_argument(
+            "--no-generate_fastq",
+            default=True, action="store_false", 
+            help="If switched on, don't generate fastq")
+    group5.add_argument(
+            "--dat",
+            default=False, action="store_true",
+            help="Generate dat file")
+    group5.add_argument(
+            "--mask",
+            default=False, action="store_true",
+            help="Generate mask file")
+    group5.add_argument(
+            "--html",
+            default=False, action="store_true",
+            help="Generate html file")
+
     args = parser.parse_args()
     try_create_dir(args.output_dir)
     return args
@@ -134,6 +198,7 @@ def setup_logging(args):
 
 def main():
     args = handle_cli()
+    # check args first
     args = setup_logging(args)
 
     logging.debug("Running knead_data.py with the following"

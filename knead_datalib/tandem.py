@@ -81,8 +81,11 @@ def _convert(fastq, trf_output, out, mask_fname, generate_fastq, mask):
         converter_names.append("tandem_process.py generate_fastq")
 
     if mask:
+        mask_out = out
+        if generate_fastq:
+            mask_out = out + ".mask"
         assert(mask_fname != None)
-        converter_procs.append(_generate_mask(fastq, mask_fname,  out))
+        converter_procs.append(_generate_mask(fastq, mask_fname,  mask_out))
         converter_names.append("tandem_process.py generate_mask")
 
     return(converter_procs, converter_names)
@@ -95,7 +98,7 @@ def trf(fastq, out, match=2, mismatch=7, delta=7, pm=80, pi=10, minscore=50,
     fasta_fname = os.path.basename(fastq) + ".fasta"
     # file name for trf mask (trf default provided, can't change it)
     trf_args = map(str, [match, mismatch, delta, pm, pi, minscore, maxperiod])
-    trf_out_fname = fasta_fname + "." + ".".join(trf_args) + ".dat"
+    trf_out_fname = fasta_fname + "." + ".".join(trf_args) + "stream.dat"
     mask_fname = None
     if mask:
         mask_fname = fasta_fname + "." + ".".join(trf_args) + ".mask"
@@ -106,7 +109,7 @@ def trf(fastq, out, match=2, mismatch=7, delta=7, pm=80, pi=10, minscore=50,
         
         trf_out = filenames[1]
         if dat:
-            trf_out = "something_else"
+            trf_out = fasta_fname + "." + ".".join(trf_args) + ".dat"
 
         converter_procs, converter_names = _convert(fastq, trf_out, out,
                                                     mask_fname, generate_fastq, 
@@ -128,5 +131,8 @@ def trf(fastq, out, match=2, mismatch=7, delta=7, pm=80, pi=10, minscore=50,
             stdout, stderr = proc.communicate()
             retcode = proc.returncode
             process_return(name, retcode, stdout, stderr)
+
+        if not logging.getLogger().isEnabledFor(logging.DEBUG) and mask:
+            os.remove(mask_fname)
 
 
