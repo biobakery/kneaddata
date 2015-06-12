@@ -572,7 +572,7 @@ def get_num_reads(strFname):
         out = subprocess.check_output(shlex.split(cmd))
     except subprocess.CalledProcessError as e:
         logging.warning("Command %s failed with return code %i ",
-                        str(e.cmd), str(e.returncode))
+                        str(e.cmd), e.returncode)
         return None
     else:
         # match to get the line numbers
@@ -820,8 +820,8 @@ def storage_heavy(args):
     logging.info("Number of reads after trimming: %s", msg_trim_body)
 
     if not b_continue:
-        logging.crit("Trimmomatic just produced empty files.")
-        logging.crit("Terminating the pipeline...")
+        logging.critical("Trimmomatic just produced empty files.")
+        logging.critical("Terminating the pipeline...")
         sys.exit(1)
 
     # make temporary directory for Bowtie2 files
@@ -899,7 +899,7 @@ def storage_heavy(args):
              if ret_code != 0]
     if len(fails) > 0:
         for i, ret_code in fails:
-            logging.crit("The following command failed with return code %s: %s",
+            logging.critical("The following command failed with return code %s: %s",
                          ret_code, commands[i])
         sys.exit(1)
 
