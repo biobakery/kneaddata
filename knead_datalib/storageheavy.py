@@ -784,6 +784,8 @@ def run_trf(fastqs, outs, match=2, mismatch=7, delta=7, pm=80, pi=10, minscore=5
     with mktempfifo(fasta_fnames + trf_out_fnames) as filenames:
         fasta_outs = filenames[:nfiles]
         trf_outs = filenames[nfiles:]
+        if not generate_fastq:
+            trf_outs = [os.devnull for f in fastqs]
 
         # process names
         fastq_to_fasta_names = []
@@ -803,46 +805,53 @@ def run_trf(fastqs, outs, match=2, mismatch=7, delta=7, pm=80, pi=10, minscore=5
 
         # must start converter_procs before opening the file handle, otherwise
         # will hang
-        for (fastq, trf_out, out, mask_fname) in zip(fastqs, trf_outs, outs,
-                mask_fnames):
-            converter_proc_grp = tandem._convert(fastq, trf_out, out, mask_fname,
-                    generate_fastq, mask)
-            for c in converter_proc_grp:
-                converter_procs.append(c)
-                converter_names.append("converting %s -> %s/%s" %(trf_out, out,
-                    mask_fname))
+        # must make a fifo for the mask output otherwise converter will just
+        # read through the whole file
+        if mask:
+            map(os.mkfifo, mask_fnames)
 
-        trf_out_fps = [open(t, "w") for t in trf_outs]
-        # steps: 
-        # 1. wait for the fastq_to_fasta and trf procs. 
-        # 2. close the trf_out_fp file handle
-        # 3. wait for the converter_procs
-        # 4. if (not debug) and mask: remove the mask_fname
         try:
-            for (fasta, trf_out_fp) in zip(fasta_outs, trf_out_fps):
-                trf_proc = tandem._trf(fasta, trf_out_fp, match, mismatch, delta, pm,
-                        pi, minscore, maxperiod, dat, mask, html, trf_path)
-                trf_names.append("trf on %s" %fasta)
-                trf_procs.append(trf_proc)
-            for (name, proc) in zip(itertools.chain(fastq_to_fasta_names,
-                trf_names), itertools.chain(fastq_to_fasta_procs,
-                    trf_procs)):
+            for (fastq, trf_out, out, mask_fname) in zip(fastqs, trf_outs, outs,
+                    mask_fnames):
+                converter_proc_grp = tandem._convert(fastq, trf_out, out, mask_fname,
+                        generate_fastq, mask)
+                for (i, c) in enumerate(converter_proc_grp):
+                    converter_procs.append(c)
+                    cur_out = [out, out + ".mask"][i]
+                    converter_names.append("converting %s -> %s" %(trf_out, cur_out))
+
+            trf_out_fps = [open(t, "w") for t in trf_outs]
+            # steps: 
+            # 1. wait for the fastq_to_fasta and trf procs. 
+            # 2. close the trf_out_fp file handle
+            # 3. wait for the converter_procs
+            # 4. if (not debug) and mask: remove the mask_fname
+            try:
+                for (fasta, trf_out_fp) in zip(fasta_outs, trf_out_fps):
+                    trf_proc = tandem._trf(fasta, trf_out_fp, match, mismatch, delta, pm,
+                            pi, minscore, maxperiod, dat, mask, html, trf_path)
+                    trf_names.append("trf on %s" %fasta)
+                    trf_procs.append(trf_proc)
+                for (name, proc) in zip(itertools.chain(fastq_to_fasta_names,
+                    trf_names), itertools.chain(fastq_to_fasta_procs,
+                        trf_procs)):
+                    stdout, stderr = proc.communicate()
+                    retcode = proc.returncode
+                    process_return(name, retcode, stdout, stderr)
+            finally:
+                for fp in trf_out_fps:
+                    fp.close()
+
+            for (name, proc) in zip(converter_names, converter_procs):
                 stdout, stderr = proc.communicate()
                 retcode = proc.returncode
                 process_return(name, retcode, stdout, stderr)
+
         finally:
-            for fp in trf_out_fps:
-                fp.close()
-
-        for (name, proc) in zip(converter_names, converter_procs):
-            stdout, stderr = proc.communicate()
-            retcode = proc.returncode
-            process_return(name, retcode, stdout, stderr)
-
-        # remove mask files
-        if not logging.getLogger().isEnabledFor(logging.DEBUG) and mask:
-            for mask_fname in mask_fnames:
-                os.remove(mask_fname)
+            # remove mask files
+            if mask:
+                for mask_fname in mask_fnames:
+                    os.remove(mask_fname)
         
 
 def storage_heavy(args):
