@@ -3,6 +3,9 @@ import argparse
 
 def fastq_to_fasta(fastq_in, fasta_out=None):
     # idea copied from Humann2
+    print("\n\nFASTQ TO FASTA\n\n")
+    print(fastq_in)
+    print(fasta_out)
 
     with open(fastq_in, "r") as fp_fastq_in:
         fp_fasta_out = None
@@ -12,16 +15,20 @@ def fastq_to_fasta(fastq_in, fasta_out=None):
 
         line = fp_fastq_in.readline()
         while line:
+            print("line:\n%s", line)
             if re.search(r'^@', line):
                 sequence_id = line.replace("@", ">", 1).rstrip()
                 line = fp_fastq_in.readline()
                 sequence=""
                 while line:
+                    print("line:\n%s", line)
                     if re.search(r'^\+', line):
-                        if not fp_fasta_out:
+                        if not fasta_out:
                             print(sequence_id)
                             print(sequence)
                         else:
+                            print(sequence_id)
+                            print(sequence)
                             fp_fasta_out.write(sequence_id+"\n")
                             fp_fasta_out.write(sequence+"\n")
                         break
@@ -30,7 +37,7 @@ def fastq_to_fasta(fastq_in, fasta_out=None):
                     line = fp_fastq_in.readline()
             line = fp_fastq_in.readline()
         
-        if fp_fasta_out:
+        if fasta_out:
             fp_fasta_out.close()
     return
 
