@@ -40,13 +40,13 @@ def mktempfifo(names=("a",)):
 
 
 def process_return(name, retcode, stdout, stderr):
+    if name:
+        logging.debug("Finished running %s!" %name)
     if retcode:
         log = logging.critical
         log("%s exited with exit status %d", name, retcode)
     else:
         log = logging.debug
-    if name:
-        log("Finished running %s!" %name)
     if stdout:
         log("%s stdout:\n%s", name, stdout)
     if stderr:
