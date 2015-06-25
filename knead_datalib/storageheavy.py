@@ -958,7 +958,6 @@ def storage_heavy(args):
                     minscore = args.minscore, 
                     maxperiod = args.maxperiod, 
                     generate_fastq = args.no_generate_fastq, 
-                    dat = args.dat, 
                     mask = args.mask, 
                     html = args.html, 
                     trf_path = args.trf_path,
