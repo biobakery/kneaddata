@@ -813,18 +813,17 @@ def run_trf(fastqs, outs, match=2, mismatch=7, delta=7, pm=80, pi=10, minscore=5
                     mask_fname))
 
         trf_out_fps = [open(t, "w") for t in trf_outs]
-        for (fasta, trf_out_fp) in zip(fasta_outs, trf_out_fps):
-            trf_proc = tandem._trf(fasta, trf_out_fp, match, mismatch, delta, pm,
-                    pi, minscore, maxperiod, dat, mask, html, trf_path)
-            trf_names.append("trf on %s" %fasta)
-            trf_procs.append(trf_proc)
-
         # steps: 
         # 1. wait for the fastq_to_fasta and trf procs. 
         # 2. close the trf_out_fp file handle
         # 3. wait for the converter_procs
         # 4. if (not debug) and mask: remove the mask_fname
         try:
+            for (fasta, trf_out_fp) in zip(fasta_outs, trf_out_fps):
+                trf_proc = tandem._trf(fasta, trf_out_fp, match, mismatch, delta, pm,
+                        pi, minscore, maxperiod, dat, mask, html, trf_path)
+                trf_names.append("trf on %s" %fasta)
+                trf_procs.append(trf_proc)
             for (name, proc) in zip(itertools.chain(fastq_to_fasta_names,
                 trf_names), itertools.chain(fastq_to_fasta_procs,
                     trf_procs)):
