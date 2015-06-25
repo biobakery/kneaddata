@@ -30,9 +30,13 @@ def mktempfifo(names=("a",)):
     tmpdir = tempfile.mkdtemp()
     names = map(partial(os.path.join, tmpdir), names)
     map(os.mkfifo, names)
-    yield names
-    map(os.remove, names)
-    os.rmdir(tmpdir)
+    try:
+        yield names
+    finally:
+        # still perform cleanup even if there were exceptions/errors in the
+        # "with" block
+        map(os.remove, names)
+        os.rmdir(tmpdir)
 
 
 def process_return(name, retcode, stdout, stderr):
