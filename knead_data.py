@@ -11,6 +11,7 @@ import logging
 import argparse
 import gzip
 import re
+import sys
 
 from knead_datalib import strategies
 from knead_datalib import try_create_dir
@@ -159,13 +160,9 @@ def handle_cli():
             default=500, 
             help="TRF maximum period size to report")
     group5.add_argument(
-            "--no-generate_fastq",
+            "--no-generate-fastq",
             default=True, action="store_false", 
             help="If switched on, don't generate fastq")
-    group5.add_argument(
-            "--dat",
-            default=False, action="store_true",
-            help="Generate dat file")
     group5.add_argument(
             "--mask",
             default=False, action="store_true",
@@ -241,6 +238,12 @@ def get_file_format(file):
 def main():
     args = handle_cli()
     # check args first
+
+    if (not args.no_generate_fastq) and (not args.mask):
+        print("\nYou cannot set the --no-generate-fastq flag without"
+        " the --mask flag. Exiting...\n")
+        sys.exit(1)
+
     args = setup_logging(args)
 
     logging.debug("Running knead_data.py with the following"
@@ -251,6 +254,7 @@ def main():
 
     if file_format != "fastq":
         logging.critical("Your input file is of type: %s . Please provide an input file of fastq format.",file_format)
+        sys.exit(1)
 
     if args.strategy == 'memory':
         strategies.memory_heavy(args)
