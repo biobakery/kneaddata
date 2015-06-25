@@ -17,8 +17,10 @@ def _fastq_to_fasta(fastq, fasta):
                           os.path.join(here, "fastq_to_fasta.py"),
                           fastq, 
                           "--fasta", fasta]
-    #fastq_to_fasta = subprocess.Popen(fastq_to_fasta_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    return(fastq_to_fasta_cmd)
+    logging.debug("Running fastq_to_fasta with %s", fastq_to_fasta_cmd)
+    fastq_to_fasta = subprocess.Popen(fastq_to_fasta_cmd,
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    return(fastq_to_fasta)
 
 
 def _trf(fasta, outfp, match=2, mismatch=7, delta=7, pm=80, pi=10, minscore=50,
@@ -48,22 +50,25 @@ def _trf(fasta, outfp, match=2, mismatch=7, delta=7, pm=80, pi=10, minscore=50,
     if not html:
         trf_cmd += ["-h"]
 
-    #trf = subprocess.Popen(trf_cmd, stdout=outfp, stderr=subprocess.PIPE)
-    return(trf_cmd)
+    logging.debug("Running trf with %s", trf_cmd)
+    trf = subprocess.Popen(trf_cmd, stdout=outfp, stderr=subprocess.PIPE)
+    return(trf)
 
 
 def _generate_fastq(fastq, trf_output, out):
     cmd = ["python", os.path.join(here, "tandem_process.py"), 
             fastq, trf_output, out]
-    #proc = subprocess.Popen(cmd)
-    return(cmd)
+    logging.debug("Running generate_fastq with %s", cmd)
+    proc = subprocess.Popen(cmd)
+    return(proc)
 
 
 def _generate_mask(fastq, trf_output, out):
     cmd = ["python", os.path.join(here, "tandem_process.py"), 
             fastq, trf_output, out, "--mask"]
-    #proc = subprocess.Popen(cmd)
-    return(cmd)
+    logging.debug("Running generate_mask with %s", cmd)
+    proc = subprocess.Popen(cmd)
+    return(proc)
     
 
 def _convert(fastq, trf_output, out, mask_fname, generate_fastq, mask):
