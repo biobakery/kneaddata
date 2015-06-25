@@ -19,23 +19,29 @@ def generate_fastq(fastq_file, tandem_out_file, out_file):
     fastq = open(fastq_file, "r")
     out = open(out_file, "w")
 
+    def _write_fastq(fastq_lines):
+        try:
+            out.write("".join(fastq_lines))
+        except TypeError:
+            # TypeError can happen when you do 
+            # "".join([str, str, str, None]). This means that the
+            # input fastq didn't have 4 lines per read
+            logging.critical("You probably passed in a bad fastq file, %s, one"
+                    " that doesn't have 4 lines" " per read" % fastq_file)
+            raise
     try:
-        # read TANDEM_LENGTH lines at a time
-        for tandem_out_lines in izip_longest(*[tandem_out]*TANDEM_LENGTH):
-            # read FASTQ_LENGTH lines at a time
-            for fastq_lines in izip_longest(*[fastq]*FASTQ_LENGTH):
+        # if the tandem_out file is empty, we still want to write the fastq file
+        wrote = False
+        # read FASTQ_LENGTH lines at a time
+        for fastq_lines in izip_longest(*[fastq]*FASTQ_LENGTH):
+            # read TANDEM_LENGTH lines at a time
+            for tandem_out_lines in izip_longest(*[tandem_out]*TANDEM_LENGTH):
                 # fastq header is NOT a tandem repeat, so keep it
                 if fastq_lines[0] != tandem_out_lines[0]:
-                    try:
-                        out.write("".join(fastq_lines))
-                    except TypeError:
-                        # TypeError can happen when you do 
-                        # "".join([str, str, str, None]). This means that the
-                        # input fastq didn't have 4 lines per read
-                        logging.critical("You probably passed in a bad fastq"
-                                        " file, %s, one that doesn't have 4 lines"
-                                        " per read" % fastq_file)
-                        raise
+                    _write_fastq(fastq_lines)
+                    wrote = True
+            if wrote == False:
+                _write_fastq(fastq_lines)
     finally:
         # close everything, even if there was an exception above
         tandem_out.close()

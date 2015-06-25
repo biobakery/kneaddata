@@ -10,10 +10,10 @@ import subprocess
 import collections
 from functools import partial
 from multiprocessing import Pool
-from .tandem import trf
 
+import tandem
 from . import constants_knead_data as const
-from . import divvy_threads, try_create_dir
+from . import divvy_threads, try_create_dir, mktempfifo, process_return
 
 def _generate_bowtie2_commands( infile_list, db_prefix_list,
                                 bowtie2_path, output_prefix,
@@ -760,28 +760,99 @@ def trim(infile, trimlen, prefix, trimmomatic_path,
     return(proc.returncode, cmd)
 
 
-def _apply_multi(func, tup):
-    return func(*tup)
+def proc_open(cmd):
+    logging.debug("Running " + " ".join(cmd))
+    return(subprocess.Popen(cmd))
 
 
 def run_trf(fastqs, outs, match=2, mismatch=7, delta=7, pm=80, pi=10, minscore=50,
         maxperiod=500, generate_fastq=True, dat=False, mask=False, html=False,
         trf_path="trf", n_procs=None):
-    nfastqs = len(fastqs)
-    if not n_procs:
-        n_procs = nfastqs
-    apply_trf = partial(_apply_multi, trf)
-    trf_args = (match, mismatch, delta, pm, pi, minscore, maxperiod,
-            generate_fastq, dat, mask, html, trf_path)
+    nfiles = len(fastqs)
+    # 1-2 files being passed in
+    assert(nfiles == 2 or nfiles == 1)
+    fasta_fnames = [os.path.basename(fastq) + ".fasta" for fastq in fastqs]
+    # file names for trf mask (trf default provided, can't change it)
+    trf_args = map(str, [match, mismatch, delta, pm, pi, minscore, maxperiod])
+    trf_out_fnames = [f + "." + ".".join(trf_args) + ".stream.dat" for f in
+            fasta_fnames]
+    mask_fnames = [None] * nfiles
+    if mask:
+        mask_fnames = [f + "." + ".".join(trf_args) + ".mask" for f in
+                fasta_fnames]
 
-    def _gen_args(fastqs, outs):
-        for (fastq, out) in zip(fastqs, outs):
-            yield (fastq, out) + trf_args
+    with mktempfifo(fasta_fnames + trf_out_fnames) as filenames:
+        fasta_outs = filenames[:nfiles]
+        trf_outs = filenames[nfiles:]
+        if not generate_fastq:
+            trf_outs = [os.devnull for f in fastqs]
 
-    pool = Pool(processes=n_procs)
-    res = pool.map_async(apply_trf, _gen_args(fastqs, outs))
-    res.get()
+        # process names
+        fastq_to_fasta_names = []
+        converter_names = []
+        trf_names = []
 
+        # subprocess.Popen instances
+        fastq_to_fasta_procs = []
+        converter_procs = []
+        trf_procs = []
+
+        for (fastq_in, fasta_out) in zip(fastqs, fasta_outs):
+            proc = tandem._fastq_to_fasta(fastq_in, fasta_out)
+            fastq_to_fasta_names.append("fastq_to_fasta %s -> %s" %(fastq_in,
+                fasta_out))
+            fastq_to_fasta_procs.append(proc)
+
+        # must start converter_procs before opening the file handle, otherwise
+        # will hang
+        # must make a fifo for the mask output otherwise converter will just
+        # read through the whole file
+        if mask:
+            map(os.mkfifo, mask_fnames)
+
+        try:
+            for (fastq, trf_out, out, mask_fname) in zip(fastqs, trf_outs, outs,
+                    mask_fnames):
+                converter_proc_grp = tandem._convert(fastq, trf_out, out, mask_fname,
+                        generate_fastq, mask)
+                for (i, c) in enumerate(converter_proc_grp):
+                    converter_procs.append(c)
+                    cur_out = [out, out + ".mask"][i]
+                    converter_names.append("converting %s -> %s" %(trf_out, cur_out))
+
+            trf_out_fps = [open(t, "w") for t in trf_outs]
+            # steps: 
+            # 1. wait for the fastq_to_fasta and trf procs. 
+            # 2. close the trf_out_fp file handle
+            # 3. wait for the converter_procs
+            # 4. if (not debug) and mask: remove the mask_fname
+            try:
+                for (fasta, trf_out_fp) in zip(fasta_outs, trf_out_fps):
+                    trf_proc = tandem._trf(fasta, trf_out_fp, match, mismatch, delta, pm,
+                            pi, minscore, maxperiod, dat, mask, html, trf_path)
+                    trf_names.append("trf on %s" %fasta)
+                    trf_procs.append(trf_proc)
+                for (name, proc) in zip(itertools.chain(fastq_to_fasta_names,
+                    trf_names), itertools.chain(fastq_to_fasta_procs,
+                        trf_procs)):
+                    stdout, stderr = proc.communicate()
+                    retcode = proc.returncode
+                    process_return(name, retcode, stdout, stderr)
+            finally:
+                for fp in trf_out_fps:
+                    fp.close()
+
+            for (name, proc) in zip(converter_names, converter_procs):
+                stdout, stderr = proc.communicate()
+                retcode = proc.returncode
+                process_return(name, retcode, stdout, stderr)
+
+        finally:
+            # remove mask files
+            if mask:
+                for mask_fname in mask_fnames:
+                    os.remove(mask_fname)
+        
 
 def storage_heavy(args):
     check_missing_files(args)
@@ -887,7 +958,6 @@ def storage_heavy(args):
                     minscore = args.minscore, 
                     maxperiod = args.maxperiod, 
                     generate_fastq = args.no_generate_fastq, 
-                    dat = args.dat, 
                     mask = args.mask, 
                     html = args.html, 
                     trf_path = args.trf_path,
