@@ -785,59 +785,59 @@ def run_trf(fastqs, outs, match=2, mismatch=7, delta=7, pm=80, pi=10, minscore=5
         fasta_outs = filenames[:nfiles]
         trf_outs = filenames[nfiles:]
 
-        fastq_to_fasta_cmds = []
-        converter_cmds = []
-        trf_cmds = []
+        # process names
+        fastq_to_fasta_names = []
+        converter_names = []
+        trf_names = []
+
+        # subprocess.Popen instances
+        fastq_to_fasta_procs = []
+        converter_procs = []
+        trf_procs = []
 
         for (fastq_in, fasta_out) in zip(fastqs, fasta_outs):
-            cmd = tandem._fastq_to_fasta(fastq_in, fasta_out)
-            fastq_to_fasta_cmds.append(cmd)
-        fastq_to_fasta_procs = [subprocess.Popen(cmd, stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE) for cmd in fastq_to_fasta_cmds]
+            proc = tandem._fastq_to_fasta(fastq_in, fasta_out)
+            fastq_to_fasta_names.append("fastq_to_fasta %s -> %s" %(fastq_in,
+                fasta_out))
+            fastq_to_fasta_procs.append(proc)
 
-        for (fastq, trf_out, out, mask_fname) in zip(fastqs, trf_outs, outs,
-                mask_fnames):
-            converter_cmd = tandem._convert(fastq, trf_out, out, mask_fname,
-                    generate_fastq, mask)
-            for c in converter_cmd:
-                converter_cmds.append(c)
         # must start converter_procs before opening the file handle, otherwise
         # will hang
-        converter_procs = map(subprocess.Popen, converter_cmds)
+        for (fastq, trf_out, out, mask_fname) in zip(fastqs, trf_outs, outs,
+                mask_fnames):
+            converter_proc_grp = tandem._convert(fastq, trf_out, out, mask_fname,
+                    generate_fastq, mask)
+            for c in converter_proc_grp:
+                converter_procs.append(c)
+                converter_names.append("converting %s -> %s/%s" %(trf_out, out,
+                    mask_fname))
 
         trf_out_fps = [open(t, "w") for t in trf_outs]
         for (fasta, trf_out_fp) in zip(fasta_outs, trf_out_fps):
-            trf_cmd = tandem._trf(fasta, trf_out_fp, match, mismatch, delta, pm,
+            trf_proc = tandem._trf(fasta, trf_out_fp, match, mismatch, delta, pm,
                     pi, minscore, maxperiod, dat, mask, html, trf_path)
-            trf_cmds.append(trf_cmd)
+            trf_names.append("trf on %s" %fasta)
+            trf_procs.append(trf_proc)
 
-        trf_procs = []
-        for (trf_cmd, trf_out_fp) in zip(trf_cmds, trf_out_fps):
-            trf_procs.append(subprocess.Popen(trf_cmd, stdout=trf_out_fp,
-                stderr=subprocess.PIPE))
         # steps: 
         # 1. wait for the fastq_to_fasta and trf procs. 
         # 2. close the trf_out_fp file handle
         # 3. wait for the converter_procs
         # 4. if (not debug) and mask: remove the mask_fname
         try:
-            for (cmd_list, proc) in zip(itertools.chain(fastq_to_fasta_cmds,
-                converter_cmds), itertools.chain(fastq_to_fasta_procs,
+            for (name, proc) in zip(itertools.chain(fastq_to_fasta_names,
+                trf_names), itertools.chain(fastq_to_fasta_procs,
                     trf_procs)):
                 stdout, stderr = proc.communicate()
                 retcode = proc.returncode
-                name = " ".join(cmd_list)
-                logging.debug("Finished running " + name)
                 process_return(name, retcode, stdout, stderr)
         finally:
             for fp in trf_out_fps:
                 fp.close()
 
-        for (cmd_list, proc) in zip(converter_cmds, converter_procs):
+        for (name, proc) in zip(converter_names, converter_procs):
             stdout, stderr = proc.communicate()
             retcode = proc.returncode
-            name = " ".join(cmd_list)
-            logging.debug("Finished running " + name)
             process_return(name, retcode, stdout, stderr)
 
         # remove mask files
@@ -845,7 +845,6 @@ def run_trf(fastqs, outs, match=2, mismatch=7, delta=7, pm=80, pi=10, minscore=5
             for mask_fname in mask_fnames:
                 os.remove(mask_fname)
         
-
 
 def storage_heavy(args):
     check_missing_files(args)
