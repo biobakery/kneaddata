@@ -45,6 +45,8 @@ def process_return(name, retcode, stdout, stderr):
         log("%s exited with exit status %d", name, retcode)
     else:
         log = logging.debug
+    if name:
+        log("Finished running %s!" %name)
     if stdout:
         log("%s stdout:\n%s", name, stdout)
     if stderr:
