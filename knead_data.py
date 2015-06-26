@@ -174,6 +174,11 @@ def handle_cli():
 
     args = parser.parse_args()
     try_create_dir(args.output_dir)
+
+    if (not args.no_generate_fastq) and (not args.mask) and args.trf:
+        parser.error("\nYou cannot set the --no-generate-fastq flag without"
+        " the --mask flag. Exiting...\n")
+
     return args
 
 
@@ -238,11 +243,6 @@ def get_file_format(file):
 def main():
     args = handle_cli()
     # check args first
-
-    if (not args.no_generate_fastq) and (not args.mask):
-        print("\nYou cannot set the --no-generate-fastq flag without"
-        " the --mask flag. Exiting...\n")
-        sys.exit(1)
 
     args = setup_logging(args)
 
