@@ -75,6 +75,10 @@ def handle_cli():
         '--logfile',
         default=None,
         help="Where to save logs")
+    group1.add_argument(
+            '--version', 
+            action='version', version='kneadData v0.3',
+            help = 'Print version and exit')
 
     group2 = parser.add_argument_group("trimmomatic arguments")
     group2.add_argument(
@@ -93,18 +97,20 @@ def handle_cli():
     default_trimargs = ["SLIDINGWINDOW:4:20", "MINLEN:60"]
     group2.add_argument(
         "-a", "--trim-args",
-        default=default_trimargs, action="append",
-        help=("additional arguments for Trimmomatic, default: "
+        default=[], action="append",
+        help=("Additional arguments for Trimmomatic, default: "
               +" ".join(default_trimargs)))
 
     group3 = parser.add_argument_group("bowtie2 arguments")
     group3.add_argument(
         "--bowtie2-path",
         default=None, help="path to bowtie2 if not found on $PATH")
+    default_bowtie2_args = ["--very-sensitive"]
     group3.add_argument(
         "--bowtie2-args",
         default=[], action="append",
-        help="Additional arguments for Bowtie 2")
+        help=("Additional arguments for Bowtie 2, default: " 
+                + " ".join(default_bowtie2_args)))
         
     group4 = parser.add_argument_group("bmtagger arguments")
     group4.add_argument(
@@ -178,6 +184,13 @@ def handle_cli():
     if (not args.no_generate_fastq) and (not args.mask) and args.trf:
         parser.error("\nYou cannot set the --no-generate-fastq flag without"
         " the --mask flag. Exiting...\n")
+
+    # allow users to overwrite the defaults instead of appending to defaults
+    if args.trim_args == []:
+        args.trim_args = default_trimargs
+
+    if args.bowtie2_args == []:
+        args.bowtie2_args = default_bowtie2_args
 
     return args
 
