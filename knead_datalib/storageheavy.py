@@ -2,14 +2,12 @@ import os
 import re
 import sys
 import time
-import shlex
 import shutil
 import logging
 import itertools
 import subprocess
 import collections
 from functools import partial
-from multiprocessing import Pool
 
 import tandem
 from . import constants_knead_data as const
@@ -74,7 +72,7 @@ def _poll_workers(popen_list):
 
 
 def align(infile_list, db_prefix_list, output_prefix, tmp_dir,
-          bowtie2_path=None, n_procs=None, bowtie2_opts=dict()):
+          bowtie2_path=None, n_procs=None, bowtie2_opts=list()):
 
     """Align a single-end sequence file or a paired-end duo of sequence
     files using bowtie2.
@@ -91,16 +89,9 @@ def align(infile_list, db_prefix_list, output_prefix, tmp_dir,
                     sam file output
     :keyword bowtie2_path: String; File path to the bowtie2 binary's location.
     :keyword n_procs: Int; Number of bowtie2 subprocesses to run.
-    :keyword bowtie2_opts: Dictionary; A dictionary of command line options to
-                         be passed to the wrapped bowtie2 program. 
-                         No - or -- flags are necessary; the correct - or --
-                         flags are inferred based on the length of the option. 
-                         For boolean options, use the key/value pattern 
-                         of { "my-option": "" }.
+    :keyword bowtie2_opts: List; List of additional arguments, as strings, to 
+                            be passed to Bowtie2.
     """
-    # for now, we are not using dictionaries for bowtie2 additional arguments.
-    # Just reading them in as a string, including the hyphens, and using
-    # shlex.split to process them into a list
 
     if not bowtie2_path:
         bowtie2_path = find_on_path("bowtie2")
@@ -565,11 +556,11 @@ def get_num_reads(strFname):
     Summary: Uses wc to find the number of reads in a file.
     '''
     pat = r'[0-9]+ '
-    cmd = "wc --lines " + strFname
+    cmd = ["wc",  "--lines", strFname]
     fIsFastq = check_fastq(strFname)
 
     try:
-        out = subprocess.check_output(shlex.split(cmd))
+        out = subprocess.check_output(cmd)
     except subprocess.CalledProcessError as e:
         logging.warning("Command %s failed with return code %i ",
                         str(e.cmd), e.returncode)
@@ -698,14 +689,13 @@ def find_on_path(bin_str):
     return False
 
 
-def trim(infile, trimlen, prefix, trimmomatic_path, 
+def trim(infile, prefix, trimmomatic_path, 
          java_mem="500m", addl_args=list(), threads=1):
     '''
     Trim a sequence file using trimmomatic. 
         infile:     input fastq file list (either length 1 or length 2)
                     length 1: single end
                     length 2: paired end
-        trimlen:    length to trim
         prefix:     prefix for outputs
         java_mem:   string, ie "500m" or "8g"; specifies how much memory
                     the Java VM is allowed to use
@@ -730,39 +720,35 @@ def trim(infile, trimlen, prefix, trimmomatic_path,
     '''
 
     single_end = (len(infile) == 1)
-    trim_arg = ""
-    if single_end:
-        trim_arg = (
-            '%s SE -threads %s -phred33 %s %s.trimmed.fastq %s'
-            %(trimmomatic_path, threads, infile[0], prefix, " ".join(addl_args))
-        )
-        
-    else:
-        trim_arg = (
-            '%s PE -threads %s -phred33 %s %s %s.trimmed.1.fastq \
-            %s.trimmed.single.1.fastq %s.trimmed.2.fastq \
-            %s.trimmed.single.2.fastq %s' 
-            %(trimmomatic_path, threads, infile[0], infile[1], prefix, prefix,
-              prefix, prefix, " ".join(addl_args))
-        )
+    trim_cmd = ["java", 
+                "-Xmx" + java_mem, 
+                "-d64",
+                "-jar", trimmomatic_path]
 
-    cmd = "java -Xmx" + java_mem + " -d64 -jar " + trim_arg
-    logging.debug("Running trimmomatic with: " + cmd)
-    proc = subprocess.Popen(shlex.split(cmd),
+    if single_end:
+        trim_cmd += ["SE",
+                    "-threads", str(threads), 
+                    "-phred33", 
+                    infile[0],
+                    prefix + ".trimmed.fastq"] + addl_args
+    else:
+        trim_cmd += ["PE", 
+                    "-threads", str(threads), 
+                    "-phred33", 
+                    infile[0], infile[1], 
+                    prefix + ".trimmed.1.fastq", 
+                    prefix + ".trimmed.single.1.fastq",
+                    prefix + ".trimmed.2.fastq",
+                    prefix + ".trimmed.single.2.fastq"] + addl_args
+
+    logging.debug("Running trimmomatic with: " + " ".join(trim_cmd))
+    proc = subprocess.Popen(trim_cmd,
                             stderr=subprocess.PIPE,
                             stdout=subprocess.PIPE)
     stdout, stderr = proc.communicate()
-    logging.debug("Trimmomatic run complete.")
-    if stdout:
-        logging.debug("Trimmomatic stdout: "+stdout)
-    if stderr:
-        logging.debug("Trimmomatic stderr: "+stderr)
-    return(proc.returncode, cmd)
-
-
-def proc_open(cmd):
-    logging.debug("Running " + " ".join(cmd))
-    return(subprocess.Popen(cmd))
+    retcode = proc.returncode
+    process_return("Trimmomatic", retcode, stdout, stderr)
+    return(retcode, trim_cmd)
 
 
 def run_trf(fastqs, outs, match=2, mismatch=7, delta=7, pm=80, pi=10, minscore=50,
@@ -871,7 +857,6 @@ def storage_heavy(args):
     logging.info("Trimming...")
     trim(files, 
          threads          = trim_threads,
-         trimlen          = args.trimlen,
          trimmomatic_path = args.trim_path, 
          prefix           = output_prefix,
          java_mem         = args.max_mem, 
