@@ -52,15 +52,14 @@ def trimmomatic(fastq_in, fastq_out, filter_args_list, jar_path,
 
 
 def bowtie2(index_str, input_fastq, output_clean_fastq,
-            output_con_fastq, threads, bowtie2_path="bowtie2"):
-    args = [bowtie2_path, "--very-sensitive",
+            output_con_fastq, threads, bowtie2_args, bowtie2_path="bowtie2"):
+    args = [bowtie2_path, 
             "-x", index_str,
             "-U", input_fastq,
             "--un", output_clean_fastq,
             "--al", output_con_fastq,
             "-S", os.devnull,
-            "--threads", str(threads),
-            '--quiet']
+            "--threads", str(threads)] + bowtie2_args
     logging.debug("Running bowtie2 with arguments %s", args)
     return subprocess.Popen(args, stderr=subprocess.PIPE,
                             stdout=subprocess.PIPE)
@@ -69,7 +68,8 @@ def bowtie2(index_str, input_fastq, output_clean_fastq,
 
 def decontaminate_reads(in_fname, index_strs, output_prefix,
                         output_dir, filter_args_list, filter_jar_path,
-                        trim_threads, bowtie_threads, bowtie2_path="bowtie2"):
+                        trim_threads, bowtie_threads, bowtie2_args, 
+                        bowtie2_path="bowtie2"):
     tmpfilebases = ['filter']+map(os.path.basename, index_strs[:-1])
 
     with mktempfifo(tmpfilebases) as filenames:
@@ -86,7 +86,8 @@ def decontaminate_reads(in_fname, index_strs, output_prefix,
                 contam_file = os.path.join(output_dir, contam_name)
                 in_next = in_next or clean_file
                 yield bowtie2(index_str, in_cur, in_next, contam_file,
-                              bowtie_threads, bowtie2_path=bowtie2_path)
+                              bowtie_threads, bowtie2_args, 
+                              bowtie2_path=bowtie2_path)
 
         procs = [filter_proc]+list(_procs())
         names = ["trimmomatic"] + [ "bowtie2 (%s)"%(idx) for idx in index_strs ]
@@ -94,6 +95,7 @@ def decontaminate_reads(in_fname, index_strs, output_prefix,
             stdout, stderr = proc.communicate()
             retcode = proc.returncode
             process_return(name, retcode, stdout, stderr)
+
 
 def check_args(args):
     if not args.output_prefix:
@@ -125,7 +127,8 @@ def memory_heavy(args):
     decontaminate_reads(args.infile1, args.reference_db,
                         args.output_prefix, args.output_dir,
                         args.trim_args, args.trim_path, trim_threads,
-                        bowtie_threads, bowtie2_path=args.bowtie2_path)
+                        bowtie_threads, bowtie2_args=args.bowtie2_args, 
+                        bowtie2_path=args.bowtie2_path)
     
 
     
