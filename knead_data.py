@@ -13,20 +13,8 @@ import gzip
 import re
 import sys
 
-from knead_datalib import strategies
-from knead_datalib import try_create_dir
-
+from knead_datalib import strategies, try_create_dir, parse_positive_int
 here = os.path.abspath(os.path.dirname(__file__))
-
-
-def parse_positive_int(string):
-    try:
-        val = int(string)
-    except ValueError:
-        raise argparse.ArgumentTypeError("Unable to parse %s to int" %string) 
-    if val <= 0:
-        raise argparse.ArgumentTypeError("%s is not a positive integer" %string)
-    return val
 
 
 def handle_cli():
