@@ -54,3 +54,13 @@ def process_return(name, retcode, stdout, stderr):
     if retcode:
         sys.exit(retcode)
 
+
+def parse_positive_int(string):
+    try:
+        val = int(string)
+    except ValueError:
+        raise argparse.ArgumentTypeError("Unable to parse %s to int" %string) 
+    if val <= 0:
+        raise argparse.ArgumentTypeError("%s is not a positive integer" %string)
+    return val
+
