@@ -15,9 +15,9 @@ FASTQ_LENGTH = 4
 
 
 def generate_fastq(fastq_file, tandem_out_file, out_file):
-    tandem_out = open(tandem_out_file, "r")
-    fastq = open(fastq_file, "r")
-    out = open(out_file, "w")
+    tandem_out = None
+    fastq = None
+    out = None
 
     def _write_fastq(fastq_lines):
         try:
@@ -30,30 +30,35 @@ def generate_fastq(fastq_file, tandem_out_file, out_file):
                     " that doesn't have 4 lines" " per read" % fastq_file)
             raise
     try:
-        # if the tandem_out file is empty, we still want to write the fastq file
-        wrote = False
+        tandem_out = open(tandem_out_file, "r")
+        fastq = open(fastq_file, "r")
+        out = open(out_file, "w")
+
         # read FASTQ_LENGTH lines at a time
-        for fastq_lines in izip_longest(*[fastq]*FASTQ_LENGTH):
-            # read TANDEM_LENGTH lines at a time
-            for tandem_out_lines in izip_longest(*[tandem_out]*TANDEM_LENGTH):
+        fastq_iter = izip_longest(*[fastq]*FASTQ_LENGTH)
+        # read TANDEM_LENGTH lines at a time
+        tandem_iter = izip_longest(*[tandem_out]*TANDEM_LENGTH)
+        for (fastq_lines, tandem_out_lines) in izip_longest(fastq_iter,
+                tandem_iter):
+            if tandem_out_lines == None:
+                assert(fastq_lines != None)
+                # exhausted tandem_iter
+                _write_fastq(fastq_lines)
+            elif fastq_lines[0] != tandem_out_lines[0]:
                 # fastq header is NOT a tandem repeat, so keep it
-                if fastq_lines[0] != tandem_out_lines[0]:
-                    _write_fastq(fastq_lines)
-                    wrote = True
-            if wrote == False:
                 _write_fastq(fastq_lines)
     finally:
         # close everything, even if there was an exception above
-        tandem_out.close()
-        fastq.close()
-        out.close()
+        for outfile in [tandem_out, fastq, out]:
+            if outfile != None:
+                outfile.close()
 
 
 def generate_masked(fastq_file, masked_file, out_file):
-    masked = open(masked_file, "r")
-    fastq = open(fastq_file, "r")
-    out = open(out_file, "w")
     fasta_head = re.compile(r'^>')
+    masked = None
+    fastq = None
+    out = None
 
     def _write_output(out_fp, fastq_header, seq, plus, quals):
         seq = seq + "\n"
@@ -62,7 +67,12 @@ def generate_masked(fastq_file, masked_file, out_file):
         out_fp.write("".join([fastq_header, seq, plus, quals]))
 
     try:
+        masked = open(masked_file, "r")
+        fastq = open(fastq_file, "r")
+        out = open(out_file, "w")
+
         mask_line = masked.readline()
+
         header = None
         fastq_header = None
         plus = None
@@ -93,9 +103,9 @@ def generate_masked(fastq_file, masked_file, out_file):
 
     finally:
         # close everything if there was an exception above
-        masked.close()
-        fastq.close()
-        out.close()
+        for outfile in [masked, fastq, out]:
+            if outfile != None:
+                outfile.close()
 
 
 def main():
@@ -113,8 +123,6 @@ def main():
         generate_masked(args.fastq, args.tandem, args.output)
     else:
         generate_fastq(args.fastq, args.tandem, args.output)
-
-    return 0
 
 
 if __name__ == "__main__":
