@@ -44,7 +44,6 @@ def main():
 
     fastq_to_fasta(args.fastq, args.fasta)
 
-    return 0
 
 if __name__ == "__main__":
     main()
