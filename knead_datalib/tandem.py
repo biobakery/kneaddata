@@ -9,6 +9,15 @@ import subprocess
 from __init__ import parse_positive_int, mktempfifo, try_create_dir, process_return
 here = os.path.dirname(os.path.realpath(__file__))
 
+############## constants ######################
+# number of lines per entry in trf output
+TANDEM_LENGTH = 2
+
+# number of lines per entry in fastq 
+FASTQ_LENGTH = 4
+###############################################
+
+
 def _fastq_to_fasta(fastq, fasta):
     '''
     Converts fastq to fasta using fastq_to_fasta.py
@@ -44,7 +53,8 @@ def _trf(fasta, outfp, match=2, mismatch=7, delta=7, pm=80, pi=10, minscore=50,
     '''
 
     trf_args = map(str, [match, mismatch, delta, pm, pi, minscore, maxperiod])
-    trf_cmd = [trf_path, fasta] + trf_args + ["-ngs"]
+    #trf_cmd = [trf_path, fasta] + trf_args + ["-ngs"]
+    trf_cmd = [trf_path, fasta] + trf_args 
 
     if mask:
         trf_cmd += ["-m"]
@@ -52,7 +62,9 @@ def _trf(fasta, outfp, match=2, mismatch=7, delta=7, pm=80, pi=10, minscore=50,
         trf_cmd += ["-h"]
 
     logging.debug("Running trf with %s", trf_cmd)
-    trf = subprocess.Popen(trf_cmd, stdout=outfp, stderr=subprocess.PIPE)
+    #trf = subprocess.Popen(trf_cmd, stdout=outfp, stderr=subprocess.PIPE)
+    trf = subprocess.Popen(trf_cmd, stdout=outfp,
+            stderr=subprocess.PIPE, bufsize=1)
     return(trf)
 
 
@@ -89,11 +101,73 @@ def _convert(fastq, trf_output, out, mask_fname, generate_fastq, mask):
     return(converter_procs)
 
 
+def run_tandem_process(fastq, fasta, output, tandem, maskfile):
+    cmd = ["python", os.path.join(here, "tandem_process.py"), fastq, fasta,
+            output]
+
+    if tandem != None:
+        cmd += ["--tandem", tandem]
+    if maskfile != None:
+        cmd += ["--maskfile", maskfile]
+
+    logging.debug("Running tandem_process.py with %s" %str(cmd))
+    #return(subprocess.Popen(cmd, stdout=subprocess.PIPE,
+    #    stderr=subprocess.PIPE))
+    return(subprocess.Popen(cmd))
+
+
+def run_tandem(fastq, output, match=2, mismatch=7, delta=7, pm=80, pi=10,
+        minscore=50, maxperiod=500, generate_fastq=True, mask=False, html=False,
+        trf_path="trf"):
+    fasta_fname = os.path.basename(fastq) + ".fasta"
+    trf_args = map(str, [match, mismatch, delta, pm, pi, minscore, maxperiod])
+    trf_out_fname = fasta_fname + "." + ".".join(trf_args) + ".stream.dat"
+
+    mask_fname = None
+    if mask:
+        mask_fname = fasta_fname + "." + ".".join(trf_args) + ".mask"
+
+    #with mktempfifo((fasta_fname, trf_out_fname)) as filenames:
+    with mktempfifo((fasta_fname,)) as filenames:
+        if not generate_fastq:
+            trf_out = os.devnull
+            tandem = None
+        else:
+            trf_out = trf_out_fname
+            tandem = trf_out
+            os.mkfifo(tandem)
+
+        trf_out_fp = None
+        if mask:
+            os.mkfifo(mask_fname)
+        try:
+            tandem_process_proc = run_tandem_process(fastq, fasta_fname, output,
+                    tandem, mask_fname)
+            trf_out_fp = open(trf_out, "w")
+
+            trf_proc = _trf(filenames[0], trf_out_fp, match, mismatch, delta,
+                    pm, pi, minscore, maxperiod, mask, html, trf_path)
+            procs = [trf_proc, tandem_process_proc]
+            names = ["trf", "tandem_process"]
+            for (proc, name) in zip(procs, names):
+                print(name)
+                stdout, stderr = proc.communicate()
+                retcode = proc.returncode
+                process_return(name, retcode, stdout, stderr)
+
+        finally:
+            if trf_out_fp != None:
+                trf_out_fp.close()
+            if generate_fastq:
+                os.remove(tandem)
+            if mask:
+                os.remove(mask_fname)
+    
+
 def handle_cli():
     parser = argparse.ArgumentParser(description="Remove tandem repeats.")
-    parser.add_argument("fastqs", nargs="+", help="input fastqs")
-    parser.add_argument("-o", "--outputs", nargs="+", required=True, 
-            help="output prefixes")
+    parser.add_argument("fastq", help="input fastqs")
+    parser.add_argument("output", help="output prefixes")
 
     parser.add_argument(
             "--trf-path",
@@ -146,7 +220,7 @@ def handle_cli():
         parser.error("\nYou cannot set the --no-generate-fastq flag without"
         " the --mask flag. Exiting...\n")
 
-    assert(len(args.fastqs) == len(args.outputs))
+    #assert(len(args.fastqs) == len(args.outputs))
 
     return args
 
@@ -154,107 +228,17 @@ def handle_cli():
 def main():
     args = handle_cli()
 
-    '''
     # TEMP LOGGING
     fmt = "%(asctime)s %(levelname)s: %(message)s"
     logger = logging.getLogger()
     logger.setLevel(getattr(logging, "DEBUG"))
     logging.basicConfig(format=fmt)
-    '''
 
-    nfiles = len(args.fastqs)
+    run_tandem(args.fastq, args.output, args.match, args.mismatch, args.delta,
+            args.pm, args.pi, args.minscore, args.maxperiod,
+            args.no_generate_fastq, args.mask, args.html, args.trf_path)
+    return
 
-    fasta_fnames = [os.path.basename(fastq) + ".fasta" for fastq in args.fastqs]
-    # file names for trf mask (trf default provided, can't change it)
-    trf_args = map(str, [args.match, args.mismatch, args.delta, args.pm,
-        args.pi, args.minscore, args.maxperiod])
-    trf_out_fnames = [f + "." + ".".join(trf_args) + ".stream.dat" for f in
-            fasta_fnames]
-    mask_fnames = [None] * nfiles
-    if args.mask:
-        mask_fnames = [f + "." + ".".join(trf_args) + ".mask" for f in
-                fasta_fnames]
-
-    with mktempfifo(fasta_fnames + trf_out_fnames) as filenames:
-        fasta_outs = filenames[:nfiles]
-        trf_outs = filenames[nfiles:]
-        if not args.no_generate_fastq:
-            trf_outs = [os.devnull for f in args.fastqs]
-
-        # process names
-        fastq_to_fasta_names = []
-        converter_names = []
-        trf_names = []
-
-        # subprocess.Popen instances
-        fastq_to_fasta_procs = []
-        converter_procs = []
-        trf_procs = []
-
-        for (fastq_in, fasta_out) in zip(args.fastqs, fasta_outs):
-            proc = _fastq_to_fasta(fastq_in, fasta_out)
-            fastq_to_fasta_names.append("fastq_to_fasta %s -> %s" %(fastq_in,
-                                                                    fasta_out))
-            fastq_to_fasta_procs.append(proc)
-
-        # must start converter_procs before opening the file handle, otherwise
-        # will hang
-        # must make a fifo for the mask output otherwise converter will just
-        # read through the whole file
-        if args.mask:
-            for mask_fname in mask_fnames:
-                logging.debug("Making fifo %s" %mask_fname)
-                os.mkfifo(mask_fname)
-
-        try:
-            for (fastq, trf_out, out, mask_fname) in zip(args.fastqs, trf_outs,
-                    args.outputs, mask_fnames):
-                converter_proc_grp = _convert(fastq, trf_out, out, mask_fname,
-                        args.no_generate_fastq, args.mask)
-                for (i, c) in enumerate(converter_proc_grp):
-                    converter_procs.append(c)
-                    cur_out = [out, out + ".mask"][i]
-                    converter_names.append("converting %s -> %s" %(trf_out,
-                                                                   cur_out))
-
-            trf_out_fps = [open(t, "w") for t in trf_outs]
-            # steps: 
-            # 1. wait for the fastq_to_fasta and trf procs. 
-            # 2. close the trf_out_fp file handle
-            # 3. wait for the converter_procs
-            # 4. if (not debug) and mask: remove the mask_fname
-            try:
-                for (fasta, trf_out_fp) in zip(fasta_outs, trf_out_fps):
-                    trf_proc = _trf(fasta, trf_out_fp, args.match,
-                            args.mismatch, args.delta, args.pm, args.pi,
-                            args.minscore, args.maxperiod, args.mask, args.html,
-                            args.trf_path)
-                    trf_names.append("trf on %s" %fasta)
-                    trf_procs.append(trf_proc)
-                for (name, proc) in zip(itertools.chain(fastq_to_fasta_names,
-                    trf_names), itertools.chain(fastq_to_fasta_procs,
-                        trf_procs)):
-                    stdout, stderr = proc.communicate()
-                    retcode = proc.returncode
-                    process_return(name, retcode, stdout, stderr)
-            finally:
-                for fp in trf_out_fps:
-                    fp.close()
-
-            for (name, proc) in zip(converter_names, converter_procs):
-                stdout, stderr = proc.communicate()
-                retcode = proc.returncode
-                process_return(name, retcode, stdout, stderr)
-
-        finally:
-            # remove mask files
-            if args.mask:
-                for mask_fname in mask_fnames:
-                    logging.debug("Removing %s" %mask_fname)
-                    os.remove(mask_fname)
-
-    return 100
-        
 
 if __name__ == "__main__":
     main()
