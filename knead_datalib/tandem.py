@@ -1,168 +1,211 @@
 import os
 import sys
+import Queue
 import logging
 import argparse
+import threading
 import itertools
 import subprocess
 
+import time
+
 # import stuff from the __init__.py in this directory
-from __init__ import parse_positive_int, mktempfifo, try_create_dir, process_return
+from __init__ import parse_positive_int, mkfifo_here, try_create_dir, process_return
 here = os.path.dirname(os.path.realpath(__file__))
 
 ############## constants ######################
-# number of lines per entry in trf output
-TANDEM_LENGTH = 2
-
 # number of lines per entry in fastq 
 FASTQ_LENGTH = 4
+
+# sentinel to indicate we've reached the end of the queue
+SENTINEL_DONE = "DONE"
+SENTINEL_CONTINUE = "CONTINUE"
 ###############################################
 
 
-def _fastq_to_fasta(fastq, fasta):
-    '''
-    Converts fastq to fasta using fastq_to_fasta.py
-    fastq: Input fastq filename
-    fasta: Output fasta filename
-    '''
-    fastq_to_fasta_cmd = ["python", 
-                          os.path.join(here, "fastq_to_fasta.py"),
-                          fastq, 
-                          "--fasta", fasta]
-    logging.debug("Running fastq_to_fasta with %s", fastq_to_fasta_cmd)
-    fastq_to_fasta = subprocess.Popen(fastq_to_fasta_cmd,
-            stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    return(fastq_to_fasta)
-
-
-def _trf(fasta, outfp, match=2, mismatch=7, delta=7, pm=80, pi=10, minscore=50,
-        maxperiod=500, mask=False, html=False, trf_path="trf"):
+def _trf(fasta, trf_out_queue, match=2, mismatch=7, delta=7, pm=80,
+        pi=10, minscore=50, maxperiod=500, html=False, trf_path="trf"):
     '''
     Generate the TRF command and run it using subprocess. TRF is run such that
-    the reads identified as containing tandem repeats are piped from stdout to
-    another program
+    the reads identified as containing tandem repeat are written to a fifo.
+    Then, read TRF's output and write a tuple (header, TRF output string) to a
+    Queue.Queue object.
 
     fasta: input fasta filename for TRF
-    outfp: A file pointer that specifies where to write the TRF stdout
+    trf_out_queue: A Queue.Queue object where TRF's output will be written
     trf_path: path to trf. If not specified, defaults to "trf"
 
     match, mismatch, delta, pm, pi, minscore, and maxperiod are all TRF
     parameters. 
 
-    mask: Tells TRF whether to generate a mask file.
     html: Tells TRF whether to generate a HTML output
     '''
 
     trf_args = map(str, [match, mismatch, delta, pm, pi, minscore, maxperiod])
-    #trf_cmd = [trf_path, fasta] + trf_args + ["-ngs"]
-    trf_cmd = [trf_path, fasta] + trf_args 
+    trf_cmd = [trf_path, fasta] + trf_args + ["-ngs"]
 
-    if mask:
-        trf_cmd += ["-m"]
     if not html:
         trf_cmd += ["-h"]
 
     logging.debug("Running trf with %s", trf_cmd)
-    #trf = subprocess.Popen(trf_cmd, stdout=outfp, stderr=subprocess.PIPE)
-    trf = subprocess.Popen(trf_cmd, stdout=outfp,
+    trf_proc = subprocess.Popen(trf_cmd, stdout=subprocess.PIPE,
             stderr=subprocess.PIPE, bufsize=1)
-    return(trf)
+
+    line = trf_proc.stdout.readline().rstrip()
+    header = None
+    output_lines = []
+    while line:
+        if line[0] == "@":
+            if header != None:
+                assert(len(output_lines) > 0)
+                trf_out_queue.put( (SENTINEL_CONTINUE, header, output_lines) )
+                output_lines = []
+            header = line
+        else:
+            output_lines.append(line)
+        line = trf_proc.stdout.readline().rstrip()
+    # flush last one
+    trf_out_queue.put( (SENTINEL_CONTINUE, header, output_lines) )
+
+    trf_proc.stdout.close()
+    trf_out_queue.put( (SENTINEL_DONE, None, None) )
 
 
-def _generate_fastq(fastq, trf_output, out):
-    cmd = ["python", os.path.join(here, "tandem_process.py"), 
-            fastq, trf_output, out]
-    logging.debug("Running generate_fastq with %s", cmd)
-    proc = subprocess.Popen(cmd)
-    return(proc)
+def _fastq_to_fasta(in_fastq, fasta_fifo, qual_queue):
+    fasta_fifo_fp = None
+    in_fastq_fp = open(in_fastq, "r")
+    try:
+        fasta_fifo_fp = open(fasta_fifo, "w")
+        fastq_iter = itertools.izip_longest(*[in_fastq_fp]*FASTQ_LENGTH)
+        for (fastq_header, fastq_seq, fastq_plus, fastq_quals) in fastq_iter:
+            # checking
+            for f in [fastq_header, fastq_seq, fastq_plus, fastq_quals]:
+                assert(f != None)
+            assert(len(fastq_seq) == len(fastq_quals))
+            assert(fastq_plus.rstrip() == "+")
+
+            print("THREAD WRITING TO FASTA")
+            fasta_header = fastq_header.replace("@", ">", 1).rstrip()
+            fasta_fifo_fp.write(fasta_header + "\n")
+            fasta_fifo_fp.write(fastq_seq.rstrip() + "\n")
+
+            print("THREAD PUTTING INTO QUEUE")
+            qual_queue.put( (fastq_header.rstrip(), fastq_seq.rstrip(),
+                fastq_quals.rstrip()) )
+    finally:
+        for fp in [in_fastq_fp, fasta_fifo_fp]:
+            if fp != None:
+                fp.close()
 
 
-def _generate_mask(fastq, trf_output, out):
-    cmd = ["python", os.path.join(here, "tandem_process.py"), 
-            fastq, trf_output, out, "--mask"]
-    logging.debug("Running generate_mask with %s", cmd)
-    proc = subprocess.Popen(cmd)
-    return(proc)
-    
+def _convert(qual_queue, trf_out_queue, fastq_out, mask_out):
+    fastq_out_fp = None
+    mask_out_fp = None
 
-def _convert(fastq, trf_output, out, mask_fname, generate_fastq, mask):
-    converter_procs = []
-    converter_names = []
+    if fastq_out != None:
+        fastq_out_fp = open(fastq_out, "w")
+    if mask_out != None:
+        mask_out_fp = open(mask_out, "w")
 
-    if generate_fastq: 
-        converter_procs.append(_generate_fastq(fastq, trf_output, out))
+    # assumes everything has been stripped of trailing newline
+    def _write(fastq_header, trf_header, fastq_seq, trf_output, fastq_qual):
+        assert(len(fastq_seq) == len(fastq_qual))
+        if (fastq_out != None) and (fastq_header != trf_header):
+            _write_fastq(fastq_header, fastq_seq, fastq_qual)
+        if mask_out != None:
+            _write_masked(fastq_header, fastq_seq, trf_output, fastq_qual)
 
-    if mask:
-        mask_out = out
-        if generate_fastq:
-            mask_out = out + ".mask"
-        assert(mask_fname != None)
-        converter_procs.append(_generate_mask(fastq, mask_fname,  mask_out))
+    def _write_masked(fastq_header, fastq_seq, trf_output, fastq_qual):
+        masked_seq = fastq_seq
+        for out_line in trf_output:
+            # use TRF's first two outputs to tell where the beginning and end of
+            # the tandem repeated section is. TRF uses 1-indexing, so we must
+            # subtract 1 to be compatible with Python
+            spl = out_line.split(" ")
+            lower = int(spl[0]) - 1
+            upper = int(spl[1]) - 1
+            len_rep = upper - lower
+            masked_seq = masked_seq[:lower] + 'N' * len_rep + masked_seq[upper:]
 
-    return(converter_procs)
+        mask_out_fp.write(fastq_header + "\n")
+        mask_out_fp.write(masked_seq + "\n")
+        mask_out_fp.write("+\n")
+        mask_out_fp.write(fastq_qual + "\n")
 
+    def _write_fastq(fastq_header, fastq_seq, fastq_qual):
+        fastq_out_fp.write(fastq_header + "\n")
+        fastq_out_fp.write(fastq_seq + "\n")
+        fastq_out_fp.write("+\n")
+        fastq_out_fp.write(fastq_qual + "\n")
 
-def run_tandem_process(fastq, fasta, output, tandem, maskfile):
-    cmd = ["python", os.path.join(here, "tandem_process.py"), fastq, fasta,
-            output]
+    is_more = True
+    trf_header = None
+    trf_output = []
 
-    if tandem != None:
-        cmd += ["--tandem", tandem]
-    if maskfile != None:
-        cmd += ["--maskfile", maskfile]
+    while True:
+        fastq_header, fastq_seq, fastq_qual = qual_queue.get()
+        print(fastq_header, fastq_seq, fastq_qual)
+        if (trf_header == None) and (len(trf_output) == 0):
+            # try to get more TRF output
+            if is_more:
+                (sentinel, trf_header, trf_output) = trf_out_queue.get()
+                if sentinel == SENTINEL_DONE:
+                    is_more = False
+                    trf_header = None
+                    trf_output = []
+            else:
+                _write(fastq_header, fastq_seq, trf_output, fastq_qual)
+                continue
 
-    logging.debug("Running tandem_process.py with %s" %str(cmd))
-    #return(subprocess.Popen(cmd, stdout=subprocess.PIPE,
-    #    stderr=subprocess.PIPE))
-    return(subprocess.Popen(cmd))
+        _write(fastq_header, trf_header, fastq_seq, trf_output, fastq_qual)
+        trf_header = None
+        trf_output = []
+        qual_queue.task_done()
 
 
 def run_tandem(fastq, output, match=2, mismatch=7, delta=7, pm=80, pi=10,
         minscore=50, maxperiod=500, generate_fastq=True, mask=False, html=False,
         trf_path="trf"):
+
     fasta_fname = os.path.basename(fastq) + ".fasta"
     trf_args = map(str, [match, mismatch, delta, pm, pi, minscore, maxperiod])
-    trf_out_fname = fasta_fname + "." + ".".join(trf_args) + ".stream.dat"
+    #trf_out_fname = fasta_fname + "." + ".".join(trf_args) + ".stream.dat"
 
-    mask_fname = None
+    # set output properly
+    fastq_out = None
+    mask_out = None
+    if generate_fastq:
+        fastq_out = output + ".fastq"
     if mask:
-        mask_fname = fasta_fname + "." + ".".join(trf_args) + ".mask"
-
-    #with mktempfifo((fasta_fname, trf_out_fname)) as filenames:
-    with mktempfifo((fasta_fname,)) as filenames:
-        if not generate_fastq:
-            trf_out = os.devnull
-            tandem = None
+        if generate_fastq:
+            mask_out = output + ".fastq.mask"
         else:
-            trf_out = trf_out_fname
-            tandem = trf_out
-            os.mkfifo(tandem)
+            mask_out = output + ".mask"
 
-        trf_out_fp = None
-        if mask:
-            os.mkfifo(mask_fname)
-        try:
-            tandem_process_proc = run_tandem_process(fastq, fasta_fname, output,
-                    tandem, mask_fname)
-            trf_out_fp = open(trf_out, "w")
+    #with mkfifo_here((fasta_fname, trf_out_fname)) as filenames:
+    with mkfifo_here((fasta_fname, )) as filenames:
+        print(filenames)
+        qual_queue = Queue.Queue()
+        trf_out_queue = Queue.Queue()
 
-            trf_proc = _trf(filenames[0], trf_out_fp, match, mismatch, delta,
-                    pm, pi, minscore, maxperiod, mask, html, trf_path)
-            procs = [trf_proc, tandem_process_proc]
-            names = ["trf", "tandem_process"]
-            for (proc, name) in zip(procs, names):
-                print(name)
-                stdout, stderr = proc.communicate()
-                retcode = proc.returncode
-                process_return(name, retcode, stdout, stderr)
+        thread_fastq_fasta = threading.Thread(target=_fastq_to_fasta,
+                args=(fastq, filenames[0], qual_queue))
+        thread_fastq_fasta.daemon = True
+        thread_fastq_fasta.start()
 
-        finally:
-            if trf_out_fp != None:
-                trf_out_fp.close()
-            if generate_fastq:
-                os.remove(tandem)
-            if mask:
-                os.remove(mask_fname)
-    
+        thread_trf = threading.Thread(target=_trf, args=(filenames[0],
+            trf_out_queue, match, mismatch, delta, pm, pi, minscore, maxperiod,
+            html, trf_path))
+        thread_trf.daemon = True
+        thread_trf.start()
+
+        thread_convert = threading.Thread(target=_convert, args=(qual_queue,
+            trf_out_queue, fastq_out, mask_out))
+        thread_convert.daemon = True
+        thread_convert.start()
+
+        qual_queue.join()
+
 
 def handle_cli():
     parser = argparse.ArgumentParser(description="Remove tandem repeats.")
@@ -234,10 +277,25 @@ def main():
     logger.setLevel(getattr(logging, "DEBUG"))
     logging.basicConfig(format=fmt)
 
+    #qual_queue = Queue.Queue()
+    #qual_queue.put(("@read1","ATCG", "AAAA"))
+
+    #trf_out_queue = Queue.Queue()
+    #trf_out_queue.put((SENTINEL_CONTINUE, "@read1", ["1 2 other stuff"]))
+    #fastq_to_fasta(args.fastq, "fasta", q)
+    #_trf("fasta", q)
+    #print(q.get())
+    #thread_convert = threading.Thread(target=_convert, args=(qual_queue,
+    #    trf_out_queue, "fastq_out", "mask_out"))
+    #thread_convert.daemon = True
+    #thread_convert.start()
+    #_convert(qual_queue, trf_out_queue, "fastq_out", "mask_out")
+    #qual_queue.join()
+    #return
+
     run_tandem(args.fastq, args.output, args.match, args.mismatch, args.delta,
             args.pm, args.pi, args.minscore, args.maxperiod,
             args.no_generate_fastq, args.mask, args.html, args.trf_path)
-    return
 
 
 if __name__ == "__main__":

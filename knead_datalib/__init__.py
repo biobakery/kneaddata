@@ -39,6 +39,16 @@ def mktempfifo(names=("a",)):
         os.rmdir(tmpdir)
 
 
+@contextmanager
+def mkfifo_here(names=("a",), mode=0600):
+    for n in names:
+        os.mkfifo(n, mode)
+    try:
+        yield names
+    finally:
+        map(os.remove, names)
+
+
 def process_return(name, retcode, stdout, stderr):
     if name:
         logging.debug("Finished running %s!" %name)
