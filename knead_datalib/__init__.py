@@ -46,7 +46,8 @@ def mkfifo_here(names=("a",), mode=0600):
     try:
         yield names
     finally:
-        map(os.remove, names)
+        for n in names:
+            os.remove(n)
 
 
 def process_return(name, retcode, stdout, stderr):
