@@ -68,22 +68,22 @@ def bowtie2(index_str, input_fastq, output_clean_fastq,
                             stdout=subprocess.PIPE)
 
 
-def run_trf(in_fastq, out, match=2, mismatch=7, delta=7, pm=80, pi=10,
+def run_tandem(in_fastq, out, match=2, mismatch=7, delta=7, pm=80, pi=10,
         minscore=50, maxperiod=500, generate_fastq=True, mask=False, html=False,
         trf_path="trf"):
     print("tandem.py")
     print(in_fastq)
 
-    trf_cmd = ["python", os.path.join(here, "tandem.py"),
-              in_fastq, out, 
-              "--match", str(match),
-              "--mismatch", str(mismatch),
-              "--delta", str(delta),
-              "--pm", str(pm),
-              "--pi", str(pi),
-              "--minscore", str(minscore),
-              "--maxperiod", str(maxperiod),
-              "--trf-path", trf_path]
+    tandem_cmd = ["python", os.path.join(here, "tandem.py"),
+                  in_fastq, out, 
+                  "--match", str(match),
+                  "--mismatch", str(mismatch),
+                  "--delta", str(delta),
+                  "--pm", str(pm),
+                  "--pi", str(pi),
+                  "--minscore", str(minscore),
+                  "--maxperiod", str(maxperiod),
+                  "--trf-path", trf_path]
 
     if mask:
         trf_cmd += ["--mask"]
@@ -92,8 +92,8 @@ def run_trf(in_fastq, out, match=2, mismatch=7, delta=7, pm=80, pi=10,
     if html:
         trf_cmd += ["--html"]
 
-    logging.debug("Running tandem.py with: %s" %(" ".join(trf_cmd)))
-    return subprocess.Popen(trf_cmd, stdout=subprocess.PIPE,
+    logging.debug("Running tandem.py with: %s" %(" ".join(tandem_cmd)))
+    return subprocess.Popen(tandem_cmd, stdout=subprocess.PIPE,
                             stderr=subprocess.PIPE)
     #return subprocess.Popen(trf_cmd)
 
@@ -133,9 +133,9 @@ def decontaminate_reads(in_fname, index_strs, output_prefix,
                                     bowtie2_path=bowtie2_path)
                     else:
                         assert(index_str == None)
-                        yield run_trf(in_cur, clean_file, match, mismatch,
-                                      delta, pm, pi, minscore, maxperiod,
-                                      generate_fastq, mask, html, trf_path)
+                        yield run_tandem(in_cur, clean_file, match, mismatch,
+                                delta, pm, pi, minscore, maxperiod,
+                                generate_fastq, mask, html, trf_path)
                 else:
                     in_next = in_next or clean_file
                     yield bowtie2(index_str, in_cur, in_next, contam_file,
