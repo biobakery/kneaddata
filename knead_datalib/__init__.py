@@ -1,5 +1,6 @@
 import os
 import sys
+import shlex
 import logging
 import tempfile
 from math import floor
@@ -64,3 +65,8 @@ def parse_positive_int(string):
         raise argparse.ArgumentTypeError("%s is not a positive integer" %string)
     return val
 
+
+def _get_bowtie2_args(bowtie2_args):
+    for arg in map(shlex.split, bowtie2_args):
+        for a in arg:
+            yield a

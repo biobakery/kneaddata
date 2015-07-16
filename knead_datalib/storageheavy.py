@@ -11,7 +11,7 @@ from functools import partial
 
 import tandem
 from . import constants_knead_data as const
-from . import divvy_threads, try_create_dir, mktempfifo, process_return
+from . import divvy_threads, try_create_dir, mktempfifo, process_return, _get_bowtie2_args
 
 def _generate_bowtie2_commands( infile_list, db_prefix_list,
                                 bowtie2_path, output_prefix,
@@ -39,7 +39,7 @@ def _generate_bowtie2_commands( infile_list, db_prefix_list,
                      "--un", output_str + "_clean.fastq"]
             outputs_to_combine = [output_str + "_clean.fastq"]
 
-        cmd += bowtie2_opts
+        cmd += list(_get_bowtie2_args(bowtie2_opts))
         sam_out = os.path.join(tmp_dir, os.path.basename(output_str) + ".sam")
         cmd += [ "-S", sam_out ]
         yield (cmd, outputs_to_combine)

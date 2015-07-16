@@ -6,7 +6,7 @@ import subprocess
 from glob import glob
 from itertools import tee, izip_longest
 
-from . import divvy_threads, mktempfifo, process_return
+from . import divvy_threads, mktempfifo, process_return, _get_bowtie2_args
 
 
 def rmext(name_str, all=False):
@@ -53,13 +53,14 @@ def trimmomatic(fastq_in, fastq_out, filter_args_list, jar_path,
 
 def bowtie2(index_str, input_fastq, output_clean_fastq,
             output_con_fastq, threads, bowtie2_args, bowtie2_path="bowtie2"):
+
     args = [bowtie2_path, 
             "-x", index_str,
             "-U", input_fastq,
             "--un", output_clean_fastq,
             "--al", output_con_fastq,
             "-S", os.devnull,
-            "--threads", str(threads)] + bowtie2_args
+            "--threads", str(threads)] + list(_get_bowtie2_args(bowtie2_args))
     logging.debug("Running bowtie2 with arguments %s", args)
     return subprocess.Popen(args, stderr=subprocess.PIPE,
                             stdout=subprocess.PIPE)
