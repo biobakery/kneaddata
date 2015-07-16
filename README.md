@@ -18,11 +18,12 @@ If you use this software, please cite our paper: (TBA)
 - [Installation](#markdown-header-installation)
 - [Quick Start Guide](#markdown-header-quick-start-guide)
 
-    1. Data Locations
-    2. Indexing
-    3. How to Run
+    1. [Data Locations](#markdown-header-data-locations)
+    2. [Indexing](#markdown-header-indexing)
+    3. [How to Run](#markdown-header-how-to-run)
 
-- Detailed Documentation
+- [Detailed Documentation](#markdown-header-detailed-documentation)
+- [Usage Notes](#markdown-header-usage-notes)
 
 
 ## Introduction
