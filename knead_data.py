@@ -65,7 +65,7 @@ def handle_cli():
         help="Where to save logs")
     group1.add_argument(
             '--version', 
-            action='version', version='kneadData v0.3',
+            action='version', version='kneadData v0.35',
             help = 'Print version and exit')
 
     group2 = parser.add_argument_group("trimmomatic arguments")

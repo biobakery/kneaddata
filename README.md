@@ -1,49 +1,65 @@
-KneadData User Guide v0.3
-========================
+# KneadData User Guide v0.35
 
-Last updated on February 27, 2015.
+Last updated on July 16, 2015.
 
-Authors: Andy Shi and Aleksandar Kostic  
+Authors: Andy Shi, Aleksandar Kostic, Randall Schwager, Lauren McIver, Curtis
+Huttenhower
 Huttenhower Lab, Harvard School of Public Health,  
 Boston, MA
 
 You can access this repository with SSH or with HTTPS.
 
-Table of Contents
------------------
-1. Introduction
-2. Installation
-3. Quick Start Guide
+If you use this software, please cite our paper: (TBA)
+
+
+## Table of Contents
+- [Introduction](#markdown-header-introduction)
+- [Tutorial and Demo](#markdown-header-tutorial-and-demo) 
+- [Installation](#markdown-header-installation)
+- [Quick Start Guide](#markdown-header-quick-start-guide)
 
     1. Data Locations
     2. Indexing
     3. How to Run
 
-4. Detailed Documentation
+- Detailed Documentation
 
-# 1. Introduction
 
-KneadData is a tool designed to perform quality control on metagenomic
-sequencing data, especially data from microbiome experiments. In these
-experiments, samples are typically taken from a host in hopes of learning
-something about the microbial community on the host. However, metagenomic
+## Introduction
+
+KneadData is a tool designed to perform quality control on metagenomic and
+metatranscriptomic sequencing data, especially data from microbiome experiments.
+In these experiments, samples are typically taken from a host in hopes of
+learning something about the microbial community on the host. However,
 sequencing data from such experiments will often contain a high ratio of host to
 bacterial reads. This tool aims to perform principled  *in silico* separation of
 bacterial reads from these "contaminant" reads, be they from the host, from
-bacterial 16S sequences, or other user-defined sources.
+bacterial 16S sequences, or other user-defined sources. Additionally, KneadData
+can be used for other filtering tasks. For example, if one is trying to clean
+data derived from a human sequencing experiment, KneadData can be used to
+separate the human and the non-human reads. 
 
-# 2. Installation
+----------------------------------------------
+
+## Tutorial and Demo
+
+For a brief tutorial and demo, please visit the [KneadData
+homepage](http://huttenhower.org/kneaddata)
+
+----------------------------------------------
+
+## Installation
 
 To download the latest stable release, use one of the links below and extract
 the files.
 
-+ [ZIP](https://bitbucket.org/biobakery/kneaddata/get/v0.3.zip)
-+ [GZ](https://bitbucket.org/biobakery/kneaddata/get/v0.3.tar.gz)
-+ [BZ](https://bitbucket.org/biobakery/kneaddata/get/v0.3.tar.bz2)
+- [ZIP](https://bitbucket.org/biobakery/kneaddata/get/v0.35.zip)
+- [GZ](https://bitbucket.org/biobakery/kneaddata/get/v0.35.tar.gz)
+- [BZ](https://bitbucket.org/biobakery/kneaddata/get/v0.35.tar.bz2)
 
 Or
 
-+ `pip install -e 'hg+https://bitbucket.org/biobakery/kneaddata@master#egg=knead_datalib-dev'`
+- `pip install -e 'hg+https://bitbucket.org/biobakery/kneaddata@master#egg=knead_datalib-dev'`
 
 Currently, KneadData is only supported on Linux and Macs. 
 
@@ -64,13 +80,13 @@ instructions.
 The Bowtie 2 and/or BMTagger programs need to be able to find their executables:
 
 Bowtie2 executable:
-+ `bowtie2`
+- `bowtie2`
 
 BMTagger executables:
-+ `srprism`
-+ `bmfilter`
-+ `extract_fullseq`
-+ `blastn` (included in NCBI blast)
+- `srprism`
+- `bmfilter`
+- `extract_fullseq`
+- `blastn` (included in NCBI blast)
 
 There are three ways to do this:
 
@@ -103,12 +119,14 @@ are similarly accurate, but BMTagger can run faster on larger databases. By
 default, all runs are performed with Bowtie2, but it is possible to use BMTagger
 as well. 
 
-# 3. Quick Start Guide
+----------------------------------------------
 
-### 3.1. Data Locations
+## Quick Start Guide
+
+### Data Locations
 
 KneadData requires reference sequences for the contamination you are trying to
-remove. Let's say you wish to remove reads from a particular "host." Broadly
+remove. Let's say you wish to filter reads from a particular "host." Broadly
 defined, the host can be an organism, or a set of organisms, or just a set of
 sequences. Then, you simply must provide KneadData with a
 [FASTA](http://en.wikipedia.org/wiki/FASTA_format) file containing these
@@ -116,22 +134,30 @@ sequences. Usually, researchers want to remove reads from the human genome, the
 human transcriptome, or ribosomal RNA. You can access some of these FASTA files
 using the resources below:
 
-+ Ribosomal RNA: [Silva](http://www.arb-silva.de/) provides a comprehensive
+- Ribosomal RNA: [Silva](http://www.arb-silva.de/) provides a comprehensive
   database for ribosomal RNA sequences spanning all three domains of life
   (*Bacteria*, *Archaea*, and *Eukarya*). 
 
-+ Human Genome & Transcriptome: Information about the newest assembly of human
+- Human Genome & Transcriptome: Information about the newest assembly of human
   genomic data can be found at the [NCBI project
   page](http://www.ncbi.nlm.nih.gov/projects/genome/assembly/grc/human/). USCS
   provides a convenient
   [website](http://hgdownload.cse.ucsc.edu/downloads.html#human) to download
   this data. 
 
-### 3.2. Generating KneadData Databases
+
+### Generating KneadData Databases
 
 KneadData requires that your reference sequences (FASTA files) be indexed to
 form KneadData databases beforehand. This only needs to be done once per
 reference sequence. 
+
+For certain common databases, we provide indexed files. If you use these, you
+can skip the steps below. 
+
+Links to common databases:
+
+- TBD
 
 #### Bowtie 2
 
@@ -183,7 +209,7 @@ All of the required KneadData database files will have file names prefixed by
 `Homo_sapiens_db` and have various file extensions.
 
 
-### 3.3. How to Run
+### How to Run
 
 After generating your database file, we can start to remove contaminant reads.
 As input, KneadData requires FASTQ files. It supports both single end and paired
@@ -398,73 +424,116 @@ To run with BMTagger, execute
 
     ./knead_data.py -1 seq1.fastq -2 seq2.fastq -db bact_rrna_db human_rna_db -t ~/bin/Trimmomatic/trimmomatic-0.32.jar --bmtagger --bmtagger-path ~/bin/bmtagger.sh -o seq_contams
 
+---------------------------------
 
-# 4. Detailed Documentation
+## Detailed Documentation
 
 This documentation can be accessed via `./knead_data.py -h`.
 
-    usage: knead_data.py [-h] -1 INFILE1 [-2 INFILE2] [-o OUTPUT_PREFIX]
-                        [-db REFERENCE_DB [REFERENCE_DB ...]] [-t TRIM_PATH]
-                        [--bowtie2-path BOWTIE2_PATH] [--trimlen TRIMLEN]
-                        [-m MAX_MEM] [-a TRIM_ARGS] [--bowtie2-args BOWTIE2_ARGS]
-                        [--nprocs NPROCS] [--bmtagger] [--extract]
-                        [--bmtagger-path BMTAGGER_PATH] [-d] [-B]
+```
+#!text
+usage: knead_data.py [-h] -1 INFILE1 [-2 INFILE2] -db REFERENCE_DB
+                     [-o OUTPUT_PREFIX] [-D OUTPUT_DIR] [--threads THREADS]
+                     [-s {memory,storage}] [-l LOGGING] [--logfile LOGFILE]
+                     [--version] [-t TRIM_PATH] [--trimlen TRIMLEN]
+                     [-m MAX_MEM] [-a TRIM_ARGS] [--bowtie2-path BOWTIE2_PATH]
+                     [--bowtie2-args BOWTIE2_ARGS] [--bmtagger] [--extract]
+                     [--bmtagger-path BMTAGGER_PATH] [--trf]
+                     [--trf-path TRF_PATH] [--match MATCH]
+                     [--mismatch MISMATCH] [--delta DELTA] [--pm PM] [--pi PI]
+                     [--minscore MINSCORE] [--maxperiod MAXPERIOD]
+                     [--no-generate-fastq] [--mask] [--html]
 
-    optional arguments:
-    -h, --help            show this help message and exit
-    -1 INFILE1, --infile1 INFILE1
-                            input FASTQ file
-    -2 INFILE2, --infile2 INFILE2
-                            input FASTQ file mate
-    -o OUTPUT_PREFIX, --output-prefix OUTPUT_PREFIX
-                            prefix for all output files
-    -db REFERENCE_DB [REFERENCE_DB ...], --reference-db REFERENCE_DB [REFERENCE_DB ...]
-                            prefix for reference databases used for either Bowtie2
-                            or BMTagger
-    -t TRIM_PATH, --trim-path TRIM_PATH
-                            path to Trimmomatic .jar executable
-    --bowtie2-path BOWTIE2_PATH
-                            path to bowtie2 if not found on $PATH
-    --trimlen TRIMLEN     minimum length for a trimmed read in Trimmomatic
-    -m MAX_MEM, --max-mem MAX_MEM
-                            Maximum amount of memory that will be used by
-                            Trimmomatic, as a string, ie 500m or 8g
-    -a TRIM_ARGS, --trim-args TRIM_ARGS
-                            additional arguments for Trimmomatic
-    --bowtie2-args BOWTIE2_ARGS
-                            Additional arguments for Bowtie 2
-    --nprocs NPROCS       Maximum number of processes to run
-    --bmtagger            If set, use BMTagger to identify contaminant reads
-    --extract             Only has an effect if --bmtagger is set. If this is
-                            set, knead_data outputs cleaned FASTQs, without
-                            contaminant reads. Else, output a list or lists of
-                            contaminant reads.
-    --bmtagger-path BMTAGGER_PATH
-                            path to BMTagger executable if not found in $PATH
-    -d, --debug           If set, temporary files are not removed
-    -B, --biopython       If set, use biopython instead of trimmomatic to trim
+optional arguments:
+  -h, --help            show this help message and exit
+
+global options:
+  -1 INFILE1, --infile1 INFILE1
+                        input FASTQ file
+  -2 INFILE2, --infile2 INFILE2
+                        input FASTQ file mate
+  -db REFERENCE_DB, --reference-db REFERENCE_DB
+                        prefix for reference databases used for either Bowtie2
+                        or BMTagger
+  -o OUTPUT_PREFIX, --output-prefix OUTPUT_PREFIX
+                        prefix for all output files
+  -D OUTPUT_DIR, --output-dir OUTPUT_DIR
+                        where to put all output files
+  --threads THREADS     Maximum number of processes to run. Default uses all
+                        but one available CPUs
+  -s {memory,storage}, --strategy {memory,storage}
+                        Define operating strategy: 'storage' for IO-heavy or
+                        'memory' for memory-heavy
+  -l LOGGING, --logging LOGGING
+                        Logging verbosity, options are debug, info, warning,
+                        and critical. If set to debug, temporary files are not
+                        removed
+  --logfile LOGFILE     Where to save logs
+  --version             Print version and exit
+
+trimmomatic arguments:
+  -t TRIM_PATH, --trim-path TRIM_PATH
+                        path to Trimmomatic .jar executable
+  --trimlen TRIMLEN     minimum length for a trimmed read in Trimmomatic
+  -m MAX_MEM, --max-mem MAX_MEM
+                        Maximum amount of memory that will be used by
+                        Trimmomatic, as a string, ie 500m or 8g
+  -a TRIM_ARGS, --trim-args TRIM_ARGS
+                        Additional arguments for Trimmomatic, default:
+                        SLIDINGWINDOW:4:20 MINLEN:60
+
+bowtie2 arguments:
+  --bowtie2-path BOWTIE2_PATH
+                        path to bowtie2 if not found on $PATH
+  --bowtie2-args BOWTIE2_ARGS
+                        Additional arguments for Bowtie 2, default: --very-
+                        sensitive
+
+bmtagger arguments:
+  --bmtagger            If set, use BMTagger to identify contaminant reads
+  --extract             Only has an effect if --bmtagger is set. If this is
+                        set, knead_data outputs cleaned FASTQs, without
+                        contaminant reads. Else, output a list or lists of
+                        contaminant reads.
+  --bmtagger-path BMTAGGER_PATH
+                        path to BMTagger executable if not found in $PATH
+
+trf arguments:
+  --trf                 If set, use TRF to remove and/or mask tandem repeats
+  --trf-path TRF_PATH   Path to TRF executable if not found in $PATH
+  --match MATCH         TRF matching weight. Default: 2
+  --mismatch MISMATCH   TRF mismatching penalty. Default: 7
+  --delta DELTA         TRF indel penalty. Default: 7
+  --pm PM               TRF match probability (whole number). Default: 80
+  --pi PI               TRF indel probability (whole number). Default: 10
+  --minscore MINSCORE   TRF minimum alignment score to report. Default: 50
+  --maxperiod MAXPERIOD
+                        TRF maximum period size to report. Default: 500
+  --no-generate-fastq   If switched on, don't generate fastq output for trf
+  --mask                If switched on, generate mask file for trf output
+  --html                If switched on, generate html file for trf output
+```
+
+----------------------------------
 
 ## Usage Notes
 
-### Trimmomatic Additional Arguments
-
-In our testing, we noticed that more aggressive settings for quality trimming
-can help remove more unwanted sequences, especially those that are low in
-quality. To do this, specify the `LEADING:3` and `TRAILING:3` arguments for
-Trimmomatic. See below for more details.
-
-### Additional Arguments
+### Specifying Additional Arguments
 
 If you want to specify additional arguments for Bowtie2 using the
-`--bowtie2-args` flag, you will need to enclose them in quotes, and add a space
-before the first argument. For example:
+`--bowtie2-args` flag, you will need to use the equals sign. For each additional
+argument, you should specify the `--bowtie2-args` flag. 
 
-`./knead_data.py ... --bowtie2-args " --very-fast -p 2"`
+For example:
 
-Similarly, to specify additional arguments for Trimmomatic, enclosing quotes
-should also be used:
+`./knead_data.py ... --bowtie2-args=--very-fast --bowtie2-args=-p 2`
 
-`./knead_data.py ... --trim-args "LEADING:3 TRAILING:3"`
+A similar approach is used to specify additional arguments for Trimmomatic:
+
+`./knead_data.py ... --trim-args "LEADING:3" --trim-args "TRAILING:3"`
+
+*NOTE*: Manually specifying additional arguments will completely override the
+defaults. 
 
 ### Memory
 
