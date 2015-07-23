@@ -54,9 +54,9 @@ homepage](http://huttenhower.org/kneaddata)
 To download the latest stable release, use one of the links below and extract
 the files.
 
-- [ZIP](https://bitbucket.org/biobakery/kneaddata/get/v0.35.zip)
-- [GZ](https://bitbucket.org/biobakery/kneaddata/get/v0.35.tar.gz)
-- [BZ](https://bitbucket.org/biobakery/kneaddata/get/v0.35.tar.bz2)
+- [ZIP](https://bitbucket.org/biobakery/kneaddata/get/v0.4.zip)
+- [GZ](https://bitbucket.org/biobakery/kneaddata/get/v0.4.tar.gz)
+- [BZ](https://bitbucket.org/biobakery/kneaddata/get/v0.4.tar.bz2)
 
 Or
 
