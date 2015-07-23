@@ -1,4 +1,4 @@
-# KneadData User Guide v0.35
+# KneadData User Guide v0.4
 
 Last updated on July 16, 2015.
 
@@ -514,6 +514,10 @@ trf arguments:
   --mask                If switched on, generate mask file for trf output
   --html                If switched on, generate html file for trf output
 ```
+
+### Tandem Repeat Detection and Removal
+
+TBD
 
 ----------------------------------
 
