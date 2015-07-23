@@ -11,7 +11,7 @@ from functools import partial
 
 import tandem
 from . import constants_knead_data as const
-from . import divvy_threads, try_create_dir, mktempfifo, process_return
+from . import divvy_threads, try_create_dir, mktempfifo, process_return, _get_bowtie2_args
 
 def _generate_bowtie2_commands( infile_list, db_prefix_list,
                                 bowtie2_path, output_prefix,
@@ -39,7 +39,7 @@ def _generate_bowtie2_commands( infile_list, db_prefix_list,
                      "--un", output_str + "_clean.fastq"]
             outputs_to_combine = [output_str + "_clean.fastq"]
 
-        cmd += bowtie2_opts
+        cmd += list(_get_bowtie2_args(bowtie2_opts))
         sam_out = os.path.join(tmp_dir, os.path.basename(output_str) + ".sam")
         cmd += [ "-S", sam_out ]
         yield (cmd, outputs_to_combine)
@@ -815,7 +815,7 @@ def run_trf(fastqs, outs, match=2, mismatch=7, delta=7, pm=80, pi=10, minscore=5
             try:
                 for (fasta, trf_out_fp) in zip(fasta_outs, trf_out_fps):
                     trf_proc = tandem._trf(fasta, trf_out_fp, match, mismatch, delta, pm,
-                            pi, minscore, maxperiod, dat, mask, html, trf_path)
+                            pi, minscore, maxperiod, mask, html, trf_path)
                     trf_names.append("trf on %s" %fasta)
                     trf_procs.append(trf_proc)
                 for (name, proc) in zip(itertools.chain(fastq_to_fasta_names,

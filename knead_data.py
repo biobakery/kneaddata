@@ -65,7 +65,7 @@ def handle_cli():
         help="Where to save logs")
     group1.add_argument(
             '--version', 
-            action='version', version='kneadData v0.3',
+            action='version', version='kneadData v0.35',
             help = 'Print version and exit')
 
     group2 = parser.add_argument_group("trimmomatic arguments")
@@ -128,43 +128,43 @@ def handle_cli():
     group5.add_argument(
             "--match", type=parse_positive_int,
             default=2, 
-            help="TRF matching weight")
+            help="TRF matching weight. Default: 2")
     group5.add_argument(
             "--mismatch", type=parse_positive_int,
             default=7, 
-            help="TRF mismatching penalty")
+            help="TRF mismatching penalty. Default: 7")
     group5.add_argument(
             "--delta", type=parse_positive_int,
             default=7, 
-            help="TRF indel penalty")
+            help="TRF indel penalty. Default: 7")
     group5.add_argument(
             "--pm", type=parse_positive_int,
             default=80,
-            help="TRF match probability (whole number)")
+            help="TRF match probability (whole number). Default: 80")
     group5.add_argument(
             "--pi", type=parse_positive_int,
             default=10,
-            help="TRF indel probability (whole number)")
+            help="TRF indel probability (whole number). Default: 10")
     group5.add_argument(
             "--minscore", type=parse_positive_int,
             default=50, 
-            help="TRF minimum alignment score to report")
+            help="TRF minimum alignment score to report. Default: 50")
     group5.add_argument(
             "--maxperiod", type=parse_positive_int,
             default=500, 
-            help="TRF maximum period size to report")
+            help="TRF maximum period size to report. Default: 500")
     group5.add_argument(
             "--no-generate-fastq",
             default=True, action="store_false", 
-            help="If switched on, don't generate fastq")
+            help="If switched on, don't generate fastq output for trf")
     group5.add_argument(
             "--mask",
             default=False, action="store_true",
-            help="Generate mask file")
+            help="If switched on, generate mask file for trf output")
     group5.add_argument(
             "--html",
             default=False, action="store_true",
-            help="Generate html file")
+            help="If switched on, generate html file for trf output")
 
     args = parser.parse_args()
     try_create_dir(args.output_dir)

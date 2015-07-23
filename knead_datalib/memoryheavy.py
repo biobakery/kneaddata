@@ -6,8 +6,7 @@ import subprocess
 from glob import glob
 from itertools import tee, izip_longest
 
-from . import divvy_threads, mktempfifo, process_return
-here = os.path.dirname(os.path.realpath(__file__))
+from . import divvy_threads, mktempfifo, process_return, _get_bowtie2_args
 
 
 def rmext(name_str, all=False):
@@ -42,7 +41,6 @@ def sliding_window(it, l, fill=None):
 
 def trimmomatic(fastq_in, fastq_out, filter_args_list, jar_path,
                 maxmem="500m", threads=1):
-    print("TRIMMOMATIC")
     args = ["java", "-Xmx"+maxmem, "-d64",
             "-jar", jar_path,
             "SE", "-threads", str(threads),
@@ -55,59 +53,25 @@ def trimmomatic(fastq_in, fastq_out, filter_args_list, jar_path,
 
 def bowtie2(index_str, input_fastq, output_clean_fastq,
             output_con_fastq, threads, bowtie2_args, bowtie2_path="bowtie2"):
-    print("BOWTIE2")
+
     args = [bowtie2_path, 
             "-x", index_str,
             "-U", input_fastq,
             "--un", output_clean_fastq,
             "--al", output_con_fastq,
             "-S", os.devnull,
-            "--threads", str(threads)] + bowtie2_args
+            "--threads", str(threads)] + list(_get_bowtie2_args(bowtie2_args))
     logging.debug("Running bowtie2 with arguments %s", args)
     return subprocess.Popen(args, stderr=subprocess.PIPE,
                             stdout=subprocess.PIPE)
 
 
-def run_tandem(in_fastq, out, match=2, mismatch=7, delta=7, pm=80, pi=10,
-        minscore=50, maxperiod=500, generate_fastq=True, mask=False, html=False,
-        trf_path="trf"):
-    print("tandem.py")
-    print(in_fastq)
-
-    tandem_cmd = ["python", os.path.join(here, "tandem.py"),
-                  in_fastq, out, 
-                  "--match", str(match),
-                  "--mismatch", str(mismatch),
-                  "--delta", str(delta),
-                  "--pm", str(pm),
-                  "--pi", str(pi),
-                  "--minscore", str(minscore),
-                  "--maxperiod", str(maxperiod),
-                  "--trf-path", trf_path]
-
-    if mask:
-        trf_cmd += ["--mask"]
-    if not generate_fastq:
-        trf_cmd += ["--no-generate-fastq"]
-    if html:
-        trf_cmd += ["--html"]
-
-    logging.debug("Running tandem.py with: %s" %(" ".join(tandem_cmd)))
-    return subprocess.Popen(tandem_cmd, stdout=subprocess.PIPE,
-                            stderr=subprocess.PIPE)
-    #return subprocess.Popen(trf_cmd)
-
 
 def decontaminate_reads(in_fname, index_strs, output_prefix,
                         output_dir, filter_args_list, filter_jar_path,
                         trim_threads, bowtie_threads, bowtie2_args, 
-                        bowtie2_path, trf, match, mismatch, delta, pm, pi,
-                        minscore, maxperiod, generate_fastq, mask, html,
-                        trf_path):
-    
+                        bowtie2_path="bowtie2"):
     tmpfilebases = ['filter']+map(os.path.basename, index_strs[:-1])
-    if trf:
-        tmpfilebases += [os.path.basename(index_strs[-1])]
 
     with mktempfifo(tmpfilebases) as filenames:
         clean_file = os.path.join(output_dir, output_prefix+".fastq")
@@ -115,42 +79,19 @@ def decontaminate_reads(in_fname, index_strs, output_prefix,
                                   filter_args_list, filter_jar_path,
                                   threads=trim_threads)
         staggered = sliding_window(filenames, 2)
-        #print(list(staggered))
-        #print(list(index_strs))
-        #sys.exit(1)
 
         def _procs():
-            for (in_cur, in_next), index_str in izip_longest(staggered,
-                                                             index_strs):
-                if index_str != None:
-                    contam_name = "{}_{}_contam.fastq".format(
-                        output_prefix, os.path.basename(index_str))
-                    contam_file = os.path.join(output_dir, contam_name)
-                if trf:
-                    if in_next != None:
-                        yield bowtie2(index_str, in_cur, in_next, contam_file,
-                                    bowtie_threads, bowtie2_args, 
-                                    bowtie2_path=bowtie2_path)
-                    else:
-                        assert(index_str == None)
-                        yield run_tandem(in_cur, clean_file, match, mismatch,
-                                delta, pm, pi, minscore, maxperiod,
-                                generate_fastq, mask, html, trf_path)
-                else:
-                    in_next = in_next or clean_file
-                    yield bowtie2(index_str, in_cur, in_next, contam_file,
-                                bowtie_threads, bowtie2_args, 
-                                bowtie2_path=bowtie2_path)
-
+            for (in_cur, in_next), index_str in zip(staggered, index_strs):
+                contam_name = "{}_{}_contam.fastq".format(
+                    output_prefix, os.path.basename(index_str))
+                contam_file = os.path.join(output_dir, contam_name)
+                in_next = in_next or clean_file
+                yield bowtie2(index_str, in_cur, in_next, contam_file,
+                              bowtie_threads, bowtie2_args, 
+                              bowtie2_path=bowtie2_path)
 
         procs = [filter_proc]+list(_procs())
-        names = ["trimmomatic"] + ["bowtie2 (%s)"%(idx) for idx in index_strs]
-
-        if trf:
-            names += ["tandem.py"]
-
-        assert(len(procs) == len(names))
-
+        names = ["trimmomatic"] + [ "bowtie2 (%s)"%(idx) for idx in index_strs ]
         for proc, name in zip(procs, names):
             stdout, stderr = proc.communicate()
             retcode = proc.returncode
@@ -188,12 +129,7 @@ def memory_heavy(args):
                         args.output_prefix, args.output_dir,
                         args.trim_args, args.trim_path, trim_threads,
                         bowtie_threads, bowtie2_args=args.bowtie2_args, 
-                        bowtie2_path=args.bowtie2_path,
-                        trf=args.trf, match=args.match, mismatch=args.mismatch,
-                        delta=args.delta, pm=args.pm, pi=args.pi,
-                        minscore=args.minscore, maxperiod=args.maxperiod,
-                        generate_fastq=args.no_generate_fastq, mask=args.mask,
-                        html=args.html, trf_path=args.trf_path)
+                        bowtie2_path=args.bowtie2_path)
     
 
     
