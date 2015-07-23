@@ -90,7 +90,6 @@ def run_tandem(in_fastq, out, match=2, mismatch=7, delta=7, pm=80, pi=10,
     logging.debug("Running tandem.py with: %s" %(" ".join(tandem_cmd)))
     return subprocess.Popen(tandem_cmd, stdout=subprocess.PIPE,
                             stderr=subprocess.PIPE)
-    #return subprocess.Popen(trf_cmd)
 
 
 def decontaminate_reads(in_fname, index_strs, output_prefix,
