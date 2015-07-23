@@ -123,15 +123,15 @@ def _convert(qual_queue, trf_out_queue, fastq_out, mask_out):
             new_trf_header = trf_header
             new_trf_output = trf_output
             if (fastq_out_fp != None):
-                print("WRITING TO FASTQ")
-                print(fastq_seq)
+                #print("WRITING TO FASTQ")
+                #print(fastq_seq)
                 _write_fastq(fastq_header, fastq_seq, fastq_qual)
         if mask_out_fp != None:
-            print("WRITING TO MASK")
-            print(fastq_header)
-            print(trf_header)
-            print(fastq_seq)
-            print(trf_output)
+            #print("WRITING TO MASK")
+            #print(fastq_header)
+            #print(trf_header)
+            #print(fastq_seq)
+            #print(trf_output)
             _write_masked(fastq_header, fastq_seq, trf_output, fastq_qual)
 
         return((new_trf_header, new_trf_output))
@@ -150,7 +150,7 @@ def _convert(qual_queue, trf_out_queue, fastq_out, mask_out):
             masked_seq = (masked_seq[:lower] + ('N' * len_rep) +
                     masked_seq[(upper+1):])
 
-        print(masked_seq)
+        #print(masked_seq)
         mask_out_fp.write(fastq_header + "\n")
         mask_out_fp.write(masked_seq + "\n")
         mask_out_fp.write("+\n")
@@ -170,10 +170,10 @@ def _convert(qual_queue, trf_out_queue, fastq_out, mask_out):
 
     while True:
         fastq_sentinel, fastq_header, fastq_seq, fastq_qual = qual_queue.get()
-        print(fastq_header, fastq_seq, fastq_qual)
+        #print(fastq_header, fastq_seq, fastq_qual)
         if fastq_sentinel == SENTINEL_DONE:
             qual_queue.task_done()
-            print("BREAKING")
+            #print("BREAKING")
             break
         if (trf_header == None) and (len(trf_output) == 0):
             # try to get more TRF output
@@ -198,14 +198,14 @@ def _convert(qual_queue, trf_out_queue, fastq_out, mask_out):
         if trf_header == None:
             trf_out_queue.task_done()
 
-    print("TRYING TO CLOSE FDS")
+    #print("TRYING TO CLOSE FDS")
     for fp in [fastq_out_fp, mask_out_fp]:
-        print(fp)
+        #print(fp)
         if fp != None:
-            print("CLOSING " + str(fp))
+            #print("CLOSING " + str(fp))
             fp.close()
-            print("CLOSED " + str(fp))
-    print("TRYING TO RETURN")
+            #print("CLOSED " + str(fp))
+    #print("TRYING TO RETURN")
     return
 
 
@@ -228,7 +228,7 @@ def run_tandem(fastq, output, match=2, mismatch=7, delta=7, pm=80, pi=10,
             mask_out = output + ".mask"
 
     with mkfifo_here((fasta_fname, )) as filenames:
-        print(filenames)
+        #print(filenames)
         #qual_queue = multiprocessing.JoinableQueue()
         #trf_out_queue = multiprocessing.JoinableQueue()
         qual_queue = Queue.Queue()
@@ -258,9 +258,9 @@ def run_tandem(fastq, output, match=2, mismatch=7, delta=7, pm=80, pi=10,
 
         _convert(qual_queue, trf_out_queue, fastq_out, mask_out)
 
-        print("WAITING FOR qual_queue")
+        #print("WAITING FOR qual_queue")
         qual_queue.join()
-        print("WAITING FOR trf_out_queue")
+        #print("WAITING FOR trf_out_queue")
         trf_out_queue.join()
 
 
