@@ -123,21 +123,19 @@ def _convert(qual_queue, trf_out_queue, fastq_out, mask_out):
             new_trf_header = trf_header
             new_trf_output = trf_output
             if (fastq_out_fp != None):
-                logging.debug("WRITING TO FASTQ")
-                logging.debug(fastq_seq)
-                _write_fastq(fastq_header, fastq_seq, fastq_qual)
-        if mask_out_fp != None:
-            logging.debug("WRITING TO MASK")
-            logging.debug(fastq_header)
-            logging.debug(trf_header)
-            logging.debug(fastq_seq)
-            logging.debug(trf_output)
+                _write_fastq(fastq_out_fp, fastq_header, fastq_seq, fastq_qual)
+            if (mask_out_fp != None):
+                _write_fastq(mask_out_fp, fastq_header, fastq_seq, fastq_qual)
+        elif mask_out_fp != None:
             _write_masked(fastq_header, fastq_seq, trf_output, fastq_qual)
+        else:
+            print("SEQUENCE NOT MATCH")
 
         return((new_trf_header, new_trf_output))
 
     def _write_masked(fastq_header, fastq_seq, trf_output, fastq_qual):
         masked_seq = fastq_seq
+        print(trf_output)
         for out_line in trf_output:
             # use TRF's first two outputs to tell where the beginning and end of
             # the tandem repeated section is. TRF uses 1-indexing, so we must
@@ -155,14 +153,12 @@ def _convert(qual_queue, trf_out_queue, fastq_out, mask_out):
         mask_out_fp.write(masked_seq + "\n")
         mask_out_fp.write("+\n")
         mask_out_fp.write(fastq_qual + "\n")
-        #mask_out_fp.flush()
 
-    def _write_fastq(fastq_header, fastq_seq, fastq_qual):
-        fastq_out_fp.write(fastq_header + "\n")
-        fastq_out_fp.write(fastq_seq + "\n")
-        fastq_out_fp.write("+\n")
-        fastq_out_fp.write(fastq_qual + "\n")
-        #fastq_out_fp.flush()
+    def _write_fastq(fastq_fp, fastq_header, fastq_seq, fastq_qual):
+        fastq_fp.write(fastq_header + "\n")
+        fastq_fp.write(fastq_seq + "\n")
+        fastq_fp.write("+\n")
+        fastq_fp.write(fastq_qual + "\n")
 
     is_more = True
     trf_header = None
