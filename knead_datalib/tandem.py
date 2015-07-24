@@ -123,15 +123,15 @@ def _convert(qual_queue, trf_out_queue, fastq_out, mask_out):
             new_trf_header = trf_header
             new_trf_output = trf_output
             if (fastq_out_fp != None):
-                #print("WRITING TO FASTQ")
-                #print(fastq_seq)
+                logging.debug("WRITING TO FASTQ")
+                logging.debug(fastq_seq)
                 _write_fastq(fastq_header, fastq_seq, fastq_qual)
         if mask_out_fp != None:
-            #print("WRITING TO MASK")
-            #print(fastq_header)
-            #print(trf_header)
-            #print(fastq_seq)
-            #print(trf_output)
+            logging.debug("WRITING TO MASK")
+            logging.debug(fastq_header)
+            logging.debug(trf_header)
+            logging.debug(fastq_seq)
+            logging.debug(trf_output)
             _write_masked(fastq_header, fastq_seq, trf_output, fastq_qual)
 
         return((new_trf_header, new_trf_output))
@@ -150,7 +150,7 @@ def _convert(qual_queue, trf_out_queue, fastq_out, mask_out):
             masked_seq = (masked_seq[:lower] + ('N' * len_rep) +
                     masked_seq[(upper+1):])
 
-        #print(masked_seq)
+        logging.debug(masked_seq)
         mask_out_fp.write(fastq_header + "\n")
         mask_out_fp.write(masked_seq + "\n")
         mask_out_fp.write("+\n")
@@ -170,10 +170,9 @@ def _convert(qual_queue, trf_out_queue, fastq_out, mask_out):
 
     while True:
         fastq_sentinel, fastq_header, fastq_seq, fastq_qual = qual_queue.get()
-        #print(fastq_header, fastq_seq, fastq_qual)
+        logging.debug(str((fastq_header, fastq_seq, fastq_qual)))
         if fastq_sentinel == SENTINEL_DONE:
-            qual_queue.task_done()
-            #print("BREAKING")
+            logging.debug("BREAKING")
             break
         if (trf_header == None) and (len(trf_output) == 0):
             # try to get more TRF output
@@ -189,23 +188,19 @@ def _convert(qual_queue, trf_out_queue, fastq_out, mask_out):
                         trf_header, fastq_seq, trf_output, fastq_qual)
                 assert(trf_header == None)
                 assert(trf_output == [])
-                qual_queue.task_done()
                 continue
         # figure out what to write and update trf_header and trf_output
         (trf_header, trf_output) = _write_and_set_next(fastq_header, trf_header,
                 fastq_seq, trf_output, fastq_qual)
-        qual_queue.task_done()
-        if trf_header == None:
-            trf_out_queue.task_done()
 
-    #print("TRYING TO CLOSE FDS")
+    logging.debug("TRYING TO CLOSE FDS")
     for fp in [fastq_out_fp, mask_out_fp]:
-        #print(fp)
+        logging.debug(fp)
         if fp != None:
-            #print("CLOSING " + str(fp))
+            logging.debug("CLOSING " + str(fp))
             fp.close()
-            #print("CLOSED " + str(fp))
-    #print("TRYING TO RETURN")
+            logging.debug("CLOSED " + str(fp))
+    logging.debug("TRYING TO RETURN")
     return
 
 
@@ -228,7 +223,7 @@ def run_tandem(fastq, output, match=2, mismatch=7, delta=7, pm=80, pi=10,
             mask_out = output + ".mask"
 
     with mkfifo_here((fasta_fname, )) as filenames:
-        #print(filenames)
+        #logging.debug(filenames)
         #qual_queue = multiprocessing.JoinableQueue()
         #trf_out_queue = multiprocessing.JoinableQueue()
         qual_queue = Queue.Queue()
@@ -257,11 +252,6 @@ def run_tandem(fastq, output, match=2, mismatch=7, delta=7, pm=80, pi=10,
         #thread_convert.start()
 
         _convert(qual_queue, trf_out_queue, fastq_out, mask_out)
-
-        #print("WAITING FOR qual_queue")
-        qual_queue.join()
-        #print("WAITING FOR trf_out_queue")
-        trf_out_queue.join()
 
 
 def handle_cli():
@@ -327,26 +317,10 @@ def main():
     args = handle_cli()
 
     # TEMP LOGGING
-    fmt = "%(asctime)s %(levelname)s: %(message)s"
-    logger = logging.getLogger()
-    logger.setLevel(getattr(logging, "DEBUG"))
-    logging.basicConfig(format=fmt)
-
-    #qual_queue = Queue.Queue()
-    #qual_queue.put(("@read1","ATCG", "AAAA"))
-
-    #trf_out_queue = Queue.Queue()
-    #trf_out_queue.put((SENTINEL_CONTINUE, "@read1", ["1 2 other stuff"]))
-    #fastq_to_fasta(args.fastq, "fasta", q)
-    #_trf("fasta", q)
-    #print(q.get())
-    #thread_convert = threading.Thread(target=_convert, args=(qual_queue,
-    #    trf_out_queue, "fastq_out", "mask_out"))
-    #thread_convert.daemon = True
-    #thread_convert.start()
-    #_convert(qual_queue, trf_out_queue, "fastq_out", "mask_out")
-    #qual_queue.join()
-    #return
+    #fmt = "%(asctime)s %(levelname)s: %(message)s"
+    #logger = logging.getLogger()
+    #logger.setLevel(getattr(logging, "DEBUG"))
+    #logging.basicConfig(format=fmt)
 
     run_tandem(args.fastq, args.output, args.match, args.mismatch, args.delta,
             args.pm, args.pi, args.minscore, args.maxperiod,
