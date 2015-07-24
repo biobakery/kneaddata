@@ -322,7 +322,8 @@ def intersect_fastq(lstrFiles, out_file):
     '''
     # optimize for the common case, where we are intersecting 1 file
     if len(lstrFiles) == 1:
-        shutil.copy(lstrFiles[0], out_file)
+        #shutil.copy(lstrFiles[0], out_file)
+        os.rename(lstrFiles[0], out_file)
         return
 
     counter = collections.Counter()
@@ -360,7 +361,8 @@ def union_outfiles(lstrFiles, out_file):
 
     # optimize for the common case, where we are unioning 1 file
     if len(lstrFiles) == 1:
-        shutil.copy(lstrFiles[0], out_file)
+        #shutil.copy(lstrFiles[0], out_file)
+        os.rename(lstrFiles[0], out_file)
         return
 
     counter = collections.Counter()
@@ -413,7 +415,7 @@ def combine_tag(llstrFiles, out_prefix):
         single_end = False
 
     # Check if it was .fastq or not
-    # TODO: Instead of this method, try passing in another parameter? 
+    # Instead of this method, try passing in another parameter? 
     fIsFastq = check_fastq(fnames1[0])
 
     output_files = []
@@ -449,10 +451,13 @@ def combine_tag(llstrFiles, out_prefix):
 
     # remove output files from bowtie2/bmtagger if debug mode is not set
     if not logging.getLogger().isEnabledFor(logging.DEBUG):
-        for group in llstrFiles:
-            for filename in group:
-                logging.info("Removing temporary file %s" %filename)
-                os.remove(filename)
+        for group in [fnames1, fnames2]:
+            if len(group) > 1:
+                # if len(group) == 1, we renamed the files in intersect and
+                # union
+                for filename in group:
+                    logging.info("Removing temporary file %s" %filename)
+                    os.remove(filename)
     return output_files
 
 def checkfile(fname, ftype="file", fail_hard=False):
@@ -877,8 +882,9 @@ def storage_heavy(args):
                     html = args.html, 
                     trf_path = args.trf_path,
                     n_procs = bowtie_threads)
-            for c_out in c_outs:
-                os.remove(c_out)
+            if not debug:
+                for c_out in c_outs:
+                    os.remove(c_out)
 
     # check that everything returned correctly
     # gather non-zero return codes
