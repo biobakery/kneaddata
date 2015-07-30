@@ -250,7 +250,7 @@ def tag(infile_list, db_prefix_list, temp_dir, prefix,
     logging.debug(bmt_args)
 
     if not bmt_args: # no databases specified
-        return ([], [])
+        return ([], [], [])
 
     # similar to what we did for Bowtie2
     # Poll to see if we can run more BMTagger instances. 
@@ -850,7 +850,7 @@ def storage_heavy(args):
                                               temp_dir       = tempdir,
                                               prefix         = prefix,
                                               bmtagger_path  = args.bmtagger_path,
-                                              n_procs        = args.threads,
+                                              n_procs        = bowtie_threads,
                                               remove         = args.extract,
                                               debug          = debug)
         else:
