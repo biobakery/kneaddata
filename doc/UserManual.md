@@ -45,7 +45,7 @@ separate the human and the non-human reads.
 ## Tutorial and Demo
 
 For a brief tutorial and demo, please visit the [KneadData
-homepage](http://huttenhower.org/kneaddata)
+homepage](http://huttenhower.sph.harvard.edu/kneaddata)
 
 ----------------------------------------------
 
