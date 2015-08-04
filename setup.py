@@ -16,6 +16,10 @@ setup(
     entry_points = {
         "distutils.commands": [
             "trimmomatic = knead_datalib.util:DownloadTrimmomaticCommand"
+        ],
+        "console_scripts": [
+            "kneaddata = knead_data:main",
+            "kneaddata_database = download_db:main"
         ]
     }
 )

@@ -2,15 +2,16 @@ import os
 import re
 import sys
 import time
-import shlex
 import shutil
 import logging
 import itertools
 import subprocess
 import collections
+from functools import partial
 
 from . import constants_knead_data as const
-from . import divvy_threads, try_create_dir
+from . import divvy_threads, try_create_dir, mktempfifo, process_return, _get_bowtie2_args
+import memoryheavy
 
 def _generate_bowtie2_commands( infile_list, db_prefix_list,
                                 bowtie2_path, output_prefix,
@@ -38,7 +39,7 @@ def _generate_bowtie2_commands( infile_list, db_prefix_list,
                      "--un", output_str + "_clean.fastq"]
             outputs_to_combine = [output_str + "_clean.fastq"]
 
-        cmd += bowtie2_opts
+        cmd += list(_get_bowtie2_args(bowtie2_opts))
         sam_out = os.path.join(tmp_dir, os.path.basename(output_str) + ".sam")
         cmd += [ "-S", sam_out ]
         yield (cmd, outputs_to_combine)
@@ -71,7 +72,7 @@ def _poll_workers(popen_list):
 
 
 def align(infile_list, db_prefix_list, output_prefix, tmp_dir,
-          bowtie2_path=None, n_procs=None, bowtie2_opts=dict()):
+          bowtie2_path=None, n_procs=None, bowtie2_opts=list()):
 
     """Align a single-end sequence file or a paired-end duo of sequence
     files using bowtie2.
@@ -88,16 +89,9 @@ def align(infile_list, db_prefix_list, output_prefix, tmp_dir,
                     sam file output
     :keyword bowtie2_path: String; File path to the bowtie2 binary's location.
     :keyword n_procs: Int; Number of bowtie2 subprocesses to run.
-    :keyword bowtie2_opts: Dictionary; A dictionary of command line options to
-                         be passed to the wrapped bowtie2 program. 
-                         No - or -- flags are necessary; the correct - or --
-                         flags are inferred based on the length of the option. 
-                         For boolean options, use the key/value pattern 
-                         of { "my-option": "" }.
+    :keyword bowtie2_opts: List; List of additional arguments, as strings, to 
+                            be passed to Bowtie2.
     """
-    # for now, we are not using dictionaries for bowtie2 additional arguments.
-    # Just reading them in as a string, including the hyphens, and using
-    # shlex.split to process them into a list
 
     if not bowtie2_path:
         bowtie2_path = find_on_path("bowtie2")
@@ -147,10 +141,11 @@ def align(infile_list, db_prefix_list, output_prefix, tmp_dir,
 
     # if Bowtie2 produced correct output, merge the files from multiple
     # databases
+    combined_outs = []
     if (outputs != []):
-        combine_tag(outputs, output_prefix)
+        combined_outs = combine_tag(outputs, output_prefix)
 
-    return(ret_codes, commands_to_run)
+    return(ret_codes, commands_to_run, combined_outs)
 
 
 def tag(infile_list, db_prefix_list, temp_dir, prefix,
@@ -203,8 +198,8 @@ def tag(infile_list, db_prefix_list, temp_dir, prefix,
                 bmt_args[i] = [bmtagger_path, 
                               "-q", "1",
                               "-1", infile_list[0],
-                              "-b", str(basename + ".bitmask"),
-                              "-x", str(basename + ".srprism"),
+                              "-b", str(fullpath + ".bitmask"),
+                              "-x", str(fullpath + ".srprism"),
                               "-T", temp_dir, 
                               "-o", out_prefix,
                               "--extract"] 
@@ -215,8 +210,8 @@ def tag(infile_list, db_prefix_list, temp_dir, prefix,
                 bmt_args[i] = [bmtagger_path, 
                               "-q", "1",
                               "-1", infile_list[0],
-                              "-b", str(basename + ".bitmask"),
-                              "-x", str(basename + ".srprism"),
+                              "-b", str(fullpath + ".bitmask"),
+                              "-x", str(fullpath + ".srprism"),
                               "-T", temp_dir, 
                               "-o", out_prefix]
                 outputs[i] = [out_prefix]
@@ -229,8 +224,8 @@ def tag(infile_list, db_prefix_list, temp_dir, prefix,
                               "-q", "1",
                               "-1", infile_list[0],
                               "-2", infile_list[1],
-                              "-b", str(basename + ".bitmask"),
-                              "-x", str(basename + ".srprism"),
+                              "-b", str(fullpath + ".bitmask"),
+                              "-x", str(fullpath + ".srprism"),
                               "-T", temp_dir, 
                               "-o", out_prefix,
                               "--extract"]
@@ -243,8 +238,8 @@ def tag(infile_list, db_prefix_list, temp_dir, prefix,
                               "-q", "1",
                               "-1", infile_list[0],
                               "-2", infile_list[1],
-                              "-b", str(basename + ".bitmask"),
-                              "-x", str(basename + ".srprism"),
+                              "-b", str(fullpath + ".bitmask"),
+                              "-x", str(fullpath + ".srprism"),
                               "-T", temp_dir, 
                               "-o", out_prefix]
                 outputs[i] = [out_prefix]
@@ -255,7 +250,7 @@ def tag(infile_list, db_prefix_list, temp_dir, prefix,
     logging.debug(bmt_args)
 
     if not bmt_args: # no databases specified
-        return ([], [])
+        return ([], [], [])
 
     # similar to what we did for Bowtie2
     # Poll to see if we can run more BMTagger instances. 
@@ -289,8 +284,9 @@ def tag(infile_list, db_prefix_list, temp_dir, prefix,
     # databases
     #if (outputs != []):
     set_retcodes = set(ret_codes)
+    combined_outs = []
     if (len(set_retcodes) == 1) and (0 in set_retcodes):
-        combine_tag(outputs, prefix)
+        combined_outs = combine_tag(outputs, prefix)
 
     if not debug:
         for output_pair in outputs:
@@ -303,7 +299,7 @@ def tag(infile_list, db_prefix_list, temp_dir, prefix,
                     
 
     logging.debug("processes run: %s", procs_ran)
-    return (ret_codes, procs_ran)
+    return (ret_codes, procs_ran, combined_outs)
 
 
 # TODO: this is a pretty bad way of doing this. consider doing what Randall did
@@ -326,7 +322,8 @@ def intersect_fastq(lstrFiles, out_file):
     '''
     # optimize for the common case, where we are intersecting 1 file
     if len(lstrFiles) == 1:
-        shutil.copy(lstrFiles[0], out_file)
+        #shutil.copy(lstrFiles[0], out_file)
+        os.rename(lstrFiles[0], out_file)
         return
 
     counter = collections.Counter()
@@ -364,7 +361,8 @@ def union_outfiles(lstrFiles, out_file):
 
     # optimize for the common case, where we are unioning 1 file
     if len(lstrFiles) == 1:
-        shutil.copy(lstrFiles[0], out_file)
+        #shutil.copy(lstrFiles[0], out_file)
+        os.rename(lstrFiles[0], out_file)
         return
 
     counter = collections.Counter()
@@ -390,10 +388,10 @@ def union_outfiles(lstrFiles, out_file):
 
 def combine_tag(llstrFiles, out_prefix):
     '''
-    Summary: Combines output if we run BMTagger on multiple databases.
+    Summary: Combines output if we run BMTagger/bowtie2 on multiple databases.
     Input:
-        llstrFiles: a list of lists of BMTagger outputs. This is passed in from
-        the tag function. The 'inner lists' are of length 1 or 2
+        llstrFiles: a list of lists of BMTagger/bowtie2 outputs. The 'inner
+        lists' are of length 1 or 2 
         out_prefix: Prefix for the output files. 
 
     Output:
@@ -417,7 +415,7 @@ def combine_tag(llstrFiles, out_prefix):
         single_end = False
 
     # Check if it was .fastq or not
-    # TODO: Instead of this method, try passing in another parameter? 
+    # Instead of this method, try passing in another parameter? 
     fIsFastq = check_fastq(fnames1[0])
 
     output_files = []
@@ -450,6 +448,16 @@ def combine_tag(llstrFiles, out_prefix):
     # Get the read counts for the newly merged files
     logging.info("Read counts after merging from multiple databases: %s",
                  msg_num_reads(output_files))
+
+    # remove output files from bowtie2/bmtagger if debug mode is not set
+    if not logging.getLogger().isEnabledFor(logging.DEBUG):
+        for group in [fnames1, fnames2]:
+            if len(group) > 1:
+                # if len(group) == 1, we renamed the files in intersect and
+                # union
+                for filename in group:
+                    logging.info("Removing temporary file %s" %filename)
+                    os.remove(filename)
     return output_files
 
 def checkfile(fname, ftype="file", fail_hard=False):
@@ -553,14 +561,14 @@ def get_num_reads(strFname):
     Summary: Uses wc to find the number of reads in a file.
     '''
     pat = r'[0-9]+ '
-    cmd = "wc --lines " + strFname
+    cmd = ["wc",  "--lines", strFname]
     fIsFastq = check_fastq(strFname)
 
     try:
-        out = subprocess.check_output(shlex.split(cmd))
+        out = subprocess.check_output(cmd)
     except subprocess.CalledProcessError as e:
         logging.warning("Command %s failed with return code %i ",
-                        str(e.cmd), str(e.returncode))
+                        str(e.cmd), e.returncode)
         return None
     else:
         # match to get the line numbers
@@ -686,14 +694,13 @@ def find_on_path(bin_str):
     return False
 
 
-def trim(infile, trimlen, prefix, trimmomatic_path, 
+def trim(infile, prefix, trimmomatic_path, 
          java_mem="500m", addl_args=list(), threads=1):
     '''
     Trim a sequence file using trimmomatic. 
         infile:     input fastq file list (either length 1 or length 2)
                     length 1: single end
                     length 2: paired end
-        trimlen:    length to trim
         prefix:     prefix for outputs
         java_mem:   string, ie "500m" or "8g"; specifies how much memory
                     the Java VM is allowed to use
@@ -718,35 +725,56 @@ def trim(infile, trimlen, prefix, trimmomatic_path,
     '''
 
     single_end = (len(infile) == 1)
-    trim_arg = ""
-    if single_end:
-        trim_arg = (
-            '%s SE -threads %s -phred33 %s %s.trimmed.fastq %s'
-            %(trimmomatic_path, threads, infile[0], prefix, " ".join(addl_args))
-        )
-        
-    else:
-        trim_arg = (
-            '%s PE -threads %s -phred33 %s %s %s.trimmed.1.fastq \
-            %s.trimmed.single.1.fastq %s.trimmed.2.fastq \
-            %s.trimmed.single.2.fastq %s' 
-            %(trimmomatic_path, threads, infile[0], infile[1], prefix, prefix,
-              prefix, prefix, " ".join(addl_args))
-        )
+    trim_cmd = ["java", 
+                "-Xmx" + java_mem, 
+                "-d64",
+                "-jar", trimmomatic_path]
 
-    cmd = "java -Xmx" + java_mem + " -d64 -jar " + trim_arg
-    logging.debug("Running trimmomatic with: " + cmd)
-    proc = subprocess.Popen(shlex.split(cmd),
+    if single_end:
+        trim_cmd += ["SE",
+                    "-threads", str(threads), 
+                    "-phred33", 
+                    infile[0],
+                    prefix + ".trimmed.fastq"] + addl_args
+    else:
+        trim_cmd += ["PE", 
+                    "-threads", str(threads), 
+                    "-phred33", 
+                    infile[0], infile[1], 
+                    prefix + ".trimmed.1.fastq", 
+                    prefix + ".trimmed.single.1.fastq",
+                    prefix + ".trimmed.2.fastq",
+                    prefix + ".trimmed.single.2.fastq"] + addl_args
+
+    logging.debug("Running trimmomatic with: " + " ".join(trim_cmd))
+    proc = subprocess.Popen(trim_cmd,
                             stderr=subprocess.PIPE,
                             stdout=subprocess.PIPE)
     stdout, stderr = proc.communicate()
-    logging.debug("Trimmomatic run complete.")
-    if stdout:
-        logging.debug("Trimmomatic stdout: "+stdout)
-    if stderr:
-        logging.debug("Trimmomatic stderr: "+stderr)
-    return(proc.returncode, cmd)
+    retcode = proc.returncode
+    process_return("Trimmomatic", retcode, stdout, stderr)
+    return(retcode, trim_cmd)
 
+
+def run_trf(fastqs, outs, match=2, mismatch=7, delta=7, pm=80, pi=10,
+        minscore=50, maxperiod=500, generate_fastq=True, mask=False, html=False,
+        trf_path="trf", n_procs=None):
+    nfiles = len(fastqs)
+    # 1-2 files being passed in
+    assert(nfiles == 2 or nfiles == 1)
+
+    procs = list()
+    names = list()
+    for (fastq, out) in zip(fastqs, outs):
+        proc = memoryheavy.run_tandem(fastq, out, match, mismatch, delta, pm,
+                pi, minscore, maxperiod, generate_fastq,mask,html, trf_path)
+        procs.append(proc)
+        names.append("tandem.py on " + fastq)
+
+    for (proc, name) in zip(procs, names):
+        stdout, stderr = proc.communicate()
+        retcode = proc.returncode
+        process_return(name, retcode, stdout, stderr)
 
 def storage_heavy(args):
     check_missing_files(args)
@@ -765,7 +793,6 @@ def storage_heavy(args):
     logging.info("Trimming...")
     trim(files, 
          threads          = trim_threads,
-         trimlen          = args.trimlen,
          trimmomatic_path = args.trim_path, 
          prefix           = output_prefix,
          java_mem         = args.max_mem, 
@@ -785,8 +812,8 @@ def storage_heavy(args):
     logging.info("Number of reads after trimming: %s", msg_trim_body)
 
     if not b_continue:
-        logging.crit("Trimmomatic just produced empty files.")
-        logging.crit("Terminating the pipeline...")
+        logging.critical("Trimmomatic just produced empty files.")
+        logging.critical("Terminating the pipeline...")
         sys.exit(1)
 
     # make temporary directory for Bowtie2 files
@@ -795,6 +822,10 @@ def storage_heavy(args):
 
     # TODO: Add parallelization. Use command line utility 'split' to split the
     # files, fork a thread for each file, and run BMTagger in each thread.
+
+    # determine if logging level is debug or not:
+
+    debug = logging.getLogger().isEnabledFor(logging.DEBUG)
 
     # Start aligning
     logging.info("Decontaminating")
@@ -808,23 +839,52 @@ def storage_heavy(args):
         elif len(files_list) == 2:
             prefix = output_prefix + "_pe"
 
+        trf_out_base = None
+        if args.trf:
+            trf_out_base = prefix
+            prefix = prefix + "_pre_tandem"
+
         if args.bmtagger:
-            ret_codes, commands = tag(infile_list    = files_list,
-                                      db_prefix_list = args.reference_db,
-                                      temp_dir       = tempdir,
-                                      prefix         = prefix,
-                                      bmtagger_path  = args.bmtagger_path,
-                                      n_procs        = args.threads,
-                                      remove         = args.extract,
-                                      debug          = args.debug)
+            ret_codes, commands, c_outs = tag(infile_list    = files_list,
+                                              db_prefix_list = args.reference_db,
+                                              temp_dir       = tempdir,
+                                              prefix         = prefix,
+                                              bmtagger_path  = args.bmtagger_path,
+                                              n_procs        = bowtie_threads,
+                                              remove         = args.extract,
+                                              debug          = debug)
         else:
-            ret_codes, commands = align(infile_list    = files_list,
-                                        db_prefix_list = args.reference_db,
-                                        output_prefix  = prefix,
-                                        tmp_dir        = tempdir,
-                                        bowtie2_path   = args.bowtie2_path,
-                                        n_procs        = bowtie_threads,
-                                        bowtie2_opts   = args.bowtie2_args)
+            ret_codes, commands, c_outs = align(infile_list   = files_list,
+                                               db_prefix_list = args.reference_db,
+                                               output_prefix  = prefix,
+                                               tmp_dir        = tempdir,
+                                               bowtie2_path   = args.bowtie2_path,
+                                               n_procs        = bowtie_threads,
+                                               bowtie2_opts   = args.bowtie2_args)
+        # run TRF (within loop)
+        # iterate over all outputs from combining (there should either be 1 or
+        # 2)
+        if args.trf:
+            trf_outs = [trf_out_base]
+            if len(c_outs) == 2:
+                trf_outs = [trf_out_base + str(i+1) for i in xrange(2)]
+            run_trf(fastqs = c_outs, 
+                    outs = trf_outs, 
+                    match = args.match,
+                    mismatch = args.mismatch, 
+                    delta = args.delta, 
+                    pm = args.pm,
+                    pi = args.pi, 
+                    minscore = args.minscore, 
+                    maxperiod = args.maxperiod, 
+                    generate_fastq = args.no_generate_fastq, 
+                    mask = args.mask, 
+                    html = args.html, 
+                    trf_path = args.trf_path,
+                    n_procs = bowtie_threads)
+            if not debug:
+                for c_out in c_outs:
+                    os.remove(c_out)
 
     # check that everything returned correctly
     # gather non-zero return codes
@@ -832,16 +892,19 @@ def storage_heavy(args):
              if ret_code != 0]
     if len(fails) > 0:
         for i, ret_code in fails:
-            logging.crit("The following command failed with return code %s: %s",
+            logging.critical("The following command failed with return code %s: %s",
                          ret_code, commands[i])
         sys.exit(1)
 
 
     logging.info("Finished removing contaminants")
 
-    if not logging.getLogger().isEnabledFor(logging.DEBUG):
+    #if not logging.getLogger().isEnabledFor(logging.DEBUG):
+    if not debug:
         logging.debug("Removing temporary files...")
+        # this removes trimmomatic outputs
         for output in outputs:
             os.remove(output)
+        # this removes lots of temporary files generated by bowtie2/bmtagger
         shutil.rmtree(tempdir)
 
