@@ -110,6 +110,8 @@ def handle_cli():
         help="path to BMTagger executable if not found in $PATH")
 
     args = parser.parse_args()
+    if len(args.trim_args) > 2:
+        args.trim_args = args.trim_args[2:]
     try_create_dir(args.output_dir)
     return args
 
