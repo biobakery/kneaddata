@@ -167,8 +167,6 @@ def handle_cli():
             help="If switched on, generate html file for trf output")
 
     args = parser.parse_args()
-    if len(args.trim_args) > 2:
-        args.trim_args = args.trim_args[2:]
     try_create_dir(args.output_dir)
 
     if (not args.no_generate_fastq) and (not args.mask) and args.trf:
