@@ -230,7 +230,7 @@ with the contaminant reads removed. This feature can be enabled by using the
 
 To run KneadData in single end mode, run 
 
-    ./knead_data.py -1 seq.fastq -db DB_NAME -t TRIM_PATH
+    kneaddata -1 seq.fastq -db DB_NAME -t TRIM_PATH
 
 This will create files called 
 
@@ -247,11 +247,11 @@ This will create files called
 
 To run KneadData in single end mode with BMTagger, run
 
-    ./knead_data.py -1 seq.fastq -db DB_NAME -t TRIM_PATH --bmtagger --bmtagger-path BMTAGGER_PATH
+    kneaddata -1 seq.fastq -db DB_NAME -t TRIM_PATH --bmtagger --bmtagger-path BMTAGGER_PATH
 
 By default, this will create a file called `seq.fastq_output.out` containing a
 list of contaminant reads found in `seq.fastq`. If instead you pass the
-`--extract` option to `knead_data.py`, you will get a file called
+`--extract` option to `kneaddata`, you will get a file called
 `seq.fastq_output.fastq` which contains all the non-contaminant reads found in
 `seq.fastq`.
 
@@ -269,7 +269,7 @@ from a file called `seq.fastq` using the *Homo sapiens* database we generated
 earlier. Additionally, suppose the Trimmomatic executable file was located at
 `~/bin/Trimmomatic/trimmomatic-0.32.jar`. To run with Bowtie2:
 
-    ./knead_data.py -1 seq.fastq -db Homo_sapiens_db -t
+    kneaddata -1 seq.fastq -db Homo_sapiens_db -t
     ~/bin/Trimmomatic/trimmomatic-0.32.jar -o seq_output
 
 This will create files called 
@@ -285,13 +285,13 @@ If you wanted to use BMTagger, suppose the BMTagger executable was located
 at `~/bin/bmtagger.sh`. Let's say you want your contaminant reads to be stored
 in a file called `seq_contams.out`. You would then run
 
-    ./knead_data.py -1 seq.fastq -db DB_NAME -t TRIM_PATH --bmtagger --bmtagger-path BMTAGGER_PATH -o seq_output
+    kneaddata -1 seq.fastq -db DB_NAME -t TRIM_PATH --bmtagger --bmtagger-path BMTAGGER_PATH -o seq_output
 
 Let's say that, instead of outputting your contaminant reads in a separate file,
 you just want a "cleaned" FASTQ file that contains no contaminant reads. If you
 execute
 
-    ./knead_data.py -1 seq.fastq -db Homo_sapiens_db -t ~/bin/Trimmomatic/trimmomatic-0.32.jar --bmtagger --bmtagger-path ~/bin/bmtagger.sh -o seq_clean
+    kneaddata -1 seq.fastq -db Homo_sapiens_db -t ~/bin/Trimmomatic/trimmomatic-0.32.jar --bmtagger --bmtagger-path ~/bin/bmtagger.sh -o seq_clean
 
 you will get a file `seq_clean.fastq` which contains all the non-contaminant
 reads, the ones that were not identified as human reads. 
@@ -301,12 +301,12 @@ reads, the ones that were not identified as human reads.
 
 To run KneadData in paired end mode with Bowtie2, run
 
-`./knead_data.py -1 seq1.fastq -2 seq2.fastq -db DB_NAME -t TRIM_PATH -o
+`kneaddata -1 seq1.fastq -2 seq2.fastq -db DB_NAME -t TRIM_PATH -o
 seq_output`
 
 To run KneadData in paired end mode with BMTagger, run
 
-    python knead_data.py -1 seq1.fastq -2 seq2.fastq -db DB_NAME -t TRIM_PATH --bmtagger --bmtagger-path BMTAGGER_PATH -o seq_output
+    kneaddata -1 seq1.fastq -2 seq2.fastq -db DB_NAME -t TRIM_PATH --bmtagger --bmtagger-path BMTAGGER_PATH -o seq_output
 
 + `seq1.fastq`: Your input FASTQ file, first mate
 + `seq2.fastq`: Your input FASTQ file, second mate
@@ -344,7 +344,7 @@ You have two databases, one prefixed `bact_rrna_db` and the other prefixed
 `human_rna_db`, and your sequence files are `seq1.fastq` and `seq2.fastq`. To
 run with Bowtie2, execute
 
-    ./knead_data.py -1 seq1.fastq -2 seq2.fastq -db bact_rrna_db human_rna_db -t ~/bin/Trimmomatic/trimmomatic-0.32.jar -o seq_out
+    kneaddata -1 seq1.fastq -2 seq2.fastq -db bact_rrna_db human_rna_db -t ~/bin/Trimmomatic/trimmomatic-0.32.jar -o seq_out
 
 This will output:
 
@@ -423,17 +423,17 @@ Aggregated files:
 
 To run with BMTagger, execute
 
-    ./knead_data.py -1 seq1.fastq -2 seq2.fastq -db bact_rrna_db human_rna_db -t ~/bin/Trimmomatic/trimmomatic-0.32.jar --bmtagger --bmtagger-path ~/bin/bmtagger.sh -o seq_contams
+    kneaddata -1 seq1.fastq -2 seq2.fastq -db bact_rrna_db human_rna_db -t ~/bin/Trimmomatic/trimmomatic-0.32.jar --bmtagger --bmtagger-path ~/bin/bmtagger.sh -o seq_contams
 
 ---------------------------------
 
 ## Detailed Documentation
 
-This documentation can be accessed via `./knead_data.py -h`.
+This documentation can be accessed via `kneaddata -h`.
 
 ```
 #!text
-usage: knead_data.py [-h] -1 INFILE1 [-2 INFILE2] -db REFERENCE_DB
+usage: kneaddata [-h] -1 INFILE1 [-2 INFILE2] -db REFERENCE_DB
                      [-o OUTPUT_PREFIX] [-D OUTPUT_DIR] [--threads THREADS]
                      [-s {memory,storage}] [-l LOGGING] [--logfile LOGFILE]
                      [--version] [-t TRIM_PATH] [--trimlen TRIMLEN]
@@ -493,7 +493,7 @@ bowtie2 arguments:
 bmtagger arguments:
   --bmtagger            If set, use BMTagger to identify contaminant reads
   --extract             Only has an effect if --bmtagger is set. If this is
-                        set, knead_data outputs cleaned FASTQs, without
+                        set, kneaddata outputs cleaned FASTQs, without
                         contaminant reads. Else, output a list or lists of
                         contaminant reads.
   --bmtagger-path BMTAGGER_PATH
@@ -531,11 +531,11 @@ argument, you should specify the `--bowtie2-args` flag.
 
 For example:
 
-`./knead_data.py ... --bowtie2-args=--very-fast --bowtie2-args=-p 2`
+`kneaddata ... --bowtie2-args=--very-fast --bowtie2-args=-p 2`
 
 A similar approach is used to specify additional arguments for Trimmomatic:
 
-`./knead_data.py ... --trim-args "LEADING:3" --trim-args "TRAILING:3"`
+`kneaddata ... --trim-args "LEADING:3" --trim-args "TRAILING:3"`
 
 *NOTE*: Manually specifying additional arguments will completely override the
 defaults. 
