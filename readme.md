@@ -2,7 +2,7 @@
 
 ----
 
- * Download the KneadData software ( [kneaddata_v0.4.0.tar.gz](https://bitbucket.org/biobakery/kneaddata/downloads/kneaddata_v0.4.0.tar.gz) ) then follow the [steps to install and run](#markdown-header-getting-started-with-kneaddata).
+ * Download the KneadData software ( [kneaddata_v0.4.1.tar.gz](https://bitbucket.org/biobakery/kneaddata/downloads/kneaddata_v0.4.1.tar.gz) ) then follow the [steps to install and run](#markdown-header-getting-started-with-kneaddata).
 
  * If you use the KneadData software, please cite our manuscript: TBD
 
@@ -27,9 +27,9 @@ The executables for the required software packages should be installed in your $
 ### Installation ###
 
 1. Download and unpack the KneadData software
-    * Download the software: [kneaddata_v0.4.0.tar.gz](https://bitbucket.org/biobakery/kneaddata/downloads/kneaddata_v0.4.0.tar.gz)
-    * `` $ tar zxvf kneaddata_v0.4.0.tar.gz ``
-    * `` $ cd kneaddata_v0.4.0 ``
+    * Download the software: [kneaddata_v0.4.1.tar.gz](https://bitbucket.org/biobakery/kneaddata/downloads/kneaddata_v0.4.1.tar.gz)
+    * `` $ tar zxvf kneaddata_v0.4.1.tar.gz ``
+    * `` $ cd kneaddata_v0.4.1 ``
 2. From the KneadData directory, install KneadData
     * `` $ python setup.py install ``
     * If you do not have write permissions to '/usr/lib/', then add the option "--user" to the install command. This will install the python package into subdirectories of '~/.local'. Please note when using the "--user" install option on some platforms, you might need to add '~/.local/bin/' to your $PATH as it might not be included by default. You will know if it needs to be added if you see the following message ``kneaddata: command not found`` when trying to run KneadData after installing with the "--user" option.
