@@ -12,7 +12,11 @@ setup(
     classifiers=[
         "Development Status :: 3 - Alpha"
     ],
-    scripts=[os.path.join(here, "knead_data.py")],
+    scripts=[
+        os.path.join(here, "knead_data.py"), 
+        os.path.join(here, "download_db.py"),
+        os.path.join(here, "generate_db.py")
+        ],
     entry_points = {
         "distutils.commands": [
             "trimmomatic = knead_datalib.util:DownloadTrimmomaticCommand"
