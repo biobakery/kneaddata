@@ -30,13 +30,11 @@ The executables for the required software packages should be installed in your $
 
 1. Download and unpack the [KneadData software](https://bitbucket.org/biobakery/kneaddata/get/tip.tar.gz)
 2. From the KneadData directory, install KneadData
- 
-    `` $ python setup.py install ``
-    
-
-3. Download the reference database to $INSTALL_LOCATION
-
-    `` $ kneaddata_database --download human bowtie2 $INSTALL_LOCATION ``
+    * `` $ python setup.py install ``
+    * If you do not have write permissions to '/usr/lib/', then add the option "--user" to the install command. This will install the python package into subdirectories of '~/.local'. Please note when using the "--user" install option on some platforms, you might need to add '~/.local/bin/' to your $PATH as it might not be included by default. You will know if it needs to be added if you see the following message ``kneaddata: command not found`` when trying to run KneadData after installing with the "--user" option.
+3. Download the reference database to $DIR
+    * `` $ kneaddata_database --download human bowtie2 $DIR ``
+    * When running this command, $DIR should be replaced with the full path to the directory you have selected to store the database.
 
 
 ## How to Run ##
@@ -67,5 +65,3 @@ Files of type #1 and #2 will be created for each reference database provided.
 The examples folder contains a demo input file. This file is a single read, fastq format.
 
 `` $ kneaddata --infile1 examples/demo.fastq --reference-db $DATABASE --trim-path $TRIM_PATH ``
-
-
