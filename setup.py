@@ -3,9 +3,11 @@ from setuptools import setup
 
 here = os.path.abspath(os.path.dirname(__file__))
 
+VERSION="0.4.2"
+
 setup(
     name='knead-datalib',
-    version='0.0.1',
+    version=VERSION,
     description='',
     packages=['knead_datalib'],
     zip_safe=False,

@@ -16,6 +16,7 @@ import sys
 from knead_datalib import strategies, try_create_dir, parse_positive_int
 here = os.path.abspath(os.path.dirname(__file__))
 
+VERSION="0.4.2"
 
 def handle_cli():
     """parse command line arguments
@@ -64,9 +65,9 @@ def handle_cli():
         default=None,
         help="Where to save logs")
     group1.add_argument(
-            '--version', 
-            action='version', version='kneadData v0.4',
-            help = 'Print version and exit')
+        "--version",
+        action="version",
+        version="%(prog)s v"+VERSION)
 
     group2 = parser.add_argument_group("trimmomatic arguments")
     group2.add_argument(
