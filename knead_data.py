@@ -71,7 +71,7 @@ def handle_cli():
     group2 = parser.add_argument_group("trimmomatic arguments")
     group2.add_argument(
         "-t", "--trim-path",
-        default=os.path.join(here, "Trimmomatic-0.33/trimmomatic-0.33.jar"),
+        required=True,
         help="path to Trimmomatic .jar executable")
     group2.add_argument(
         "--trimlen",
