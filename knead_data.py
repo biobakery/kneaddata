@@ -14,7 +14,6 @@ import re
 import sys
 
 from knead_datalib import strategies, try_create_dir, parse_positive_int
-here = os.path.abspath(os.path.dirname(__file__))
 
 VERSION="0.4.2"
 
@@ -72,7 +71,6 @@ def handle_cli():
     group2 = parser.add_argument_group("trimmomatic arguments")
     group2.add_argument(
         "-t", "--trim-path",
-        required=True,
         help="path to Trimmomatic .jar executable")
     group2.add_argument(
         "--trimlen",
@@ -180,8 +178,52 @@ def handle_cli():
 
     if args.bowtie2_args == []:
         args.bowtie2_args = default_bowtie2_args
+        
+    # find the location of trimmomatic
+    trimmomatic_jar="trimmomatic-0.33.jar"
+    args.trim_path=check_for_dependency(args.trim_path,trimmomatic_jar,"Trimmomatic",
+        "--trim-path", True)
+    # add the full path to the jar file
+    args.trim_path=os.path.abspath(os.path.join(args.trim_path,trimmomatic_jar))
+    
+    # check for bowtie2
+    bowtie2_exe="bowtie2"
+    args.bowtie2_path=check_for_dependency(args.bowtie2_path, bowtie2_exe, "Bowtie2",
+        "--bowtie2-path", False)
+    # add the full path to bowtie2
+    args.bowtie2_path=os.path.abspath(os.path.join(args.bowtie2_path,bowtie2_exe))
 
     return args
+
+def check_for_dependency(path_provided,exe,name,path_option,bypass_permissions_check):
+    """ 
+    Check if the dependency can be found in the path provided or in $PATH
+    Return the location of the dependency
+    """
+
+    found_path=""
+    if path_provided:
+        path_provided=os.path.abspath(path_provided)
+        # check that the exe can be found
+        try:
+            files=os.listdir(path_provided)
+        except EnvironmentError:
+            sys.exit("ERROR: Unable to list files in "+name+" directory: "+ path_provided)
+            
+        if not exe in files:
+            sys.exit("ERROR: The "+exe+" executable is not included in the directory: " + path_provided)
+            
+        found_path=path_provided
+    else:
+        # search for the exe
+        exe_path=find_exe_in_path(exe, bypass_permissions_check)
+        if not exe_path:
+            sys.exit("ERROR: Unable to find "+name+". Please provide the "+
+                "full path to "+name+" with "+path_option+".")
+        else:
+            found_path=exe_path  
+        
+    return found_path
 
 
 def setup_logging(args):
@@ -241,6 +283,18 @@ def get_file_format(file):
 
     return format
 
+def find_exe_in_path(exe, bypass_permissions_check=None):
+    """
+    Check that an executable exists in $PATH
+    """
+    
+    paths = os.environ["PATH"].split(os.pathsep)
+    for path in paths:
+        fullexe = os.path.join(path,exe)
+        if os.path.exists(fullexe):
+            if bypass_permissions_check or os.access(fullexe,os.X_OK):
+                return path
+    return None
 
 def main():
     args = handle_cli()
