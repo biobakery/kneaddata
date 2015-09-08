@@ -15,7 +15,7 @@ import sys
 
 from knead_datalib import strategies, try_create_dir, parse_positive_int
 
-VERSION="0.4.2"
+VERSION="0.4.3"
 
 def handle_cli():
     """parse command line arguments
