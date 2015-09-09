@@ -6,6 +6,8 @@
 
  * If you use the KneadData software, please cite our manuscript: TBD
 
+ * If you use this tool, sign up for the [KneadData Users Google Group](https://groups.google.com/d/forum/kneaddata-users) and pass along any issues or feedback.
+
 ----
 
 KneadData is a tool designed to perform quality control on metagenomic sequencing data, especially data from microbiome experiments. In these experiments, samples are typically taken from a host in hopes of learning something about the microbial community on the host. However, metagenomic sequencing data from such experiments will often contain a high ratio of host to bacterial reads. This tool aims to perform principled in silico separation of bacterial reads from these "contaminant" reads, be they from the host, from bacterial 16S sequences, or other user-defined sources.
@@ -69,5 +71,3 @@ Files of type #1 and #2 will be created for each reference database provided.
 The examples folder contains a demo input file. This file is a single read, fastq format.
 
 `` $ kneaddata --infile1 examples/demo.fastq --reference-db examples/demo_db ``
-
-
