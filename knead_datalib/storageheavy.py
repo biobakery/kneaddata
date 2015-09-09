@@ -562,7 +562,7 @@ def get_num_reads(strFname):
     Summary: Uses wc to find the number of reads in a file.
     '''
     pat = r'[0-9]+ '
-    cmd = ["wc",  "--lines", strFname]
+    cmd = ["wc",  "-l", strFname]
     fIsFastq = check_fastq(strFname)
 
     try:
