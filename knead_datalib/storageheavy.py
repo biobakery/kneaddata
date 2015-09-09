@@ -308,7 +308,8 @@ def check_fastq(strFname):
     '''
     Returns True if file strFname is a fastq file (based on file extension)
     '''
-    return (strFname.endswith('.fastq'))
+    isFastq = strFname.endswith('.fastq') or strFname.endswith('.fq')
+    return (isFastq)
 
 def intersect_fastq(lstrFiles, out_file):
     ''' 
@@ -561,7 +562,7 @@ def get_num_reads(strFname):
     Summary: Uses wc to find the number of reads in a file.
     '''
     pat = r'[0-9]+ '
-    cmd = ["wc",  "--lines", strFname]
+    cmd = ["wc",  "-l", strFname]
     fIsFastq = check_fastq(strFname)
 
     try:
