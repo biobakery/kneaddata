@@ -38,11 +38,11 @@ def handle_cli():
         help=("prefix for reference databases used for either"
               " Bowtie2 or BMTagger"))
     group1.add_argument(
-        "-o", "--output-prefix", default="knead_out",
+        "-o", "--output-prefix", default=None,
         help="prefix for all output files")
     group1.add_argument(
         "-D", "--output-dir", default=os.getcwd(),
-        help="where to put all output files")
+        help="Where to put all output files, default: current working directory")
     group1.add_argument(
         "--threads",
         type=parse_positive_int, default=None, 
@@ -178,6 +178,11 @@ def handle_cli():
 
     if args.bowtie2_args == []:
         args.bowtie2_args = default_bowtie2_args
+
+    # set the default output prefix 
+    if args.output_prefix == None:
+        infile_base = os.path.splitext(os.path.basename(args.infile1))[0]
+        args.output_prefix = infile_base
         
     # find the location of trimmomatic
     trimmomatic_jar="trimmomatic-0.33.jar"
