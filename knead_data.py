@@ -25,12 +25,14 @@ def handle_cli():
     parser = argparse.ArgumentParser()
     group1 = parser.add_argument_group("global options")
     group1.add_argument(
-        "-1", "--infile1",
+        "-i", "--input",
         help="input FASTQ file", 
+        dest='infile1',
         required=True)
     group1.add_argument(
-        "-2", "--infile2",
+        "--input2",
         help="input FASTQ file mate",
+        dest='infile2',
         default=None)
     group1.add_argument(
         "-db", "--reference-db",
@@ -38,11 +40,13 @@ def handle_cli():
         help=("prefix for reference databases used for either"
               " Bowtie2 or BMTagger"))
     group1.add_argument(
-        "-o", "--output-prefix", default=None,
+        "--output-prefix", default=None,
         help="prefix for all output files")
     group1.add_argument(
-        "-D", "--output-dir", default=os.getcwd(),
-        help="Where to put all output files, default: current working directory")
+        "-o", "--output",
+        dest='output_dir',
+        help="where to write all output files",
+        required=True)
     group1.add_argument(
         "--threads",
         type=parse_positive_int, default=None, 
@@ -166,6 +170,11 @@ def handle_cli():
             help="If switched on, generate html file for trf output")
 
     args = parser.parse_args()
+    
+    # get the full path for the output directory
+    args.output_dir = os.path.abspath(args.output_dir)
+    
+    # create the output directory if needed
     try_create_dir(args.output_dir)
 
     if (not args.no_generate_fastq) and (not args.mask) and args.trf:
@@ -182,7 +191,7 @@ def handle_cli():
     # set the default output prefix 
     if args.output_prefix == None:
         infile_base = os.path.splitext(os.path.basename(args.infile1))[0]
-        args.output_prefix = infile_base
+        args.output_prefix = infile_base + "_kneaddata"
         
     # find the location of trimmomatic
     trimmomatic_jar="trimmomatic-0.33.jar"

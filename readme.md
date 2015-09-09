@@ -48,26 +48,39 @@ Before installing KneadData, please install the Java Runtime Environment (JRE). 
 
 #### Basic usage ####
 
-`` $ kneaddata --infile1 $INPUT --reference-db $DATABASE ``
+`` $ kneaddata --input $INPUT --reference-db $DATABASE --output $OUTPUT_DIR ``
 
 ```
 $INPUT = a single end fastq file
 $DATABASE = the index of the KneadData database
+$OUTPUT_DIR = the output directory
 ```
 
-For paired end reads, add the option “--infile2 $INPUT2” to provide the second set of reads. Also please note that more than one reference database can be provided.
+For paired end reads, add the option “--input2 $INPUT2” (with $INPUT2 replaced with the second input file). Also please note that more than one reference database can be provided.
 
-Three types of output files will be created:
+Three types of output files will be created (where $INPUTNAME is the basename of $INPUT):
 
-1. `` $INPUT_$DATABASE_clean.fastq ``
-2. `` $INPUT_$DATABASE_contam.fastq ``
-3. `` $INPUT_output.fastq ``
+1. The final file of filtered sequences
+    `` $OUTPUT_DIR/$INPUTNAME_kneaddata.fastq ``
 
-Files of type #1 and #2 will be created for each reference database provided.
+2. The contaminant sequences from testing against a database (with this database name replacing $DATABASE)
+    `` $OUTPUT_DIR/$INPUTNAME_kneaddata_$DATABASE_contam.fastq ``
+
+3. The log file from the run
+    `` $OUTPUT_DIR/$INPUTNAME_kneaddata.log ``
+
+If there is more than one reference database, there will be a fourth output file type. Files of this type will be named `` $OUTPUT_DIR/$INPUTNAME_kneaddata_$DATABASE_clean.fastq `` and will contain the filtered sequences after testing against a specific database (with this database name replacing $DATABASE in the file name). The file `` $OUTPUT_DIR/$INPUTNAME_kneaddata.fastq `` is the set of all sequences contained in these filtered files.
 
 
 #### Demo run ####
 
 The examples folder contains a demo input file. This file is a single read, fastq format.
 
-`` $ kneaddata --infile1 examples/demo.fastq --reference-db examples/demo_db ``
+`` $ kneaddata --input examples/demo.fastq --reference-db examples/demo_db --output kneaddata_demo_output ``
+
+This will create three output files:
+
+1. `` kneaddata_demo_output/demo_kneaddata.fastq ``
+2. `` kneaddata_demo_output/demo_kneaddata_demo_db_contam.fastq ``
+3. `` kneaddata_demo_output/demo_kneaddata.log ``
+
