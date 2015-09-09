@@ -308,7 +308,8 @@ def check_fastq(strFname):
     '''
     Returns True if file strFname is a fastq file (based on file extension)
     '''
-    return (strFname.endswith('.fastq'))
+    isFastq = strFname.endswith('.fastq') or strFname.endswith('.fq')
+    return (isFastq)
 
 def intersect_fastq(lstrFiles, out_file):
     ''' 
