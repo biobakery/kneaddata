@@ -15,7 +15,7 @@ import sys
 
 from knead_datalib import strategies, try_create_dir, parse_positive_int
 
-VERSION="0.4.3.9999"
+VERSION="0.4.4"
 
 def handle_cli():
     """parse command line arguments
@@ -112,7 +112,7 @@ def handle_cli():
         "--extract",
         default=False, action="store_true",
         help=("Only has an effect if --bmtagger is set. If this is set,"
-              " knead_data outputs cleaned FASTQs, without contaminant reads."
+              " kneaddata outputs cleaned FASTQs, without contaminant reads."
               " Else, output a list or lists of contaminant reads."))
     group4.add_argument(
         "--bmtagger-path",
@@ -316,7 +316,7 @@ def main():
 
     args = setup_logging(args)
 
-    logging.debug("Running knead_data.py with the following"
+    logging.debug("Running kneaddata with the following"
                   " arguments (from argparse): %s", str(args))
 
     # Get the format of the first input file
