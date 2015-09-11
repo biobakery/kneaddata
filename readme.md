@@ -39,7 +39,7 @@ Before installing KneadData, please install the Java Runtime Environment (JRE). 
     * `` $ python setup.py install ``
     * This command will automatically install Trimmomatic and Bowtie2. To bypass the install of dependencies, add the option "--bypass-dependencies-install".
     * If you do not have write permissions to '/usr/lib/', then add the option "--user" to the install command. This will install the python package into subdirectories of '~/.local'. Please note when using the "--user" install option on some platforms, you might need to add '~/.local/bin/' to your $PATH as it might not be included by default. You will know if it needs to be added if you see the following message ``kneaddata: command not found`` when trying to run KneadData after installing with the "--user" option.
-3. Download the reference database to $DIR
+3. Download the human reference database to $DIR
     * `` $ kneaddata_database --download human bowtie2 $DIR ``
     * When running this command, $DIR should be replaced with the full path to the directory you have selected to store the database.
 
