@@ -49,9 +49,9 @@ def handle_cli():
         required=True)
     group1.add_argument(
         "--threads",
-        type=parse_positive_int, default=None, 
+        type=parse_positive_int, default=1, 
         help=("Maximum number of processes to run."
-              " Default uses all but one available CPUs"))
+              " Default is 1."))
     group1.add_argument(
         "-s", "--strategy",
         default="storage", choices=['memory','storage'],
