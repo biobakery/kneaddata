@@ -325,7 +325,7 @@ You have two databases, one prefixed `bact_rrna_db` and the other prefixed
 `human_rna_db`, and your sequence files are `seq1.fastq` and `seq2.fastq`. To
 run with Bowtie2, execute
 
-    `$ kneaddata --input seq1.fastq --input2 seq2.fastq -db bact_rrna_db human_rna_db --output seq_out `
+    `$ kneaddata --input seq1.fastq --input2 seq2.fastq -db bact_rrna_db -db human_rna_db --output seq_out `
 
 This will output files in the folder `seq_out` named:
 
@@ -404,7 +404,7 @@ Aggregated files:
 
 To run with BMTagger, execute
 
-    ` $ kneaddata --input seq1.fastq --input2 seq2.fastq -db bact_rrna_db human_rna_db --bmtagger --bmtagger-path ~/bin/bmtagger.sh --output seq_contams `
+    ` $ kneaddata --input seq1.fastq --input2 seq2.fastq -db bact_rrna_db -db human_rna_db --bmtagger --bmtagger-path ~/bin/bmtagger.sh --output seq_contams `
 
 ---------------------------------
 

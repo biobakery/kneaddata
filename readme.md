@@ -56,7 +56,7 @@ $DATABASE = the index of the KneadData database
 $OUTPUT_DIR = the output directory
 ```
 
-For paired end reads, add the option “--input2 $INPUT2” (with $INPUT2 replaced with the second input file). Also please note that more than one reference database can be provided.
+For paired end reads, add the option “--input2 $INPUT2” (with $INPUT2 replaced with the second input file). Also please note that more than one reference database can be provided by using multiple database options (for example, "--reference-db $DATABASE1 --reference-db $DATABASE2").
 
 Three types of output files will be created (where $INPUTNAME is the basename of $INPUT):
 
