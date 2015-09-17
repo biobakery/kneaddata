@@ -14,7 +14,6 @@ import re
 import sys
 
 from knead_datalib import strategies, try_create_dir, parse_positive_int
-from humann2.config import bowtie2_index_ext_list, bowtie2_large_index_ext
 
 VERSION="0.4.5"
 
