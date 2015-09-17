@@ -8,6 +8,7 @@ import itertools
 import subprocess
 import collections
 from functools import partial
+import gzip
 
 from . import constants_knead_data as const
 from . import divvy_threads, try_create_dir, mktempfifo, process_return, _get_bowtie2_args
@@ -319,6 +320,11 @@ def check_fastq(strFname):
     '''
     Returns True if file strFname is a fastq file (based on file extension)
     '''
+    
+    # remove the gzip extension if present
+    if strFname.endswith(".gz"):
+        strFname=strFname.replace(".gz","")
+    
     isFastq = strFname.endswith('.fastq') or strFname.endswith('.fq')
     return (isFastq)
 
@@ -575,28 +581,41 @@ def get_num_reads(strFname):
     pat = r'[0-9]+ '
     cmd = ["wc",  "-l", strFname]
     fIsFastq = check_fastq(strFname)
-
-    try:
-        out = subprocess.check_output(cmd)
-    except subprocess.CalledProcessError as e:
-        logging.warning("Command %s failed with return code %i ",
-                        str(e.cmd), e.returncode)
-        return None
-    else:
-        # match to get the line numbers
-        match = re.search(pat, out)
-        if match:
-            num_reads = int(match.group())
+    
+    # if this is a gzipped file, then count the number of lines by reading through the file
+    if strFname.endswith(".gz"):
+        try:
+            num_reads = sum(1 for line in gzip.open(strFname))
+        except EnvironmentError:
+            return None
+        else:
             if fIsFastq:
                 # one read is 4 lines in the fastq file
                 num_reads = num_reads/4
-
-            return(num_reads)
-        else:
-            # should not happen
-            logging.critical("This should not happen. "
-                             "Can't find the regex in wc output!")
+            return num_reads
+    # if this is not a compressed file, then count the reads with wc
+    else:
+        try:
+            out = subprocess.check_output(cmd)
+        except subprocess.CalledProcessError as e:
+            logging.warning("Command %s failed with return code %i ",
+                            str(e.cmd), e.returncode)
             return None
+        else:
+            # match to get the line numbers
+            match = re.search(pat, out)
+            if match:
+                num_reads = int(match.group())
+                if fIsFastq:
+                    # one read is 4 lines in the fastq file
+                    num_reads = num_reads/4
+    
+                return(num_reads)
+            else:
+                # should not happen
+                logging.critical("This should not happen. "
+                                 "Can't find the regex in wc output!")
+                return None
    
    
 def msg_num_reads(lstrFiles):
