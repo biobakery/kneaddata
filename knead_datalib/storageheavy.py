@@ -64,9 +64,10 @@ def _poll_workers(popen_list):
             failures.append((val, cmd))
             
     if failures:
-        msg = [ " ".join(cmd) + " Returned code " + val 
-                for cmd, val in failures ]
-        raise OSError("The following commands failed: "+msg)
+        msg = "\n".join([ " ".join(cmd) + " Returned code " + str(val) 
+                for val, cmd in failures ])
+        logging.critical("The following commands failed: "+msg)
+        sys.exit(1)
     else:
         return (still_running, procs_still_running)
 
@@ -128,24 +129,34 @@ def align(infile_list, db_prefix_list, output_prefix, tmp_dir,
             outputs.append(output_to_combine)
 
     # wait for everything to finish after we started running all the processes
+    commands_with_errors=0
+    ret_codes=[]
+    commands_ran=[]
     for p, cmd in procs_running:
         stdout, stderr = p.communicate()
         cmd = " ".join(cmd)
-        logging.debug("bowtie2 command `%s' Complete", cmd)
+        
+        # check if the command finished without an error
+        returncode = p.returncode
+        ret_codes.append(returncode)
+        commands_ran.append(cmd)
+        if returncode == 0:
+            logging.debug("bowtie2 command `%s' Complete", cmd)
+        else:
+            logging.warning("bowtie2 command reported an error")
+            
         if stdout:
             logging.debug("bowtie2 command `%s' stdout: %s", cmd, stdout)
         if stderr:
             logging.debug("bowtie2 command `%s' stderr: %s", cmd, stderr)
-
-    ret_codes = [p.returncode for p, _ in procs_running]
-
+        
     # if Bowtie2 produced correct output, merge the files from multiple
     # databases
     combined_outs = []
     if (outputs != []):
         combined_outs = combine_tag(outputs, output_prefix)
 
-    return(ret_codes, commands_to_run, combined_outs)
+    return(ret_codes, commands_ran, combined_outs)
 
 
 def tag(infile_list, db_prefix_list, temp_dir, prefix,
@@ -862,6 +873,17 @@ def storage_heavy(args):
                                                bowtie2_path   = args.bowtie2_path,
                                                n_procs        = bowtie_threads,
                                                bowtie2_opts   = args.bowtie2_args)
+            
+        # check that everything returned correctly
+        # gather non-zero return codes
+        fails = [(i, ret_code) for i, ret_code in enumerate(ret_codes)
+                 if ret_code != 0]
+        if len(fails) > 0:
+            for i, ret_code in fails:
+                logging.critical("The following command failed with return code %s: %s",
+                             ret_code, commands[i])
+            sys.exit(1)
+    
         # run TRF (within loop)
         # iterate over all outputs from combining (there should either be 1 or
         # 2)
@@ -886,17 +908,6 @@ def storage_heavy(args):
             if not debug:
                 for c_out in c_outs:
                     os.remove(c_out)
-
-    # check that everything returned correctly
-    # gather non-zero return codes
-    fails = [(i, ret_code) for i, ret_code in enumerate(ret_codes)
-             if ret_code != 0]
-    if len(fails) > 0:
-        for i, ret_code in fails:
-            logging.critical("The following command failed with return code %s: %s",
-                         ret_code, commands[i])
-        sys.exit(1)
-
 
     logging.info("Finished removing contaminants")
 
