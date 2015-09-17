@@ -14,6 +14,7 @@ import re
 import sys
 
 from knead_datalib import strategies, try_create_dir, parse_positive_int
+from humann2.config import bowtie2_index_ext_list, bowtie2_large_index_ext
 
 VERSION="0.4.5"
 
@@ -206,8 +207,61 @@ def handle_cli():
         "--bowtie2-path", False)
     # add the full path to bowtie2
     args.bowtie2_path=os.path.abspath(os.path.join(args.bowtie2_path,bowtie2_exe))
+    
+    # find the bowtie2 indexes for each of the reference databases
+    # reference database inputs can be directories, indexes, or index files
+    reference_indexes=set()
+    for directory in args.reference_db:
+        reference_indexes.add(find_bowtie2_index(os.path.abspath(directory)))
 
+    args.reference_db=list(reference_indexes)
+    
     return args
+
+def find_bowtie2_index(directory):
+    """
+    Search through the directory for the name of the bowtie2 index files
+    Or if a file name is provided check it is a bowtie2 index
+    """
+    
+    index=""
+    # the extensions for standard bowtie2 index files
+    bowtie2_index_ext_list=[".1.bt2",".2.bt2",".3.bt2",".4.bt2",
+        ".rev.1.bt2",".rev.2.bt2"]
+    # an extension for one of the index files for a large database
+    bowtie2_large_index_ext=".1.bt2l"
+    
+    bowtie2_extensions=bowtie2_index_ext_list+[bowtie2_large_index_ext]
+    
+    if not os.path.isdir(directory):
+        # check if this is the bowtie2 index file
+        if os.path.isfile(directory):
+            # check for the bowtie2 extension
+            for ext in bowtie2_extensions:
+                if re.search(ext+"$",directory):
+                    index=directory.replace(ext,"")
+                    break
+        else:
+            # check if this is the basename of the bowtie2 index files
+            small_index=directory+bowtie2_index_ext_list[0]
+            large_index=directory+bowtie2_large_index_ext
+            if os.path.isfile(small_index) or os.path.isfile(large_index):
+                index=directory
+    else:
+        # search through the files to find one with the bowtie2 extension
+        for file in os.listdir(directory):
+            # look for an extension for a standard and large bowtie2 indexed database
+            for ext in [bowtie2_index_ext_list[-1],bowtie2_large_index_ext]:
+                if re.search(ext+"$",file):
+                    index=os.path.join(directory,file.replace(ext,""))
+                    break
+            if index:
+                break
+    
+    if not index:
+        sys.exit("ERROR: Unable to find bowtie2 index files in directory: " + directory)
+    
+    return index
 
 def check_for_dependency(path_provided,exe,name,path_option,bypass_permissions_check):
     """ 
