@@ -9,8 +9,7 @@ import Queue
 #import multiprocessing
 import threading
 
-# import stuff from the __init__.py in this directory
-from __init__ import parse_positive_int, mkfifo_here, try_create_dir, process_return
+from kneaddata import util
 here = os.path.dirname(os.path.realpath(__file__))
 
 ############## constants ######################
@@ -218,7 +217,7 @@ def run_tandem(fastq, output, match=2, mismatch=7, delta=7, pm=80, pi=10,
         else:
             mask_out = output + ".mask"
 
-    with mkfifo_here((fasta_fname, )) as filenames:
+    with util.mkfifo_here((fasta_fname, )) as filenames:
         #logging.debug(filenames)
         #qual_queue = multiprocessing.JoinableQueue()
         #trf_out_queue = multiprocessing.JoinableQueue()
@@ -260,31 +259,31 @@ def handle_cli():
             default="trf",
             help="Path to TRF executable if not found in $PATH")
     parser.add_argument(
-            "--match", type=parse_positive_int,
+            "--match", type=util.parse_positive_int,
             default=2, 
             help="TRF matching weight")
     parser.add_argument(
-            "--mismatch", type=parse_positive_int,
+            "--mismatch", type=util.parse_positive_int,
             default=7, 
             help="TRF mismatching penalty")
     parser.add_argument(
-            "--delta", type=parse_positive_int,
+            "--delta", type=util.parse_positive_int,
             default=7, 
             help="TRF indel penalty")
     parser.add_argument(
-            "--pm", type=parse_positive_int,
+            "--pm", type=util.parse_positive_int,
             default=80,
             help="TRF match probability (whole number)")
     parser.add_argument(
-            "--pi", type=parse_positive_int,
+            "--pi", type=util.parse_positive_int,
             default=10,
             help="TRF indel probability (whole number)")
     parser.add_argument(
-            "--minscore", type=parse_positive_int,
+            "--minscore", type=util.parse_positive_int,
             default=50, 
             help="TRF minimum alignment score to report")
     parser.add_argument(
-            "--maxperiod", type=parse_positive_int,
+            "--maxperiod", type=util.parse_positive_int,
             default=500, 
             help="TRF maximum period size to report")
     parser.add_argument(

@@ -22,7 +22,7 @@ except (AttributeError,IndexError):
         str(required_python_version_minor)+"+)")
 
 try:
-    from setuptools import setup
+    import setuptools
 except ImportError:
     sys.exit("Please install setuptools.")
     
@@ -300,28 +300,35 @@ class Install(_install):
         else:
             print("Bypass install of dependencies.")
 
-setup(
-    name='knead-datalib',
+setuptools.setup(
+    name='kneaddata',
     version=VERSION,
-    description='',
-    packages=['knead_datalib'],
+    description="KneadData is a tool designed to perform quality control on metagenomic " + \
+        "sequencing data, especially data from microbiome experiments. In these experiments, " + \
+        "samples are typically taken from a host in hopes of learning something about the " + \
+        "microbial community on the host. However, metagenomic sequencing data from such " + \
+        "experiments will often contain a high ratio of host to bacterial reads. This " + \
+        "tool aims to perform principled in silico separation of bacterial reads from " + \
+        "these \"contaminant\" reads, be they from the host, from bacterial 16S " + \
+        "sequences, or other user-defined sources.",
+    packages=setuptools.find_packages(),
     zip_safe=False,
     classifiers=[
-        "Development Status :: 3 - Alpha"
-    ],
-    scripts=[
-        os.path.join(setup_directory, "knead_data.py"), 
-        os.path.join(setup_directory, "download_db.py"),
-        os.path.join(setup_directory, "generate_db.py")
+        "Programming Language :: Python",
+        "Development Status :: 4 - Beta",
+        "Environment :: Console",
+        "License :: MIT License",
+        "Operating System :: MacOS",
+        "Operating System :: Unix",
+        "Topic :: Scientific/Engineering :: Bio-Informatics"
         ],
+    long_description=open('readme.md').read(),
     cmdclass={'install': Install},
     entry_points = {
-        "distutils.commands": [
-            "trimmomatic = knead_datalib.util:DownloadTrimmomaticCommand"
-        ],
         "console_scripts": [
-            "kneaddata = knead_data:main",
-            "kneaddata_database = download_db:main"
+            "kneaddata = kneaddata.knead_data:main",
+            "kneaddata_database = kneaddata.download_db:main",
+            "kneaddata_build_database = kneaddata.generate_db:main"
         ]
     }
 )

@@ -1,0 +1,14 @@
+include LICENSE
+include readme.md
+include setup.py
+
+include examples/demo.fastq
+include examples/demo_db.1.bt2
+include examples/demo_db.2.bt2
+include examples/demo_db.3.bt2
+include examples/demo_db.4.bt2
+include examples/demo_db.rev.1.bt2
+include examples/demo_db.rev.2.bt2
+
+include doc/UserManual.md
+

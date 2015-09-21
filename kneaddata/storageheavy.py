@@ -10,9 +10,9 @@ import collections
 from functools import partial
 import gzip
 
-from . import constants_knead_data as const
-from . import divvy_threads, try_create_dir, mktempfifo, process_return, _get_bowtie2_args
-import memoryheavy
+from . import util
+from . import constants
+from . import memoryheavy
 
 def _generate_bowtie2_commands( infile_list, db_prefix_list,
                                 bowtie2_path, output_prefix,
@@ -40,7 +40,7 @@ def _generate_bowtie2_commands( infile_list, db_prefix_list,
                      "--un", output_str + "_clean.fastq"]
             outputs_to_combine = [output_str + "_clean.fastq"]
 
-        cmd += list(_get_bowtie2_args(bowtie2_opts))
+        cmd += list(util._get_bowtie2_args(bowtie2_opts))
         sam_out = os.path.join(tmp_dir, os.path.basename(output_str) + ".sam")
         cmd += [ "-S", sam_out ]
         yield (cmd, outputs_to_combine)
@@ -177,7 +177,7 @@ def tag(infile_list, db_prefix_list, temp_dir, prefix,
                            needs databases of the format db_prefix.bitmask, 
                            db_prefix.srprism.*, and db_prefix.{blastdb file
                            extensions} for any fixed db_prefix (see
-                           const.BMTAGGER_DB_ENDINGS for full list of endings).
+                           constants.BMTAGGER_DB_ENDINGS for full list of endings).
                            Multiple databases can be specified. Uses
                            subprocesses to run BMTagger in parallel
     :param temp_dir: String; Path name to temporary directory for BMTagger
@@ -215,7 +215,7 @@ def tag(infile_list, db_prefix_list, temp_dir, prefix,
                               "-T", temp_dir, 
                               "-o", out_prefix,
                               "--extract"] 
-                outputs[i] = [out_prefix + const.BMTAGGER_SE_ENDING]
+                outputs[i] = [out_prefix + constants.BMTAGGER_SE_ENDING]
 
             else:
                 out_prefix = prefix + "_" + basename + "_contam.out"
@@ -242,7 +242,7 @@ def tag(infile_list, db_prefix_list, temp_dir, prefix,
                               "-o", out_prefix,
                               "--extract"]
                 outputs[i] = [out_prefix + ending for ending in
-                        const.BMTAGGER_PE_ENDINGS]
+                        constants.BMTAGGER_PE_ENDINGS]
                                             
             else:
                 out_prefix = prefix + "_" + basename + "_contam.out"
@@ -532,7 +532,7 @@ def checktrim_output(output_prefix, b_single_end):
     ll_new_inputs = []
     if b_single_end:
 
-        outputs.append(output_prefix + const.TRIM_SE_ENDING)
+        outputs.append(output_prefix + constants.TRIM_SE_ENDING)
         checks = checkfile(outputs[0])
         if checks <= 0:
             return (False, outputs, ll_new_inputs)
@@ -540,8 +540,8 @@ def checktrim_output(output_prefix, b_single_end):
             ll_new_inputs = [outputs]
 
     else:
-        len_endings = len(const.TRIM_PE_ENDINGS)
-        outputs = [output_prefix + ending for ending in const.TRIM_PE_ENDINGS]
+        len_endings = len(constants.TRIM_PE_ENDINGS)
+        outputs = [output_prefix + ending for ending in constants.TRIM_PE_ENDINGS]
 
         checks = [checkfile(out) for out in outputs]
 
@@ -651,9 +651,9 @@ def check_missing_files(args):
     for db_prefix in args.reference_db:
         dbs = None
         if args.bmtagger:
-            dbs = map(lambda x: str(db_prefix + x), const.BMTAGGER_DB_ENDINGS)
+            dbs = map(lambda x: str(db_prefix + x), constants.BMTAGGER_DB_ENDINGS)
         else:
-            dbs = map(lambda x: str(db_prefix + x), const.BOWTIE2_DB_ENDINGS)
+            dbs = map(lambda x: str(db_prefix + x), constants.BOWTIE2_DB_ENDINGS)
         logging.debug(dbs)
         checks = [ ( checkfile( db, ftype="reference database", 
                                 fail_hard=False), db) 
@@ -783,7 +783,7 @@ def trim(infile, prefix, trimmomatic_path,
                             stdout=subprocess.PIPE)
     stdout, stderr = proc.communicate()
     retcode = proc.returncode
-    process_return("Trimmomatic", retcode, stdout, stderr)
+    util.process_return("Trimmomatic", retcode, stdout, stderr)
     return(retcode, trim_cmd)
 
 
@@ -805,12 +805,12 @@ def run_trf(fastqs, outs, match=2, mismatch=7, delta=7, pm=80, pi=10,
     for (proc, name) in zip(procs, names):
         stdout, stderr = proc.communicate()
         retcode = proc.returncode
-        process_return(name, retcode, stdout, stderr)
+        util.process_return(name, retcode, stdout, stderr)
 
 def storage_heavy(args):
     check_missing_files(args)
 
-    trim_threads, bowtie_threads = divvy_threads(args)
+    trim_threads, bowtie_threads = util.divvy_threads(args)
     output_prefix = os.path.join(args.output_dir, args.output_prefix)
 
     # determine single-ended or pair ends
@@ -849,7 +849,7 @@ def storage_heavy(args):
 
     # make temporary directory for Bowtie2 files
     tempdir = output_prefix + "_temp"
-    try_create_dir(tempdir)
+    util.try_create_dir(tempdir)
 
     # TODO: Add parallelization. Use command line utility 'split' to split the
     # files, fork a thread for each file, and run BMTagger in each thread.

@@ -168,10 +168,10 @@ documentation](http://bowtie-bio.sourceforge.net/bowtie2/manual.shtml#the-bowtie
 
 #### BMTagger
 
-KneadData includes `generate_db.py`, a Python script that
+KneadData includes `kneaddata_build_database`, an executable that
 will automatically generate these databases for BMTagger. Simply run
 
-`$ python generate_db.py reference.fasta`
+`$ kneaddata_build_database reference.fasta`
 
 By default, this will generate the reference databases, whose names are prefixed
 with `reference.fasta`. 
@@ -181,7 +181,7 @@ A note on PATH: The above command will fail if the tools in the BMTagger suite
 your PATH. If this is the case, you can specify a path to these tools using the
 `-b`, `-s`, and `-m` options. Run 
 
-`$ python generate_db.py -h` 
+`$ kneaddata_build_database -h` 
 
 for more details.
 
@@ -196,7 +196,7 @@ can generate the KneadData database by executing
 
 for Bowtie2, or
 
-`$ python generate_db.py Homo_sapiens.fasta -o Homo_sapiens_db`
+`$ kneaddata_build_database Homo_sapiens.fasta -o Homo_sapiens_db`
 
 for BMTagger. 
 

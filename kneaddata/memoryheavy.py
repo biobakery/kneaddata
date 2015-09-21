@@ -6,7 +6,7 @@ import subprocess
 from glob import glob
 from itertools import tee, izip_longest
 
-from . import divvy_threads, mktempfifo, process_return
+from . import util
 here = os.path.dirname(os.path.realpath(__file__))
 
 
@@ -103,7 +103,7 @@ def decontaminate_reads(in_fname, index_strs, output_prefix,
     if trf:
         tmpfilebases += [os.path.basename(index_strs[-1])]
 
-    with mktempfifo(tmpfilebases) as filenames:
+    with util.mktempfifo(tmpfilebases) as filenames:
         clean_file = os.path.join(output_dir, output_prefix+".fastq")
         filter_proc = trimmomatic(in_fname, filenames[0],
                                   filter_args_list, filter_jar_path,
@@ -145,7 +145,7 @@ def decontaminate_reads(in_fname, index_strs, output_prefix,
         for proc, name in zip(procs, names):
             stdout, stderr = proc.communicate()
             retcode = proc.returncode
-            process_return(name, retcode, stdout, stderr)
+            util.process_return(name, retcode, stdout, stderr)
 
 
 def check_args(args):
@@ -174,7 +174,7 @@ def check_args(args):
 
 def memory_heavy(args):
     args = check_args(args)
-    trim_threads, bowtie_threads = divvy_threads(args)
+    trim_threads, bowtie_threads = util.divvy_threads(args)
     decontaminate_reads(args.infile1, args.reference_db,
                         args.output_prefix, args.output_dir,
                         args.trim_args, args.trim_path, trim_threads,

@@ -1,11 +1,12 @@
 #!/usr/bin/env python
 
 '''
-knead_data.py
+kneaddata.py
 Author: Andy Shi
 
 Pipeline for processing metagenomics sequencing data
 '''
+
 import os
 import logging
 import argparse
@@ -13,7 +14,15 @@ import gzip
 import re
 import sys
 
-from knead_datalib import strategies, try_create_dir, parse_positive_int
+# Try to load one of the kneaddata modules to check the installation
+try:
+    from . import util
+except ImportError:
+    sys.exit("ERROR: Unable to find the kneaddata python package." +
+        " Please check your install.")
+
+from . import storageheavy
+from . import memoryheavy
 
 VERSION="0.4.5"
 
@@ -49,7 +58,7 @@ def handle_cli():
         required=True)
     group1.add_argument(
         "--threads",
-        type=parse_positive_int, default=1, 
+        type=util.parse_positive_int, default=1, 
         help=("Maximum number of processes to run."
               " Default is 1."))
     group1.add_argument(
@@ -78,7 +87,7 @@ def handle_cli():
         help="path to Trimmomatic .jar executable")
     group2.add_argument(
         "--trimlen",
-        type=parse_positive_int, default=60,
+        type=util.parse_positive_int, default=60,
         help="minimum length for a trimmed read in Trimmomatic")
     group2.add_argument(
         "-m", "--max-mem",
@@ -129,31 +138,31 @@ def handle_cli():
             default="trf",
             help="Path to TRF executable if not found in $PATH")
     group5.add_argument(
-            "--match", type=parse_positive_int,
+            "--match", type=util.parse_positive_int,
             default=2, 
             help="TRF matching weight. Default: 2")
     group5.add_argument(
-            "--mismatch", type=parse_positive_int,
+            "--mismatch", type=util.parse_positive_int,
             default=7, 
             help="TRF mismatching penalty. Default: 7")
     group5.add_argument(
-            "--delta", type=parse_positive_int,
+            "--delta", type=util.parse_positive_int,
             default=7, 
             help="TRF indel penalty. Default: 7")
     group5.add_argument(
-            "--pm", type=parse_positive_int,
+            "--pm", type=util.parse_positive_int,
             default=80,
             help="TRF match probability (whole number). Default: 80")
     group5.add_argument(
-            "--pi", type=parse_positive_int,
+            "--pi", type=util.parse_positive_int,
             default=10,
             help="TRF indel probability (whole number). Default: 10")
     group5.add_argument(
-            "--minscore", type=parse_positive_int,
+            "--minscore", type=util.parse_positive_int,
             default=50, 
             help="TRF minimum alignment score to report. Default: 50")
     group5.add_argument(
-            "--maxperiod", type=parse_positive_int,
+            "--maxperiod", type=util.parse_positive_int,
             default=500, 
             help="TRF maximum period size to report. Default: 500")
     group5.add_argument(
@@ -175,7 +184,7 @@ def handle_cli():
     args.output_dir = os.path.abspath(args.output_dir)
     
     # create the output directory if needed
-    try_create_dir(args.output_dir)
+    util.try_create_dir(args.output_dir)
 
     if (not args.no_generate_fastq) and (not args.mask) and args.trf:
         parser.error("\nYou cannot set the --no-generate-fastq flag without"
@@ -380,9 +389,9 @@ def main():
         sys.exit(1)
 
     if args.strategy == 'memory':
-        strategies.memory_heavy(args)
+        memoryheavy.memory_heavy(args)
     elif args.strategy == 'storage':
-        strategies.storage_heavy(args)
+        storageheavy.storage_heavy(args)
         
     logging.info("Done!")
 

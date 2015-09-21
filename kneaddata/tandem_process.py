@@ -5,7 +5,6 @@ import time
 import logging
 import argparse
 from itertools import izip_longest
-from __init__ import mktempfifo
 
 import threading
 import Queue
