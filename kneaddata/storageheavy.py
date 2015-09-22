@@ -585,7 +585,9 @@ def get_num_reads(strFname):
     # if this is a gzipped file, then count the number of lines by reading through the file
     if strFname.endswith(".gz"):
         try:
-            num_reads = sum(1 for line in gzip.open(strFname))
+            num_reads = 0
+            for line in gzip.open(strFname):
+                num_reads+=1
         except EnvironmentError:
             return None
         else:
