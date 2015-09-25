@@ -24,7 +24,7 @@ except ImportError:
 from . import storageheavy
 from . import memoryheavy
 
-VERSION="0.4.6"
+VERSION="0.4.6.1"
 
 def handle_cli():
     """parse command line arguments
