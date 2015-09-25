@@ -86,10 +86,6 @@ def handle_cli():
         "-t", "--trim-path",
         help="path to Trimmomatic .jar executable")
     group2.add_argument(
-        "--trimlen",
-        type=util.parse_positive_int, default=60,
-        help="minimum length for a trimmed read in Trimmomatic")
-    group2.add_argument(
         "-m", "--max-mem",
         default="500m", 
         help=("Maximum amount of memory that will be used by "
