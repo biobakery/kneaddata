@@ -121,7 +121,7 @@ as well.
 ### Data Locations
 
 KneadData requires reference sequences for the contamination you are trying to
-remove. Let's say you wish to filter reads from a particular "host." Broadly
+remove. Say you wish to filter reads from a particular "host." Broadly
 defined, the host can be an organism, or a set of organisms, or just a set of
 sequences. Then, you simply must provide KneadData with a
 [FASTA](http://en.wikipedia.org/wiki/FASTA_format) file containing these
@@ -188,8 +188,8 @@ for more details.
 
 ##### Example
 
-Let's say you want to remove human reads from your metagenomic sequencing data.
-You've downloaded the human genome in a file called `Homo_sapiens.fasta`. You
+Say you want to remove human reads from your metagenomic sequencing data.
+You downloaded the human genome in a file called `Homo_sapiens.fasta`. You
 can generate the KneadData database by executing
 
 `$ bowtie2-build Homo_sapiens.fasta -o Homo_sapiens_db`
@@ -251,9 +251,9 @@ list of contaminant reads found in `seq.fastq`. If instead you pass the
 
 ##### Example
 
-Continuing from the previous example, let's say we want to remove human reads
-from a file called `seq.fastq` using the *Homo sapiens* database we generated
-earlier. To run with Bowtie2:
+Continuing from the previous example, say we want to remove human reads from a
+file called `seq.fastq` using the *Homo sapiens* database we generated earlier.
+To run with Bowtie2:
 
     ` $ kneaddata --input seq.fastq --reference-db Homo_sapiens_db --output seq_output `
 
@@ -264,14 +264,14 @@ This will create files in the folder `seq_output` named:
 + `seq_kneaddata.fastq`: Contains reads that were not identified as being human. 
 + `seq_kneaddata.log`
 
-If you wanted to use BMTagger, suppose the BMTagger executable was located
-at `~/bin/bmtagger.sh`. Let's say you want your contaminant reads to be stored
-in a file called `seq_contams.out` in the folder `kneaddata_output`. You would then run
+If you wanted to use BMTagger, suppose the BMTagger executable was located at
+`~/bin/bmtagger.sh`. Say you want your contaminant reads to be stored in a file
+called `seq_contams.out` in the folder `kneaddata_output`. You would then run
 
     ` $ kneaddata --input seq.fastq -db Homo_sapiens_db --bmtagger --bmtagger-path ~/bin/bmtagger.sh --output-prefix seq_output --output kneaddata_output `
 
-Let's say that, instead of outputting your contaminant reads in a separate file,
-you just want a "cleaned" FASTQ file that contains no contaminant reads. If you
+Say that, instead of outputting your contaminant reads in a separate file, you
+just want a "cleaned" FASTQ file that contains no contaminant reads. If you
 execute
 
     ` $ kneaddata --input seq.fastq -db Homo_sapiens_db --bmtagger --bmtagger-path ~/bin/bmtagger.sh --output kneaddata_output`
@@ -303,8 +303,8 @@ When performing quality filtering and trimming for paired end files, 3 things
 can happen:
 
 1. Both reads in the pair pass. 
-2. The read in the first mate passes, and the one in the second doesn't. 
-3. The read in the second mate passes, and the one in the first doesn't. 
+2. The read in the first mate passes, and the one in the second does not pass. 
+3. The read in the second mate passes, and the one in the first does not pass. 
 
 The number of outputs are a function of the read quality. 
 
@@ -319,7 +319,7 @@ and want cleaned FASTQ files without the contaminant reads.
 
 ##### Example
 
-Instead of single end reads, let's say you have paired end reads and you want to
+Instead of single end reads, say you have paired end reads and you want to
 separate the reads that came from bacterial mRNA, bacterial rRNA, and human RNA.
 You have two databases, one prefixed `bact_rrna_db` and the other prefixed
 `human_rna_db`, and your sequence files are `seq1.fastq` and `seq2.fastq`. To
@@ -417,14 +417,14 @@ This documentation can be accessed via `kneaddata -h`.
 usage: kneaddata [-h] -i INFILE1 [--input2 INFILE2] -db REFERENCE_DB
                  [--output-prefix OUTPUT_PREFIX] -o OUTPUT_DIR
                  [--threads THREADS] [-s {memory,storage}] [-l LOGGING]
-                 [--logfile LOGFILE] [--version] [-t TRIM_PATH]
-                 [--trimlen TRIMLEN] [-m MAX_MEM] [-a TRIM_ARGS]
-                 [--bowtie2-path BOWTIE2_PATH] [--bowtie2-args BOWTIE2_ARGS]
-                 [--bmtagger] [--extract] [--bmtagger-path BMTAGGER_PATH]
-                 [--trf] [--trf-path TRF_PATH] [--match MATCH]
-                 [--mismatch MISMATCH] [--delta DELTA] [--pm PM] [--pi PI]
-                 [--minscore MINSCORE] [--maxperiod MAXPERIOD]
-                 [--no-generate-fastq] [--mask] [--html]
+                 [--logfile LOGFILE] [--version] [-t TRIM_PATH] [-m MAX_MEM]
+                 [-a TRIM_ARGS] [--bowtie2-path BOWTIE2_PATH]
+                 [--bowtie2-args BOWTIE2_ARGS] [--bmtagger] [--extract]
+                 [--bmtagger-path BMTAGGER_PATH] [--trf] [--trf-path TRF_PATH]
+                 [--match MATCH] [--mismatch MISMATCH] [--delta DELTA]
+                 [--pm PM] [--pi PI] [--minscore MINSCORE]
+                 [--maxperiod MAXPERIOD] [--no-generate-fastq] [--mask]
+                 [--html]
 
 optional arguments:
   -h, --help            show this help message and exit
@@ -440,8 +440,7 @@ global options:
                         prefix for all output files
   -o OUTPUT_DIR, --output OUTPUT_DIR
                         where to write all output files
-  --threads THREADS     Maximum number of processes to run. Default uses all
-                        but one available CPUs
+  --threads THREADS     Maximum number of processes to run. Default is 1.
   -s {memory,storage}, --strategy {memory,storage}
                         Define operating strategy: 'storage' for IO-heavy or
                         'memory' for memory-heavy
@@ -455,7 +454,6 @@ global options:
 trimmomatic arguments:
   -t TRIM_PATH, --trim-path TRIM_PATH
                         path to Trimmomatic .jar executable
-  --trimlen TRIMLEN     minimum length for a trimmed read in Trimmomatic
   -m MAX_MEM, --max-mem MAX_MEM
                         Maximum amount of memory that will be used by
                         Trimmomatic, as a string, ie 500m or 8g
