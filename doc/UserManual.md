@@ -1,4 +1,4 @@
-# KneadData User Guide v0.4.5
+# KneadData User Guide v0.4.6
 
 Last updated on September 10, 2015.
 
@@ -54,7 +54,7 @@ homepage](http://huttenhower.org/kneaddata)
 To download the latest stable release (recommended), use the link below and extract
 the files.
 
-- [GZ](https://bitbucket.org/biobakery/kneaddata/downloads/kneaddata_v0.4.5.tar.gz)
+- [GZ](https://bitbucket.org/biobakery/kneaddata/downloads/kneaddata-v0.4.6.1.tar.gz)
 
 Or
 
