@@ -84,3 +84,6 @@ This will create three output files:
 1. `` kneaddata_demo_output/demo_kneaddata.fastq ``
 2. `` kneaddata_demo_output/demo_kneaddata_demo_db_contam.fastq ``
 3. `` kneaddata_demo_output/demo_kneaddata.log ``
+
+## User Manual ##
+For the full user manual and more advanced usage, see the [User Manual](doc/UserManual.md).
