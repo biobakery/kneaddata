@@ -45,7 +45,7 @@ def handle_cli():
         default=None)
     group1.add_argument(
         "-db", "--reference-db",
-        default=[], action="append", required=True,
+        default=[], action="append",
         help=("prefix for reference databases used for either"
               " Bowtie2 or BMTagger"))
     group1.add_argument(
