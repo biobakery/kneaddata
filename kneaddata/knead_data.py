@@ -30,7 +30,6 @@ except (AttributeError,IndexError):
 import os
 import logging
 import argparse
-import gzip
 import re
 
 # Try to load one of the kneaddata modules to check the installation
@@ -351,46 +350,6 @@ def setup_logging(args):
     
     return args
 
-
-def get_file_format(file):
-    """ Determine the format of the file """
-
-    format="unknown"
-    file_handle=None
-
-    # check the file exists and is readable
-    if not os.path.isfile(file):
-        logging.critical("The input file selected is not a file: %s.",file)
-
-    if not os.access(file, os.R_OK):
-        logging.critical("The input file selected is not readable: %s.",file)
-
-    try:
-        # check for gzipped files
-        if file.endswith(".gz"):
-            file_handle = gzip.open(file, "r")
-        else:
-            file_handle = open(file, "r")
-
-        first_line = file_handle.readline()
-        second_line = file_handle.readline()
-    except EnvironmentError:
-        # if unable to open and read the file, return unknown
-        return "unknown"
-    finally:
-        if file_handle:
-            file_handle.close()
-
-    # check that second line is only nucleotides or amino acids
-    if re.search("^[A-Z|a-z]+$", second_line):
-        # check first line to determine fasta or fastq format
-        if re.search("^@",first_line):
-            format="fastq"
-        if re.search("^>",first_line):
-            format="fasta"
-
-    return format
-
 def find_exe_in_path(exe, bypass_permissions_check=None):
     """
     Check that an executable exists in $PATH
@@ -417,7 +376,7 @@ def main():
                   " arguments (from argparse): %s", str(args))
 
     # Get the format of the first input file
-    file_format=get_file_format(args.infile1)
+    file_format=utilities.get_file_format(args.infile1)
 
     if file_format != "fastq":
         logging.critical("Your input file is of type: %s . Please provide an input file of fastq format.",file_format)

@@ -312,21 +312,6 @@ def tag(infile_list, db_prefix_list, temp_dir, remove_temp_output, prefix,
     logging.debug("processes run: %s", procs_ran)
     return (ret_codes, procs_ran, combined_outs)
 
-
-# TODO: this is a pretty bad way of doing this. consider doing what Randall did
-# in _trim_biopython
-def check_fastq(strFname):
-    '''
-    Returns True if file strFname is a fastq file (based on file extension)
-    '''
-    
-    # remove the gzip extension if present
-    if strFname.endswith(".gz"):
-        strFname=strFname.replace(".gz","")
-    
-    isFastq = strFname.endswith('.fastq') or strFname.endswith('.fq')
-    return (isFastq)
-
 def intersect_fastq(lstrFiles, out_file):
     ''' 
     Intersects multiple fastq files with one another. Includes only the reads (4
@@ -433,7 +418,7 @@ def combine_tag(llstrFiles, out_prefix, remove_temp_output):
 
     # Check if it was .fastq or not
     # Instead of this method, try passing in another parameter? 
-    fIsFastq = check_fastq(fnames1[0])
+    fIsFastq = utilities.is_file_fastq(fnames1[0])
 
     output_files = []
     if fIsFastq:
@@ -579,7 +564,7 @@ def get_num_reads(strFname):
     '''
     pat = r'[0-9]+ '
     cmd = ["wc",  "-l", strFname]
-    fIsFastq = check_fastq(strFname)
+    fIsFastq = utilities.is_file_fastq(strFname)
     
     # if this is a gzipped file, then count the number of lines by reading through the file
     if strFname.endswith(".gz"):

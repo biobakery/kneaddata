@@ -3,6 +3,8 @@ import sys
 import shlex
 import logging
 import tempfile
+import gzip
+
 from math import floor
 from functools import partial
 from contextlib import contextmanager
@@ -84,3 +86,50 @@ def _get_bowtie2_args(bowtie2_args):
     for arg in map(shlex.split, bowtie2_args):
         for a in arg:
             yield a
+            
+def get_file_format(file):
+    """ Determine the format of the file """
+
+    format="unknown"
+    file_handle=None
+
+    # check the file exists and is readable
+    if not os.path.isfile(file):
+        logging.critical("The input file selected is not a file: %s.",file)
+
+    if not os.access(file, os.R_OK):
+        logging.critical("The input file selected is not readable: %s.",file)
+
+    try:
+        # check for gzipped files
+        if file.endswith(".gz"):
+            file_handle = gzip.open(file, "r")
+        else:
+            file_handle = open(file, "r")
+
+        first_line = file_handle.readline()
+        second_line = file_handle.readline()
+    except EnvironmentError:
+        # if unable to open and read the file, return unknown
+        return "unknown"
+    finally:
+        if file_handle:
+            file_handle.close()
+
+    # check that second line is only nucleotides or amino acids
+    if re.search("^[A-Z|a-z]+$", second_line):
+        # check first line to determine fasta or fastq format
+        if re.search("^@",first_line):
+            format="fastq"
+        if re.search("^>",first_line):
+            format="fasta"
+
+    return format
+
+def is_file_fastq(file):
+    """ Return true if the file is fastq """
+    
+    if get_file_format(file) == "fastq":
+        return True
+    else:
+        return False
