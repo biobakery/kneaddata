@@ -105,6 +105,10 @@ def parse_arguments(args):
         action="store_true",
         help="run TRF to remove and/or mask tandem repeats")
     group1.add_argument(
+        "--remove-temp-output",
+        action="store_true",
+        help="remove temp output files\n[ DEFAULT : temp output files are not removed ]")
+    group1.add_argument(
         "--log-level",
         default=config.log_level,
         choices=config.log_level_choices,
