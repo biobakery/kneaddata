@@ -11,7 +11,7 @@ from functools import partial
 import gzip
 
 from . import util
-from . import constants
+from . import config
 from . import memoryheavy
 
 def _generate_bowtie2_commands( infile_list, db_prefix_list,
@@ -177,7 +177,7 @@ def tag(infile_list, db_prefix_list, temp_dir, prefix,
                            needs databases of the format db_prefix.bitmask, 
                            db_prefix.srprism.*, and db_prefix.{blastdb file
                            extensions} for any fixed db_prefix (see
-                           constants.BMTAGGER_DB_ENDINGS for full list of endings).
+                           config.bmtagger_db_endings for full list of endings).
                            Multiple databases can be specified. Uses
                            subprocesses to run BMTagger in parallel
     :param temp_dir: String; Path name to temporary directory for BMTagger
@@ -215,7 +215,7 @@ def tag(infile_list, db_prefix_list, temp_dir, prefix,
                               "-T", temp_dir, 
                               "-o", out_prefix,
                               "--extract"] 
-                outputs[i] = [out_prefix + constants.BMTAGGER_SE_ENDING]
+                outputs[i] = [out_prefix + config.bmtagger_se_ending]
 
             else:
                 out_prefix = prefix + "_" + basename + "_contam.out"
@@ -242,7 +242,7 @@ def tag(infile_list, db_prefix_list, temp_dir, prefix,
                               "-o", out_prefix,
                               "--extract"]
                 outputs[i] = [out_prefix + ending for ending in
-                        constants.BMTAGGER_PE_ENDINGS]
+                        config.bmtagger_pe_endings]
                                             
             else:
                 out_prefix = prefix + "_" + basename + "_contam.out"
@@ -532,7 +532,7 @@ def checktrim_output(output_prefix, b_single_end):
     ll_new_inputs = []
     if b_single_end:
 
-        outputs.append(output_prefix + constants.TRIM_SE_ENDING)
+        outputs.append(output_prefix + config.trimomatic_se_ending)
         checks = checkfile(outputs[0])
         if checks <= 0:
             return (False, outputs, ll_new_inputs)
@@ -540,8 +540,8 @@ def checktrim_output(output_prefix, b_single_end):
             ll_new_inputs = [outputs]
 
     else:
-        len_endings = len(constants.TRIM_PE_ENDINGS)
-        outputs = [output_prefix + ending for ending in constants.TRIM_PE_ENDINGS]
+        len_endings = len(config.trimomatic_pe_endings)
+        outputs = [output_prefix + ending for ending in config.trimomatic_pe_endings]
 
         checks = [checkfile(out) for out in outputs]
 
@@ -653,9 +653,9 @@ def check_missing_files(args):
     for db_prefix in args.reference_db:
         dbs = None
         if args.bmtagger:
-            dbs = map(lambda x: str(db_prefix + x), constants.BMTAGGER_DB_ENDINGS)
+            dbs = map(lambda x: str(db_prefix + x), config.bmtagger_db_endings)
         else:
-            dbs = map(lambda x: str(db_prefix + x), constants.BOWTIE2_DB_ENDINGS)
+            dbs = map(lambda x: str(db_prefix + x), config.bowtie2_db_endings)
         logging.debug(dbs)
         checks = [ ( checkfile( db, ftype="reference database", 
                                 fail_hard=False), db) 
@@ -768,16 +768,16 @@ def trim(infile, prefix, trimmomatic_path,
                     "-threads", str(threads), 
                     "-phred33", 
                     infile[0],
-                    prefix + constants.TRIM_SE_ENDING] + addl_args
+                    prefix + config.trimomatic_se_ending] + addl_args
     else:
         trim_cmd += ["PE", 
                     "-threads", str(threads), 
                     "-phred33", 
                     infile[0], infile[1], 
-                    prefix + constants.TRIM_PE_ENDINGS[0], 
-                    prefix + constants.TRIM_PE_ENDINGS[2],
-                    prefix + constants.TRIM_PE_ENDINGS[1],
-                    prefix + constants.TRIM_PE_ENDINGS[3]] + addl_args
+                    prefix + config.trimomatic_pe_endings[0], 
+                    prefix + config.trimomatic_pe_endings[2],
+                    prefix + config.trimomatic_pe_endings[1],
+                    prefix + config.trimomatic_pe_endings[3]] + addl_args
 
     logging.debug("Running trimmomatic with: " + " ".join(trim_cmd))
     proc = subprocess.Popen(trim_cmd,
