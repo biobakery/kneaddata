@@ -177,8 +177,8 @@ def memory_heavy(args):
     trim_threads, bowtie_threads = util.divvy_threads(args)
     decontaminate_reads(args.infile1, args.reference_db,
                         args.output_prefix, args.output_dir,
-                        args.trim_args, args.trim_path, trim_threads,
-                        bowtie_threads, bowtie2_args=args.bowtie2_args, 
+                        args.trimmomatic_options, args.trimmomatic_path, trim_threads,
+                        bowtie_threads, bowtie2_args=args.bowtie2_options, 
                         bowtie2_path=args.bowtie2_path,
                         trf=args.trf, match=args.match, mismatch=args.mismatch,
                         delta=args.delta, pm=args.pm, pi=args.pi,

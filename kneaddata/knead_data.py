@@ -42,16 +42,24 @@ except ImportError:
 
 from . import storageheavy
 from . import memoryheavy
+from . import config
 
 VERSION="0.4.6.1"
 
-def handle_cli():
-    """parse command line arguments
-    note: argparse converts dashes '-' in argument prefixes to
-    underscores '_'
+def parse_arguments(args):
+    """ 
+    Parse the arguments from the user
     """
-    parser = argparse.ArgumentParser()
+    
+    parser = argparse.ArgumentParser(
+        description= "KneadData\n",
+        formatter_class=argparse.RawTextHelpFormatter,
+        prog="kneaddata")
     group1 = parser.add_argument_group("global options")
+    group1.add_argument(
+        "--version",
+        action="version",
+        version="%(prog)s v"+VERSION)
     group1.add_argument(
         "-i", "--input",
         help="input FASTQ file", 
@@ -59,142 +67,147 @@ def handle_cli():
         required=True)
     group1.add_argument(
         "--input2",
-        help="input FASTQ file mate",
+        help="input FASTQ file pair",
         dest='infile2',
         default=None)
     group1.add_argument(
-        "-db", "--reference-db",
-        default=[], action="append",
-        help=("prefix for reference databases used for either"
-              " Bowtie2 or BMTagger"))
-    group1.add_argument(
-        "--output-prefix", default=None,
-        help="prefix for all output files")
-    group1.add_argument(
         "-o", "--output",
         dest='output_dir',
-        help="where to write all output files",
+        help="directory to write output files",
         required=True)
     group1.add_argument(
+        "-db", "--reference-db",
+        default=[], action="append",
+        help="location of reference database")
+    group1.add_argument(
+        "--output-prefix",
+        help="prefix for all output files\n[ DEFAULT : $SAMPLE_kneaddata ]")
+    group1.add_argument(
         "--threads",
-        type=util.parse_positive_int, default=1, 
-        help=("Maximum number of processes to run."
-              " Default is 1."))
+        type=int, 
+        default=config.threads,
+        metavar="<" + str(config.threads) + ">",  
+        help="number of threads\n[ Default : "+str(config.threads)+" ]")
     group1.add_argument(
         "-s", "--strategy",
-        default="storage", choices=['memory','storage'],
-        help=("Define operating strategy: 'storage' for IO-heavy"
-              " or 'memory' for memory-heavy"))
+        default=config.strategy, choices=config.strategy_choices,
+        help="define operating strategy\n[ DEFAULT : "+config.strategy+" ]")
     group1.add_argument(
-        '-l', '--logging',
-        default="INFO",
-        help=("Logging verbosity, options are debug, info, warning,"
-              " and critical. If set to debug, temporary files are not"
-              " removed"))
+        "--run-bmtagger",
+        default=False,
+        action="store_true",
+        dest='bmtagger',
+        help="run BMTagger instead of Bowtie2 to identify contaminant reads")
     group1.add_argument(
-        '--logfile',
-        default=None,
-        help="Where to save logs")
+        "--run-trf",
+        default=False,
+        dest='trf',
+        action="store_true",
+        help="run TRF to remove and/or mask tandem repeats")
     group1.add_argument(
-        "--version",
-        action="version",
-        version="%(prog)s v"+VERSION)
+        "--log-level",
+        default=config.log_level,
+        choices=config.log_level_choices,
+        help="level of log messages\n[ DEFAULT : "+config.log_level+" ]")
+    group1.add_argument(
+        "--log",
+        help="log file\n[ DEFAULT : $OUTPUT_DIR/$SAMPLE_kneaddata.log ]")
 
     group2 = parser.add_argument_group("trimmomatic arguments")
     group2.add_argument(
-        "-t", "--trim-path",
-        help="path to Trimmomatic .jar executable")
+        "-t", "--trimmomatic",
+        dest='trimmomatic_path',
+        help="path to trimmomatic\n[ DEFAULT : $PATH ]")
     group2.add_argument(
         "-m", "--max-mem",
-        default="500m", 
-        help=("Maximum amount of memory that will be used by "
-              "Trimmomatic, as a string, ie 500m or 8g"))
-    default_trimargs = ["SLIDINGWINDOW:4:20", "MINLEN:60"]
+        default=config.trimmomatic_memory, 
+        help="max amount of memory\n[ DEFAULT : "+config.trimmomatic_memory+" ]")
     group2.add_argument(
-        "-a", "--trim-args",
+        "-a", "--trimmomatic-options",
         default=[], action="append",
-        help=("Additional arguments for Trimmomatic, default: "
-              +" ".join(default_trimargs)))
+        help="options for trimmomatic\n[ DEFAULT : "+" ".join(config.trimmomatic_options)+" ]")
 
     group3 = parser.add_argument_group("bowtie2 arguments")
     group3.add_argument(
-        "--bowtie2-path",
-        default=None, help="path to bowtie2 if not found on $PATH")
-    default_bowtie2_args = ["--very-sensitive"]
+        "--bowtie2",
+        dest='bowtie2_path',
+        help="path to bowtie2\n[ DEFAULT : $PATH ]")
     group3.add_argument(
-        "--bowtie2-args",
+        "--bowtie2-options",
         default=[], action="append",
-        help=("Additional arguments for Bowtie 2, default: " 
-                + " ".join(default_bowtie2_args)))
+        help="options for bowtie2\n[ DEFAULT : "+ " ".join(config.bowtie2_options)+" ]")
         
     group4 = parser.add_argument_group("bmtagger arguments")
     group4.add_argument(
         "--bmtagger",
-        default=False, action="store_true",
-        help="If set, use BMTagger to identify contaminant reads")
+        dest='bmtagger_path',
+        help="path to BMTagger\n[ DEFAULT : $PATH ]")
     group4.add_argument(
         "--extract",
         default=False, action="store_true",
-        help=("Only has an effect if --bmtagger is set. If this is set,"
-              " kneaddata outputs cleaned FASTQs, without contaminant reads."
-              " Else, output a list or lists of contaminant reads."))
-    group4.add_argument(
-        "--bmtagger-path",
-        default=None,
-        help="path to BMTagger executable if not found in $PATH")
+        help="output cleaned FASTQs without contaminant reads\n[ DEFAULT : output lists of contaminant reads ]")
 
     group5 = parser.add_argument_group("trf arguments")
     group5.add_argument(
             "--trf",
-            default=False, action="store_true",
-            help="If set, use TRF to remove and/or mask tandem repeats")
-    group5.add_argument(
-            "--trf-path",
             default="trf",
-            help="Path to TRF executable if not found in $PATH")
+            dest='trf_path',
+            help="path to TRF\n[ DEFAULT : $PATH ]")
     group5.add_argument(
-            "--match", type=util.parse_positive_int,
-            default=2, 
-            help="TRF matching weight. Default: 2")
+            "--match", 
+            type=int,
+            default=config.trf_match, 
+            help="matching weight\n[ DEFAULT : "+str(config.trf_match)+" ]")
     group5.add_argument(
-            "--mismatch", type=util.parse_positive_int,
-            default=7, 
-            help="TRF mismatching penalty. Default: 7")
+            "--mismatch",
+            type=int,
+            default=config.trf_mismatch, 
+            help="mismatching penalty\n[ DEFAULT : "+str(config.trf_mismatch)+" ]")
     group5.add_argument(
-            "--delta", type=util.parse_positive_int,
-            default=7, 
-            help="TRF indel penalty. Default: 7")
+            "--delta",
+            type=int,
+            default=config.trf_delta, 
+            help="indel penalty\n[ DEFAULT : "+str(config.trf_delta)+" ]")
     group5.add_argument(
-            "--pm", type=util.parse_positive_int,
-            default=80,
-            help="TRF match probability (whole number). Default: 80")
+            "--pm",
+            type=int,
+            default=config.trf_match_probability,
+            help="match probability\n[ DEFAULT : "+str(config.trf_match_probability)+" ]")
     group5.add_argument(
-            "--pi", type=util.parse_positive_int,
-            default=10,
-            help="TRF indel probability (whole number). Default: 10")
+            "--pi",
+            type=int,
+            default=config.trf_pi,
+            help="indel probability\n[ DEFAULT : "+str(config.trf_pi)+" ]")
     group5.add_argument(
-            "--minscore", type=util.parse_positive_int,
-            default=50, 
-            help="TRF minimum alignment score to report. Default: 50")
+            "--minscore",
+            type=int,
+            default=config.trf_minscore, 
+            help="minimum alignment score to report\n[ DEFAULT : "+str(config.trf_minscore)+" ]")
     group5.add_argument(
-            "--maxperiod", type=util.parse_positive_int,
-            default=500, 
-            help="TRF maximum period size to report. Default: 500")
+            "--maxperiod",
+            type=int,
+            default=config.trf_maxperiod, 
+            help="maximum period size to report\n[ DEFAULT : "+str(config.trf_maxperiod)+" ]")
     group5.add_argument(
             "--no-generate-fastq",
-            default=True, action="store_false", 
-            help="If switched on, don't generate fastq output for trf")
+            default=True, 
+            action="store_false", 
+            help="don't generate fastq output from trf")
     group5.add_argument(
             "--mask",
-            default=False, action="store_true",
-            help="If switched on, generate mask file for trf output")
+            default=False,
+            action="store_true",
+            help="generate mask file from trf output")
     group5.add_argument(
             "--html",
             default=False, action="store_true",
-            help="If switched on, generate html file for trf output")
+            help="generate html file for trf output")
 
-    args = parser.parse_args()
+    return parser.parse_args()
     
+def update_configuration(args):
+    """ Update the run settings based on the arguments provided """
+
     # get the full path for the output directory
     args.output_dir = os.path.abspath(args.output_dir)
     
@@ -206,11 +219,11 @@ def handle_cli():
         " the --mask flag. Exiting...\n")
 
     # allow users to overwrite the defaults instead of appending to defaults
-    if args.trim_args == []:
-        args.trim_args = default_trimargs
+    if args.trimmomatic_options == []:
+        args.trimmomatic_options = config.trimmomatic_options
 
-    if args.bowtie2_args == []:
-        args.bowtie2_args = default_bowtie2_args
+    if args.bowtie2_options == []:
+        args.bowtie2_options = config.bowtie2_options
 
     # set the default output prefix 
     if args.output_prefix == None:
@@ -219,10 +232,10 @@ def handle_cli():
         
     # find the location of trimmomatic
     trimmomatic_jar="trimmomatic-0.33.jar"
-    args.trim_path=check_for_dependency(args.trim_path,trimmomatic_jar,"Trimmomatic",
+    args.trimmomatic_path=check_for_dependency(args.trimmomatic_path,trimmomatic_jar,"Trimmomatic",
         "--trim-path", True)
     # add the full path to the jar file
-    args.trim_path=os.path.abspath(os.path.join(args.trim_path,trimmomatic_jar))
+    args.trimmomatic_path=os.path.abspath(os.path.join(args.trimmomatic_path,trimmomatic_jar))
     
     # check for bowtie2
     bowtie2_exe="bowtie2"
@@ -319,15 +332,15 @@ def check_for_dependency(path_provided,exe,name,path_option,bypass_permissions_c
 
 def setup_logging(args):
     fmt = "%(asctime)s %(levelname)s: %(message)s"
-    if not args.logfile:
-        args.logfile = os.path.join(args.output_dir,
+    if not args.log:
+        args.log = os.path.join(args.output_dir,
                                     args.output_prefix+".log")
 
     logger = logging.getLogger()
-    logger.setLevel(getattr(logging, args.logging.upper()))
+    logger.setLevel(getattr(logging, args.log_level))
     logging.basicConfig(format=fmt)
 
-    filehandler = logging.FileHandler(args.logfile)
+    filehandler = logging.FileHandler(args.log)
     filehandler.setLevel(logging.DEBUG)
     filehandler.setFormatter(logging.Formatter(fmt=fmt))
     logger.addHandler(filehandler)
@@ -388,8 +401,11 @@ def find_exe_in_path(exe, bypass_permissions_check=None):
     return None
 
 def main():
-    args = handle_cli()
-    # check args first
+    # Parse the arguments from the user
+    args = parse_arguments(sys.argv)
+    
+    # Update the configuration
+    args = update_configuration(args)
 
     args = setup_logging(args)
 

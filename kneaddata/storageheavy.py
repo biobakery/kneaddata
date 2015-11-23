@@ -644,8 +644,8 @@ def check_missing_files(args):
     paths = [args.infile1]
     if args.infile2 != None:
         paths.append(args.infile2)
-    if args.trim_path:
-        paths.append(args.trim_path)
+    if args.trimmomatic_path:
+        paths.append(args.trimmomatic_path)
     
     for p in paths:
         checkfile(p, fail_hard=True)
@@ -851,7 +851,7 @@ def decontaminate(args, bowtie_threads, output_prefix, files_to_align, debug):
                                                 tmp_dir=tempdir,
                                                 bowtie2_path=args.bowtie2_path,
                                                 n_procs=bowtie_threads,
-                                                bowtie2_opts=args.bowtie2_args)
+                                                bowtie2_opts=args.bowtie2_options)
                 
         # check that everything returned correctly
         # gather non-zero return codes
@@ -912,10 +912,10 @@ def storage_heavy(args):
     logging.info("Trimming...")
     trim(files, 
          threads          = trim_threads,
-         trimmomatic_path = args.trim_path, 
+         trimmomatic_path = args.trimmomatic_path, 
          prefix           = output_prefix,
          java_mem         = args.max_mem, 
-         addl_args        = args.trim_args)
+         addl_args        = args.trimmomatic_options)
 
     logging.info("Finished running Trimmomatic. "
                  "Checking output files exist... ")

@@ -1,5 +1,27 @@
 # Settings for the knead_data script. 
 
+# Default settings for command line arguments
+threads=1
+
+strategy_choices=["memory","storage"]
+strategy=strategy_choices[1]
+
+log_level_choices=["DEBUG","INFO","WARNING","ERROR","CRITICAL"]
+log_level=log_level_choices[0]
+
+trimmomatic_memory="500m"
+trimmomatic_options=["SLIDINGWINDOW:4:20", "MINLEN:60"]
+
+bowtie2_options=["--very-sensitive"]
+
+trf_match=2
+trf_mismatch=7
+trf_delta=7
+trf_match_probability=80
+trf_pi=10
+trf_minscore=50
+trf_maxperiod=500
+
 # File endings for BMTagger's required database files
 bowtie2_db_endings =    [".1.bt2", ".2.bt2", ".3.bt2", ".4.bt2", ".rev.1.bt2", 
                         ".rev.2.bt2"]
