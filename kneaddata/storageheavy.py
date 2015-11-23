@@ -10,7 +10,7 @@ import collections
 from functools import partial
 import gzip
 
-from . import util
+from . import utilities
 from . import config
 from . import memoryheavy
 
@@ -40,7 +40,7 @@ def _generate_bowtie2_commands( infile_list, db_prefix_list,
                      "--un", output_str + "_clean.fastq"]
             outputs_to_combine = [output_str + "_clean.fastq"]
 
-        cmd += list(util._get_bowtie2_args(bowtie2_opts))
+        cmd += list(utilities._get_bowtie2_args(bowtie2_opts))
         if remove_temp_output:
             # if we are removing the temp output, then write the sam output to dev null to save space
             sam_out = os.devnull
@@ -784,7 +784,7 @@ def trim(infile, prefix, trimmomatic_path,
                             stdout=subprocess.PIPE)
     stdout, stderr = proc.communicate()
     retcode = proc.returncode
-    util.process_return("Trimmomatic", retcode, stdout, stderr)
+    utilities.process_return("Trimmomatic", retcode, stdout, stderr)
     return(retcode, trim_cmd)
 
 
@@ -806,7 +806,7 @@ def run_trf(fastqs, outs, match=2, mismatch=7, delta=7, pm=80, pi=10,
     for (proc, name) in zip(procs, names):
         stdout, stderr = proc.communicate()
         retcode = proc.returncode
-        util.process_return(name, retcode, stdout, stderr)
+        utilities.process_return(name, retcode, stdout, stderr)
         
 def decontaminate(args, bowtie_threads, output_prefix, files_to_align):
     """
@@ -815,7 +815,7 @@ def decontaminate(args, bowtie_threads, output_prefix, files_to_align):
     
     # make temporary directory for Bowtie2 files
     tempdir = output_prefix + "_temp"
-    util.try_create_dir(tempdir)
+    utilities.try_create_dir(tempdir)
 
     # Start aligning
     logging.info("Decontaminating")
@@ -898,7 +898,7 @@ def decontaminate(args, bowtie_threads, output_prefix, files_to_align):
 def storage_heavy(args):
     check_missing_files(args)
 
-    trim_threads, bowtie_threads = util.divvy_threads(args)
+    trim_threads, bowtie_threads = utilities.divvy_threads(args)
     output_prefix = os.path.join(args.output_dir, args.output_prefix)
 
     # determine single-ended or pair ends

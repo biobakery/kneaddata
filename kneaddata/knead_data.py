@@ -35,7 +35,7 @@ import re
 
 # Try to load one of the kneaddata modules to check the installation
 try:
-    from . import util
+    from . import utilities
 except ImportError:
     sys.exit("ERROR: Unable to find the kneaddata python package." +
         " Please check your install.")
@@ -216,7 +216,7 @@ def update_configuration(args):
     args.output_dir = os.path.abspath(args.output_dir)
     
     # create the output directory if needed
-    util.try_create_dir(args.output_dir)
+    utilities.try_create_dir(args.output_dir)
 
     if (not args.no_generate_fastq) and (not args.mask) and args.trf:
         parser.error("\nYou cannot set the --no-generate-fastq flag without"
