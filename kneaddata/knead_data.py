@@ -45,6 +45,9 @@ from . import config
 
 VERSION="0.4.6.1"
 
+# name global logging instance
+logger=logging.getLogger(__name__)
+
 def parse_arguments(args):
     """ 
     Parse the arguments from the user
@@ -59,6 +62,10 @@ def parse_arguments(args):
         "--version",
         action="version",
         version="%(prog)s v"+VERSION)
+    parser.add_argument(
+        "-v","--verbose",
+        action="store_true",
+        help="additional output is printed\n")
     group1.add_argument(
         "-i", "--input",
         help="input FASTQ file", 
@@ -332,23 +339,33 @@ def check_for_dependency(path_provided,exe,name,path_option,bypass_permissions_c
         
     return found_path
 
-
 def setup_logging(args):
-    fmt = "%(asctime)s %(levelname)s: %(message)s"
-    if not args.log:
-        args.log = os.path.join(args.output_dir,
-                                    args.output_prefix+".log")
-
-    logger = logging.getLogger()
-    logger.setLevel(getattr(logging, args.log_level))
-    logging.basicConfig(format=fmt)
-
-    filehandler = logging.FileHandler(args.log)
-    filehandler.setLevel(logging.DEBUG)
-    filehandler.setFormatter(logging.Formatter(fmt=fmt))
-    logger.addHandler(filehandler)
+    """ Set up the log file """
     
-    return args
+    if not args.log:
+        args.log = os.path.join(args.output_dir,args.output_prefix+".log")
+
+    # configure the logger
+    logging.basicConfig(filename=args.log,format='%(asctime)s - %(name)s - %(levelname)s: %(message)s',
+        level=getattr(logging,args.log_level), filemode='w', datefmt='%m/%d/%Y %I:%M:%S %p')
+    
+    # write the version of the software to the log
+    logger.info("Running kneaddata v"+VERSION)
+    
+    # write the location of the output files to the log
+    message="Output files will be written to: " + args.output_dir
+    logger.info(message)
+    
+    # write out all of the argument settings
+    message="Running with the following arguments: \n"
+    for key,value in vars(args).items():
+        if isinstance(value,list) or isinstance(value,tuple):
+            value_string=" ".join([str(i) for i in value])
+        else:
+            value_string=str(value)
+        
+        message+=key+" = "+value_string+"\n"
+    logger.debug(message)
 
 def find_exe_in_path(exe, bypass_permissions_check=None):
     """
@@ -370,25 +387,21 @@ def main():
     # Update the configuration
     args = update_configuration(args)
 
-    args = setup_logging(args)
-
-    logging.debug("Running kneaddata with the following"
-                  " arguments (from argparse): %s", str(args))
+    # Start logging
+    setup_logging(args)
 
     # Get the format of the first input file
     file_format=utilities.get_file_format(args.infile1)
 
     if file_format != "fastq":
-        logging.critical("Your input file is of type: %s . Please provide an input file of fastq format.",file_format)
-        sys.exit(1)
+        message="Your input file is of type: "+file_format+". Please provide an input file of fastq format."
+        logger.critical(message)
+        sys.exit(message)
 
     if args.strategy == 'memory':
         memoryheavy.memory_heavy(args)
     elif args.strategy == 'storage':
         storageheavy.storage_heavy(args)
-        
-    logging.info("Done!")
-
 
 if __name__ == '__main__':
     main()

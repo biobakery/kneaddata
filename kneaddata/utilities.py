@@ -4,11 +4,16 @@ import shlex
 import logging
 import tempfile
 import gzip
+import re
+import logging
 
 from math import floor
 from functools import partial
 from contextlib import contextmanager
 from multiprocessing import cpu_count
+
+# name global logging instance
+logger=logging.getLogger(__name__)
 
 def divvy_threads(args):
     avail_cpus = args.threads or cpu_count()-1
@@ -133,3 +138,16 @@ def is_file_fastq(file):
         return True
     else:
         return False
+
+
+def log_run_and_arguments(executable, arguments, verbose):
+    """ Log the run and arguments and print messages """
+    
+    message="Running "+executable+" ..."
+    print(message)
+    logger.info(message)
+    # log the executable and arguments
+    message=executable+" " + " ".join(arguments)
+    if verbose:
+        print(message)
+    logger.debug(message)

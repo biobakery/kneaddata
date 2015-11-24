@@ -9,6 +9,8 @@ from itertools import tee, izip_longest
 from . import utilities
 here = os.path.dirname(os.path.realpath(__file__))
 
+# name global logging instance
+logger=logging.getLogger(__name__)
 
 def rmext(name_str, all=False):
     """removes file extensions 
@@ -40,20 +42,20 @@ def sliding_window(it, l, fill=None):
     return izip_longest(*args, fillvalue=fill)
 
 
-def trimmomatic(fastq_in, fastq_out, filter_args_list, jar_path,
+def trimmomatic(fastq_in, fastq_out, filter_args_list, jar_path, verbose,
                 maxmem="500m", threads=1):
     args = ["java", "-Xmx"+maxmem, "-d64",
             "-jar", jar_path,
             "SE", "-threads", str(threads),
             fastq_in, fastq_out]
     args += filter_args_list
-    logging.debug("Running trimmomatic with arguments %s", args)
+    utilities.log_run_and_arguments("trimmomatic",args,verbose)
     return subprocess.Popen(args, stderr=subprocess.PIPE,
                             stdout=subprocess.PIPE)
 
 
 def bowtie2(index_str, input_fastq, output_clean_fastq,
-            output_con_fastq, threads, bowtie2_args, bowtie2_path="bowtie2"):
+            output_con_fastq, threads, bowtie2_args, verbose, bowtie2_path="bowtie2"):
     args = [bowtie2_path, 
             "-x", index_str,
             "-U", input_fastq,
@@ -61,14 +63,14 @@ def bowtie2(index_str, input_fastq, output_clean_fastq,
             "--al", output_con_fastq,
             "-S", os.devnull,
             "--threads", str(threads)] + bowtie2_args
-    logging.debug("Running bowtie2 with arguments %s", args)
+    utilities.log_run_and_arguments("bowtie2",args,verbose)
     return subprocess.Popen(args, stderr=subprocess.PIPE,
                             stdout=subprocess.PIPE)
 
 
 def run_tandem(in_fastq, out, match=2, mismatch=7, delta=7, pm=80, pi=10,
         minscore=50, maxperiod=500, generate_fastq=True, mask=False, html=False,
-        trf_path="trf"):
+        trf_path="trf", verbose=None):
     tandem_cmd = ["python", os.path.join(here, "tandem.py"),
                   in_fastq, out, 
                   "--match", str(match),
@@ -87,7 +89,7 @@ def run_tandem(in_fastq, out, match=2, mismatch=7, delta=7, pm=80, pi=10,
     if html:
         tandem_cmd += ["--html"]
 
-    logging.debug("Running tandem.py with: %s" %(" ".join(tandem_cmd)))
+    utilities.log_run_and_arguments("trf",tandem_cmd,verbose)
     return subprocess.Popen(tandem_cmd, stdout=subprocess.PIPE,
                             stderr=subprocess.PIPE)
 
@@ -97,7 +99,7 @@ def decontaminate_reads(in_fname, index_strs, output_prefix,
                         trim_threads, bowtie_threads, bowtie2_args, 
                         bowtie2_path, trf, match, mismatch, delta, pm, pi,
                         minscore, maxperiod, generate_fastq, mask, html,
-                        trf_path):
+                        trf_path, verbose):
     
     tmpfilebases = ['filter']+map(os.path.basename, index_strs[:-1])
     if trf:
@@ -106,7 +108,7 @@ def decontaminate_reads(in_fname, index_strs, output_prefix,
     with utilities.mktempfifo(tmpfilebases) as filenames:
         clean_file = os.path.join(output_dir, output_prefix+".fastq")
         filter_proc = trimmomatic(in_fname, filenames[0],
-                                  filter_args_list, filter_jar_path,
+                                  filter_args_list, filter_jar_path, verbose,
                                   threads=trim_threads)
         staggered = sliding_window(filenames, 2)
 
@@ -120,17 +122,17 @@ def decontaminate_reads(in_fname, index_strs, output_prefix,
                 if trf:
                     if in_next != None:
                         yield bowtie2(index_str, in_cur, in_next, contam_file,
-                                    bowtie_threads, bowtie2_args, 
+                                    bowtie_threads, bowtie2_args, verbose,
                                     bowtie2_path=bowtie2_path)
                     else:
                         assert(index_str == None)
                         yield run_tandem(in_cur, clean_file, match, mismatch,
                                 delta, pm, pi, minscore, maxperiod,
-                                generate_fastq, mask, html, trf_path)
+                                generate_fastq, mask, html, trf_path, verbose)
                 else:
                     in_next = in_next or clean_file
                     yield bowtie2(index_str, in_cur, in_next, contam_file,
-                                bowtie_threads, bowtie2_args, 
+                                bowtie_threads, bowtie2_args, verbose,
                                 bowtie2_path=bowtie2_path)
 
 
@@ -153,12 +155,15 @@ def check_args(args):
         args.output_prefix = rmext(os.path.basename(args.infile1), all=True)
 
     if args.infile2:
-        logging.critical("memory heavy strategy only supports single-end reads")
-        sys.exit(1)
+        message="memory heavy strategy only supports single-end reads"
+        logger.critical(message)
+        sys.exit(message)
 
     if not os.path.exists(args.output_dir):
-        logging.warning("Output dir %s doesn't exist; creating",
-                        args.output_dir)
+        message="Creating output directory: "+args.output_dir
+        if args.verbose:
+            print(message)
+        logger.debug(message)
         os.mkdir(args.output_dir)
 
     if not args.bowtie2_path:
@@ -166,8 +171,9 @@ def check_args(args):
 
     for db_base in args.reference_db:
         if not glob(db_base+"*"):
-            logging.critical("Unable to find database `%s'", db_base)
-            sys.exit(1)
+            message="Unable to find database: "+db_base
+            logger.critical(message)
+            sys.exit(message)
 
     return args
 
@@ -184,4 +190,4 @@ def memory_heavy(args):
                         delta=args.delta, pm=args.pm, pi=args.pi,
                         minscore=args.minscore, maxperiod=args.maxperiod,
                         generate_fastq=args.no_generate_fastq, mask=args.mask,
-                        html=args.html, trf_path=args.trf_path)
+                        html=args.html, trf_path=args.trf_path, verbose=args.verbose)

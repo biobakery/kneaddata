@@ -14,6 +14,9 @@ from . import utilities
 from . import config
 from . import memoryheavy
 
+# name global logging instance
+logger=logging.getLogger(__name__)
+
 def _generate_bowtie2_commands( infile_list, db_prefix_list,
                                 bowtie2_path, output_prefix,
                                 bowtie2_opts, tmp_dir, threads, remove_temp_output ):
@@ -69,16 +72,17 @@ def _poll_workers(popen_list):
             failures.append((val, cmd))
             
     if failures:
-        msg = "\n".join([ " ".join(cmd) + " Returned code " + str(val) 
+        command_msg = "\n".join([ " ".join(cmd) + " Returned code " + str(val) 
                 for val, cmd in failures ])
-        logging.critical("The following commands failed: "+msg)
-        sys.exit(1)
+        message="The following command failed: " + command_msg
+        logger.critical(message)
+        sys.exit(message)
     else:
         return (still_running, procs_still_running)
 
 
 def align(infile_list, db_prefix_list, output_prefix, tmp_dir, remove_temp_output,
-          bowtie2_path=None, n_procs=None, bowtie2_opts=list()):
+          bowtie2_path=None, n_procs=None, bowtie2_opts=list(),verbose=None):
 
     """Align a single-end sequence file or a paired-end duo of sequence
     files using bowtie2.
@@ -124,7 +128,7 @@ def align(infile_list, db_prefix_list, output_prefix, tmp_dir, remove_temp_outpu
             commands_to_run.append((cmd, output_to_combine))
             time.sleep(0.5)
         else:
-            logging.debug("Running bowtie2 command: " + " ".join(cmd))
+            utilities.log_run_and_arguments("bowtie2",cmd[1:],verbose)
             proc = subprocess.Popen(cmd, stdout=subprocess.PIPE,
                                     stderr=subprocess.PIPE)
             procs_running.append((proc, cmd))
@@ -143,15 +147,21 @@ def align(infile_list, db_prefix_list, output_prefix, tmp_dir, remove_temp_outpu
         ret_codes.append(returncode)
         commands_ran.append(cmd)
         if returncode == 0:
-            logging.debug("bowtie2 command `%s' Complete", cmd)
+            message="bowtie2 run complete"
+            if verbose:
+                print(message)
+            logger.debug(message)
         else:
-            logging.warning("bowtie2 command reported an error")
+            message="bowtie2 run reported error"
+            print(message)
+            logger.warning(message)
             
         if stdout:
-            logging.debug("bowtie2 command `%s' stdout: %s", cmd, stdout)
+            logger.debug("bowtie2 run stdout: " + stdout)
         if stderr:
-            logging.debug("bowtie2 command `%s' stderr: %s", cmd, stderr)
-        
+            logger.debug("bowtie2 run stderr: " + stderr)
+
+   
     # if Bowtie2 produced correct output, merge the files from multiple
     # databases
     combined_outs = []
@@ -162,7 +172,7 @@ def align(infile_list, db_prefix_list, output_prefix, tmp_dir, remove_temp_outpu
 
 
 def tag(infile_list, db_prefix_list, temp_dir, remove_temp_output, prefix,
-        bmtagger_path=None, n_procs=2, remove=False):
+        bmtagger_path=None, n_procs=2, remove=False, verbose=None):
     """
     Runs BMTagger on a single-end sequence file or a paired-end duo of sequence
     files. Returns a tuple (ret_codes, bmt_args). Both are lists, each which has
@@ -197,7 +207,10 @@ def tag(infile_list, db_prefix_list, temp_dir, remove_temp_output, prefix,
         if not bmtagger_path:
             raise Exception("Could not find BMTagger path!")
 
-    logging.debug(db_prefix_list)
+    message="bmtagger prefix list "+db_prefix_list
+    if verbose:
+        print(message)
+    logger.debug(message)
     db_list = list(_prefix_bases(db_prefix_list))
     bmt_args = [None for d in db_list]
 
@@ -256,9 +269,6 @@ def tag(infile_list, db_prefix_list, temp_dir, remove_temp_output, prefix,
                               "-T", temp_dir, 
                               "-o", out_prefix]
                 outputs[i] = [out_prefix]
-    
-    logging.debug("BMTagger commands to run:")
-    logging.debug(bmt_args)
 
     if not bmt_args: # no databases specified
         return ([], [], [])
@@ -274,7 +284,7 @@ def tag(infile_list, db_prefix_list, temp_dir, remove_temp_output, prefix,
             bmt_args.append(cmd)
             time.sleep(0.5)
         else:
-            logging.debug("Running BMTagger command: " + str(cmd))
+            utilities.log_run_and_command("bmtagger",cmd[1:],verbose)
             proc = subprocess.Popen(cmd, stderr=subprocess.PIPE,
                                     stdout=subprocess.PIPE)
             procs_running.append((proc, cmd))
@@ -283,11 +293,14 @@ def tag(infile_list, db_prefix_list, temp_dir, remove_temp_output, prefix,
     # wait for everything to finish after we started running all the processes
     for p, cmd in procs_running:
         stdout, stderr = p.communicate()
-        logging.debug("BMTagger command `%s' Complete", cmd)
+        message="bmtagger run complete"
+        if verbose:
+            print(message)
+        logger.debug(message)
         if stdout:
-            logging.debug("BMTagger command `%s' stdout: %s", cmd, stdout)
+            logger.debug("bmtagger run stdout: " + stdout)
         if stderr:
-            logging.debug("BMTagger command `%s' stderr: %s", cmd, stderr)
+            logger.debug("bmtagger run stderr: " + stderr)
 
     ret_codes = [p.returncode for p, _ in procs_running]
 
@@ -305,11 +318,11 @@ def tag(infile_list, db_prefix_list, temp_dir, remove_temp_output, prefix,
                 try:
                     os.remove(o)
                 except OSError as e:
-                    logging.exception(e)
-                    logging.warning("Could not remove file " + str(o))
+                    message="Could not remove temp file: " + str(o)
+                    if verbose:
+                        print(message)
+                    logger.debug(message)
                     
-
-    logging.debug("processes run: %s", procs_ran)
     return (ret_codes, procs_ran, combined_outs)
 
 def intersect_fastq(lstrFiles, out_file):
@@ -337,9 +350,9 @@ def intersect_fastq(lstrFiles, out_file):
                 try:
                     read = ("".join(lines)).strip()
                 except TypeError:
-                    logging.critical("You probably passed in a bad fastq"
-                                     " file, one that doesn't have 4 lines"
-                                     " per read")
+                    message="Fastq file is not correctly formatted"
+                    print(message)
+                    logger.critical(message)
                     raise
                 else:
                     counter[read] += 1
@@ -406,7 +419,9 @@ def combine_tag(llstrFiles, out_prefix, remove_temp_output):
 
     # flatten the list
     for msg in itertools.chain.from_iterable(msgs):
-        logging.info("Read counts after tagging: %s", msg)
+        message="Total reads after tagging: " + str(msg)
+        print(message)
+        logger.info(message)
 
     single_end = True
     # Get the file names and concat them into strings (separated by spaces)
@@ -448,8 +463,9 @@ def combine_tag(llstrFiles, out_prefix, remove_temp_output):
             raise Exception("You have two different .out files for each database")
 
     # Get the read counts for the newly merged files
-    logging.info("Read counts after merging from multiple databases: %s",
-                 msg_num_reads(output_files))
+    message="Total reads after merging results from multiple databases: " + str(msg_num_reads(output_files))
+    print(message)
+    logger.info(message)
 
     # remove temp files if set
     if remove_temp_output:
@@ -458,7 +474,7 @@ def combine_tag(llstrFiles, out_prefix, remove_temp_output):
                 # if len(group) == 1, we renamed the files in intersect and
                 # union
                 for filename in group:
-                    logging.info("Removing temporary file %s" %filename)
+                    logger.debug("Removing temporary file %s" %filename)
                     os.remove(filename)
     return output_files
 
@@ -533,7 +549,9 @@ def checktrim_output(output_prefix, b_single_end):
         # means that something went wrong with Trimmomatic
         for i in range(len_endings):
             if checks[i] == 0:
-                logging.critical("Could not find file %s",outputs[i])
+                message="Could not find file: " + outputs[i]
+                print(message)
+                logger.critical(message)
                 return(False, outputs, ll_new_inputs)
         
         if checks[0] == 1 and checks[1] == 1:
@@ -584,8 +602,9 @@ def get_num_reads(strFname):
         try:
             out = subprocess.check_output(cmd)
         except subprocess.CalledProcessError as e:
-            logging.warning("Command %s failed with return code %i ",
-                            str(e.cmd), e.returncode)
+            message="Unable to compute the number of reads in file"
+            print(message)
+            logger.warning(message)
             return None
         else:
             # match to get the line numbers
@@ -598,9 +617,9 @@ def get_num_reads(strFname):
     
                 return(num_reads)
             else:
-                # should not happen
-                logging.critical("This should not happen. "
-                                 "Can't find the regex in wc output!")
+                message="Unable to compute the number of reads in file"
+                print(message)
+                logger.warning(message)
                 return None
    
    
@@ -640,16 +659,16 @@ def check_missing_files(args):
             dbs = map(lambda x: str(db_prefix + x), config.bmtagger_db_endings)
         else:
             dbs = map(lambda x: str(db_prefix + x), config.bowtie2_db_endings)
-        logging.debug(dbs)
+
         checks = [ ( checkfile( db, ftype="reference database", 
                                 fail_hard=False), db) 
                    for db in dbs ]
-        logging.debug(checks)
+
         for check, db in checks:
             if check == 0:
-                logging.critical("Could not find reference database file %s",
-                                 db)
-                sys.exit(1)
+                message="Could not find reference database file: " + db
+                logger.critical(message)
+                sys.exit(message)
                 
 
 def dict_to_cmd_opts_iter(opts_dict, sep=" ", singlesep=" "):
@@ -712,7 +731,7 @@ def find_on_path(bin_str):
 
 
 def trim(infile, prefix, trimmomatic_path, 
-         java_mem="500m", addl_args=list(), threads=1):
+         java_mem="500m", addl_args=list(), threads=1, verbose=None):
     '''
     Trim a sequence file using trimmomatic. 
         infile:     input fastq file list (either length 1 or length 2)
@@ -763,7 +782,7 @@ def trim(infile, prefix, trimmomatic_path,
                     prefix + config.trimomatic_pe_endings[1],
                     prefix + config.trimomatic_pe_endings[3]] + addl_args
 
-    logging.debug("Running trimmomatic with: " + " ".join(trim_cmd))
+    utilities.log_run_and_arguments("trimmomatic",trim_cmd,verbose)
     proc = subprocess.Popen(trim_cmd,
                             stderr=subprocess.PIPE,
                             stdout=subprocess.PIPE)
@@ -803,7 +822,9 @@ def decontaminate(args, bowtie_threads, output_prefix, files_to_align):
     utilities.try_create_dir(tempdir)
 
     # Start aligning
-    logging.info("Decontaminating")
+    message="Decontaminating ..."
+    print(message)
+    logger.info(message)
     possible_orphan = (len(files_to_align) > 1)
     orphan_count = 1
     for files_list in files_to_align:
@@ -827,7 +848,8 @@ def decontaminate(args, bowtie_threads, output_prefix, files_to_align):
                                               prefix=prefix,
                                               bmtagger_path=args.bmtagger_path,
                                               n_procs=bowtie_threads,
-                                              remove=args.extract)
+                                              remove=args.extract,
+                                              verbose=args.verbose)
         else:
             ret_codes, commands, c_outs = align(infile_list=files_list,
                                                 db_prefix_list=args.reference_db,
@@ -836,15 +858,17 @@ def decontaminate(args, bowtie_threads, output_prefix, files_to_align):
                                                 remove_temp_output=args.remove_temp_output,
                                                 bowtie2_path=args.bowtie2_path,
                                                 n_procs=bowtie_threads,
-                                                bowtie2_opts=args.bowtie2_options)
+                                                bowtie2_opts=args.bowtie2_options,
+                                                verbose=args.verbose)
                 
         # check that everything returned correctly
         # gather non-zero return codes
         fails = [(i, ret_code) for i, ret_code in enumerate(ret_codes) if ret_code != 0]
         if len(fails) > 0:
             for i, ret_code in fails:
-                logging.critical("The following command failed with return code %s: %s",
-                                ret_code, commands[i])
+                message="The following command failed: " + " ".join(commands[i])
+                logger.critical(message)
+                print(message)
             sys.exit(1)
         
         # run TRF (within loop)
@@ -871,11 +895,12 @@ def decontaminate(args, bowtie_threads, output_prefix, files_to_align):
             if args.remove_temp_output:
                 for c_out in c_outs:
                     os.remove(c_out)
-    
-        logging.info("Finished removing contaminants")    
+        message="Finished removing contaminants"
+        logger.info(message)
+        print(message)    
 
     if args.remove_temp_output:
-        logging.debug("Removing temporary alignment files...")
+        logger.debug("Removing temporary alignment files ...")
         # this removes lots of temporary files generated by bowtie2/bmtagger
         shutil.rmtree(tempdir)    
     
@@ -891,40 +916,49 @@ def storage_heavy(args):
     files = [args.infile1] if b_single_end else [args.infile1, args.infile2]
 
     # Get number of reads initially, then log
-    msg = msg_num_reads(files)
-    logging.info("Initial number of reads: "+msg)
+    message="Initial number of reads: " + msg_num_reads(files)
+    logger.info(message)
+    print(message)
 
-    logging.info("Trimming...")
+    message="Trimming ..."
+    logger.info(message)
+    print(message)
     trim(files, 
          threads          = trim_threads,
          trimmomatic_path = args.trimmomatic_path, 
          prefix           = output_prefix,
          java_mem         = args.max_mem, 
-         addl_args        = args.trimmomatic_options)
+         addl_args        = args.trimmomatic_options,
+         verbose          = args.verbose)
 
-    logging.info("Finished running Trimmomatic. "
-                 "Checking output files exist... ")
+    message="Finished running trimmomatic"
+    if args.verbose:
+        print(message)
+    logger.info(message)
 
     # check that Trimmomatic's output files exist
     b_continue, outputs, files_to_align = checktrim_output(output_prefix, 
                                                            b_single_end)
 
-    msg_trim_body = msg_num_reads(outputs)
-    logging.info("Number of reads after trimming: %s", msg_trim_body)
+    message="Total reads after trimming: " + msg_num_reads(outputs)
+    print(message)
+    logger.info(message)
 
     if not b_continue:
-        logging.critical("Trimmomatic just produced empty files.")
-        logging.critical("Terminating the pipeline...")
-        sys.exit(1)
+        message="Trimmomatic produced empty files"
+        logger.critical(message)
+        sys.exit(message)
 
     # Start aligning
     if not args.reference_db:
-        logging.info("Bypass decontamination")
+        message="Bypass decontamination"
+        logger.info(message)
+        print(message)
     else:
         decontaminate(args, bowtie_threads, output_prefix, files_to_align)
         # remove temp trimmomatic files
         if args.remove_temp_output:
-            logging.debug("Removing temporary trim files...")
+            logger.debug("Removing temporary trim files...")
             for output in outputs:
                 os.remove(output)
 
