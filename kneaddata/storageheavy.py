@@ -413,15 +413,12 @@ def combine_tag(llstrFiles, out_prefix, remove_temp_output):
         Returns a list of output files. Additionally, the log file is updated
         with read counts for the different input and output files.
     '''
-    # get read counts
-    msgs = [[str(f + ": " + str(get_num_reads(f))) for f in pair] for pair in
-            llstrFiles]
-
-    # flatten the list
-    for msg in itertools.chain.from_iterable(msgs):
-        message="Total reads after tagging: " + str(msg)
-        print(message)
-        logger.info(message)
+    
+    # print out the reads for all files
+    all_files=[]
+    for pair in llstrFiles:
+        all_files+=pair
+    utilities.log_reads_in_files(all_files,"Total reads after tagging")
 
     single_end = True
     # Get the file names and concat them into strings (separated by spaces)
@@ -463,9 +460,7 @@ def combine_tag(llstrFiles, out_prefix, remove_temp_output):
             raise Exception("You have two different .out files for each database")
 
     # Get the read counts for the newly merged files
-    message="Total reads after merging results from multiple databases: " + str(msg_num_reads(output_files))
-    print(message)
-    logger.info(message)
+    utilities.log_reads_in_files(output_files,"Total reads after merging results from multiple databases")
 
     # remove temp files if set
     if remove_temp_output:
@@ -569,73 +564,6 @@ def checktrim_output(output_prefix, b_single_end):
             return(False, outputs, ll_new_inputs)
 
     return (True, outputs, ll_new_inputs)
-
-
-def get_num_reads(strFname):
-    '''
-    input: strFname: file name of the list of contaminant reads, or of the 
-                    outputted fastq files from BMTagger.
-           fIsFastq: is the file a fastq file or not.     
-           output: the number of reads in the file, aka the number of lines in
-                   the file divided by 4. If the command fails, return None
-    Summary: Uses wc to find the number of reads in a file.
-    '''
-    pat = r'[0-9]+ '
-    cmd = ["wc",  "-l", strFname]
-    fIsFastq = utilities.is_file_fastq(strFname)
-    
-    # if this is a gzipped file, then count the number of lines by reading through the file
-    if strFname.endswith(".gz"):
-        try:
-            num_reads = 0
-            for line in gzip.open(strFname):
-                num_reads+=1
-        except EnvironmentError:
-            return None
-        else:
-            if fIsFastq:
-                # one read is 4 lines in the fastq file
-                num_reads = num_reads/4
-            return num_reads
-    # if this is not a compressed file, then count the reads with wc
-    else:
-        try:
-            out = subprocess.check_output(cmd)
-        except subprocess.CalledProcessError as e:
-            message="Unable to compute the number of reads in file"
-            print(message)
-            logger.warning(message)
-            return None
-        else:
-            # match to get the line numbers
-            match = re.search(pat, out)
-            if match:
-                num_reads = int(match.group())
-                if fIsFastq:
-                    # one read is 4 lines in the fastq file
-                    num_reads = num_reads/4
-    
-                return(num_reads)
-            else:
-                message="Unable to compute the number of reads in file"
-                print(message)
-                logger.warning(message)
-                return None
-   
-   
-def msg_num_reads(lstrFiles):
-    ''' 
-    Joins the read counts for a list of files into a printable message, with one
-    file per line.
-    Input: lstrFiles: a list of either .fastq or .out (list of read headers)
-                      files. 
-
-    Returns: newline-separated string of the form 
-        f: n
-    f is the name of the file
-    n is the number of reads
-    '''
-    return ("\n".join([f + ": " + str(get_num_reads(f)) for f in lstrFiles]))
 
 def check_missing_files(args):
     """check inputs"""
@@ -916,9 +844,7 @@ def storage_heavy(args):
     files = [args.infile1] if b_single_end else [args.infile1, args.infile2]
 
     # Get number of reads initially, then log
-    message="Initial number of reads: " + msg_num_reads(files)
-    logger.info(message)
-    print(message)
+    utilities.log_reads_in_files(files,"Initial number of reads",args.verbose)
 
     message="Trimming ..."
     logger.info(message)
@@ -940,9 +866,7 @@ def storage_heavy(args):
     b_continue, outputs, files_to_align = checktrim_output(output_prefix, 
                                                            b_single_end)
 
-    message="Total reads after trimming: " + msg_num_reads(outputs)
-    print(message)
-    logger.info(message)
+    utilities.log_reads_in_files(outputs,"Total reads after trimming",args.verbose)
 
     if not b_continue:
         message="Trimmomatic produced empty files"

@@ -151,3 +151,41 @@ def log_run_and_arguments(executable, arguments, verbose):
     if verbose:
         print(message)
     logger.debug(message)
+    
+def count_reads_in_fastq_file(file,verbose):
+    """ Count the number of reads in a fastq file """
+    
+    total_lines=0
+    try:
+        # file is compressed based on extension
+        if file.endswith(".gz"):
+            file_handle=gzip.open(file)
+        else:
+            file_handle=open(file)
+            
+        # count the lines in the file
+        for line in file_handle:
+            total_lines+=1
+            
+        file_handle.close()
+    except EnvironmentError:
+        total_lines=0
+        message="Unable to count reads in file: "+file
+        if verbose:
+            print(message)
+        logger.debug(message)
+        
+    # divide the total line number to get the total number of reads
+    total_reads=total_lines/4
+    
+    return total_reads
+
+def log_reads_in_files(files,message_base,verbose=None):
+    """ Log the number of reads in the files """
+        
+    for file in files:
+        total_reads=count_reads_in_fastq_file(file,verbose)
+        message=message_base+" ( "+file+" ): " + str(total_reads)
+        logger.info(message)
+        print(message)
+    
