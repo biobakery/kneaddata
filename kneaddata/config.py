@@ -9,12 +9,16 @@ strategy=strategy_choices[1]
 log_level_choices=["DEBUG","INFO","WARNING","ERROR","CRITICAL"]
 log_level=log_level_choices[0]
 
+bmtagger_exe="bmtagger.sh"
+
 trimmomatic_jar="trimmomatic-0.33.jar"
 trimmomatic_memory="500m"
 trimmomatic_options=["SLIDINGWINDOW:4:20", "MINLEN:60"]
 
+bowtie2_exe="bowtie2"
 bowtie2_options=["--very-sensitive"]
 
+trf_exe="trf"
 trf_match=2
 trf_mismatch=7
 trf_delta=7

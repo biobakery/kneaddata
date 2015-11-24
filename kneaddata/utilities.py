@@ -202,13 +202,12 @@ def find_exe_in_path(exe, bypass_permissions_check=None):
                 return path
     return None
         
-def check_for_dependency(path_provided,exe,name,path_option,bypass_permissions_check):
+def find_dependency(path_provided,exe,name,path_option,bypass_permissions_check):
     """ 
     Check if the dependency can be found in the path provided or in $PATH
     Return the location of the dependency
     """
 
-    found_path=""
     if path_provided:
         path_provided=os.path.abspath(path_provided)
         # check that the exe can be found
@@ -219,8 +218,8 @@ def check_for_dependency(path_provided,exe,name,path_option,bypass_permissions_c
             
         if not exe in files:
             sys.exit("ERROR: The "+exe+" executable is not included in the directory: " + path_provided)
-            
-        found_path=path_provided
+        else:
+            found_path=path_provided
     else:
         # search for the exe
         exe_path=find_exe_in_path(exe, bypass_permissions_check)
@@ -230,7 +229,7 @@ def check_for_dependency(path_provided,exe,name,path_option,bypass_permissions_c
         else:
             found_path=exe_path  
         
-    return found_path
+    return os.path.abspath(os.path.join(found_path,exe))
 
 def find_bowtie2_index(directory):
     """
@@ -276,4 +275,5 @@ def find_bowtie2_index(directory):
         sys.exit("ERROR: Unable to find bowtie2 index files in directory: " + directory)
     
     return index
+
     

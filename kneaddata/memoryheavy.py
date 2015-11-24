@@ -35,7 +35,7 @@ def trimmomatic(fastq_in, fastq_out, filter_args_list, jar_path, verbose,
 
 
 def bowtie2(index_str, input_fastq, output_clean_fastq,
-            output_con_fastq, threads, bowtie2_args, verbose, bowtie2_path="bowtie2"):
+            output_con_fastq, threads, bowtie2_args, verbose, bowtie2_path):
     args = [bowtie2_path, 
             "-x", index_str,
             "-U", input_fastq,
@@ -103,7 +103,7 @@ def decontaminate_reads(in_fname, index_strs, output_prefix,
                     if in_next != None:
                         yield bowtie2(index_str, in_cur, in_next, contam_file,
                                     bowtie_threads, bowtie2_args, verbose,
-                                    bowtie2_path=bowtie2_path)
+                                    bowtie2_path)
                     else:
                         assert(index_str == None)
                         yield run_tandem(in_cur, clean_file, match, mismatch,
@@ -113,7 +113,7 @@ def decontaminate_reads(in_fname, index_strs, output_prefix,
                     in_next = in_next or clean_file
                     yield bowtie2(index_str, in_cur, in_next, contam_file,
                                 bowtie_threads, bowtie2_args, verbose,
-                                bowtie2_path=bowtie2_path)
+                                bowtie2_path)
 
 
         procs = [filter_proc]+list(_procs())
@@ -143,9 +143,6 @@ def check_args(args):
             print(message)
         logger.debug(message)
         os.mkdir(args.output_dir)
-
-    if not args.bowtie2_path:
-        args.bowtie2_path = "bowtie2"
 
     for db_base in args.reference_db:
         if not glob(db_base+"*"):

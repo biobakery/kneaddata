@@ -82,7 +82,7 @@ def _poll_workers(popen_list):
 
 
 def align(infile_list, db_prefix_list, output_prefix, tmp_dir, remove_temp_output,
-          bowtie2_path=None, n_procs=None, bowtie2_opts=list(),verbose=None):
+          bowtie2_path, n_procs=None, bowtie2_opts=list(),verbose=None):
 
     """Align a single-end sequence file or a paired-end duo of sequence
     files using bowtie2.
@@ -103,11 +103,6 @@ def align(infile_list, db_prefix_list, output_prefix, tmp_dir, remove_temp_outpu
     :keyword bowtie2_opts: List; List of additional arguments, as strings, to 
                             be passed to Bowtie2.
     """
-
-    if not bowtie2_path:
-        bowtie2_path = find_on_path("bowtie2")
-        if not bowtie2_path:
-            raise Exception("Could not find Bowtie2 path")
 
     if not n_procs:
         n_procs = len(db_prefix_list)
@@ -172,7 +167,7 @@ def align(infile_list, db_prefix_list, output_prefix, tmp_dir, remove_temp_outpu
 
 
 def tag(infile_list, db_prefix_list, temp_dir, remove_temp_output, prefix,
-        bmtagger_path=None, n_procs=2, remove=False, verbose=None):
+        bmtagger_path, n_procs=2, remove=False, verbose=None):
     """
     Runs BMTagger on a single-end sequence file or a paired-end duo of sequence
     files. Returns a tuple (ret_codes, bmt_args). Both are lists, each which has
@@ -201,11 +196,6 @@ def tag(infile_list, db_prefix_list, temp_dir, remove_temp_output, prefix,
                      list(s) of reads identified as contaminants.
     """
     single_end = (len(infile_list) == 1)
-
-    if not bmtagger_path:
-        bmtagger_path = find_on_path("bmtagger.sh")
-        if not bmtagger_path:
-            raise Exception("Could not find BMTagger path!")
 
     message="bmtagger prefix list "+db_prefix_list
     if verbose:
@@ -572,8 +562,6 @@ def check_missing_files(args):
     paths = [args.infile1]
     if args.infile2 != None:
         paths.append(args.infile2)
-    if args.trimmomatic_path:
-        paths.append(args.trimmomatic_path)
     
     for p in paths:
         checkfile(p, fail_hard=True)
@@ -638,22 +626,6 @@ def _prefix_bases(db_prefix_list):
                 yield ("%s_%i"%(item[0], i), item[1])
         else:
             yield (group[0][0], group[0][1])
-
-
-def find_on_path(bin_str):
-    """ Finds an executable living on the shells PATH variable.
-    :param bin_str: String; executable to find
-
-    :returns: Absolute path to `bin_str` or False if not found
-    :rtype: str
-    """
-
-    for dir_ in os.environ['PATH'].split(':'):
-        candidate = os.path.join(dir_, bin_str)
-        if os.path.exists(candidate) and os.access(candidate, os.X_OK):
-            return candidate
-    return False
-
 
 def trim(infile, prefix, trimmomatic_path, 
          java_mem="500m", addl_args=list(), threads=1, verbose=None):

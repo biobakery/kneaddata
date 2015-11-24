@@ -241,17 +241,22 @@ def update_configuration(args):
         args.output_prefix = infile_base + "_kneaddata"
         
     # find the location of trimmomatic
-    args.trimmomatic_path=utilities.check_for_dependency(args.trimmomatic_path,config.trimmomatic_jar,"trimmomatic",
+    args.trimmomatic_path=utilities.find_dependency(args.trimmomatic_path,config.trimmomatic_jar,"trimmomatic",
         "--trimmomatic", True)
-    # add the full path to the jar file
-    args.trimmomatic_path=os.path.abspath(os.path.join(args.trimmomatic_path,config.trimmomatic_jar))
     
-    # check for bowtie2
-    bowtie2_exe="bowtie2"
-    args.bowtie2_path=utilities.check_for_dependency(args.bowtie2_path, bowtie2_exe, "bowtie2",
+    # find the location of bowtie2
+    args.bowtie2_path=utilities.find_dependency(args.bowtie2_path, config.bowtie2_exe, "bowtie2",
         "--bowtie2", False)
-    # add the full path to bowtie2
-    args.bowtie2_path=os.path.abspath(os.path.join(args.bowtie2_path,bowtie2_exe))
+    
+    # find the location of bmtagger, if set to run
+    if args.bmtagger:
+        args.bmtagger_path=utilities.find_dependency(args.bmtagger_path,config.bmtagger_exe,"bmtagger",
+            "--bmtagger", True)
+    
+    # find the location of trf, if set to run
+    if args.trf:
+        args.trf_path=utilities.find_dependency(args.trf_path,config.trf_exe,"trf",
+            "--trf", True)
     
     # find the bowtie2 indexes for each of the reference databases
     # reference database inputs can be directories, indexes, or index files
