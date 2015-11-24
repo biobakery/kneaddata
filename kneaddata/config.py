@@ -9,6 +9,7 @@ strategy=strategy_choices[1]
 log_level_choices=["DEBUG","INFO","WARNING","ERROR","CRITICAL"]
 log_level=log_level_choices[0]
 
+trimmomatic_jar="trimmomatic-0.33.jar"
 trimmomatic_memory="500m"
 trimmomatic_options=["SLIDINGWINDOW:4:20", "MINLEN:60"]
 

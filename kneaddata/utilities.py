@@ -188,4 +188,92 @@ def log_reads_in_files(files,message_base,verbose=None):
         message=message_base+" ( "+file+" ): " + str(total_reads)
         logger.info(message)
         print(message)
+        
+def find_exe_in_path(exe, bypass_permissions_check=None):
+    """
+    Check that an executable exists in $PATH
+    """
+    
+    paths = os.environ["PATH"].split(os.pathsep)
+    for path in paths:
+        fullexe = os.path.join(path,exe)
+        if os.path.exists(fullexe):
+            if bypass_permissions_check or os.access(fullexe,os.X_OK):
+                return path
+    return None
+        
+def check_for_dependency(path_provided,exe,name,path_option,bypass_permissions_check):
+    """ 
+    Check if the dependency can be found in the path provided or in $PATH
+    Return the location of the dependency
+    """
+
+    found_path=""
+    if path_provided:
+        path_provided=os.path.abspath(path_provided)
+        # check that the exe can be found
+        try:
+            files=os.listdir(path_provided)
+        except EnvironmentError:
+            sys.exit("ERROR: Unable to list files in "+name+" directory: "+ path_provided)
+            
+        if not exe in files:
+            sys.exit("ERROR: The "+exe+" executable is not included in the directory: " + path_provided)
+            
+        found_path=path_provided
+    else:
+        # search for the exe
+        exe_path=find_exe_in_path(exe, bypass_permissions_check)
+        if not exe_path:
+            sys.exit("ERROR: Unable to find "+name+". Please provide the "+
+                "full path to "+name+" with "+path_option+".")
+        else:
+            found_path=exe_path  
+        
+    return found_path
+
+def find_bowtie2_index(directory):
+    """
+    Search through the directory for the name of the bowtie2 index files
+    Or if a file name is provided check it is a bowtie2 index
+    """
+    
+    index=""
+    # the extensions for standard bowtie2 index files
+    bowtie2_index_ext_list=[".1.bt2",".2.bt2",".3.bt2",".4.bt2",
+        ".rev.1.bt2",".rev.2.bt2"]
+    # an extension for one of the index files for a large database
+    bowtie2_large_index_ext=".1.bt2l"
+    
+    bowtie2_extensions=bowtie2_index_ext_list+[bowtie2_large_index_ext]
+    
+    if not os.path.isdir(directory):
+        # check if this is the bowtie2 index file
+        if os.path.isfile(directory):
+            # check for the bowtie2 extension
+            for ext in bowtie2_extensions:
+                if re.search(ext+"$",directory):
+                    index=directory.replace(ext,"")
+                    break
+        else:
+            # check if this is the basename of the bowtie2 index files
+            small_index=directory+bowtie2_index_ext_list[0]
+            large_index=directory+bowtie2_large_index_ext
+            if os.path.isfile(small_index) or os.path.isfile(large_index):
+                index=directory
+    else:
+        # search through the files to find one with the bowtie2 extension
+        for file in os.listdir(directory):
+            # look for an extension for a standard and large bowtie2 indexed database
+            for ext in [bowtie2_index_ext_list[-1],bowtie2_large_index_ext]:
+                if re.search(ext+"$",file):
+                    index=os.path.join(directory,file.replace(ext,""))
+                    break
+            if index:
+                break
+    
+    if not index:
+        sys.exit("ERROR: Unable to find bowtie2 index files in directory: " + directory)
+    
+    return index
     
