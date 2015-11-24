@@ -12,26 +12,6 @@ here = os.path.dirname(os.path.realpath(__file__))
 # name global logging instance
 logger=logging.getLogger(__name__)
 
-def rmext(name_str, all=False):
-    """removes file extensions 
-
-    :keyword all: Boolean; removes all extensions if True, else just
-    the outside one
-
-    """
-
-    _match = lambda name_str: re.match(r'(.+)(\..*)', name_str)
-    path, name_str = os.path.split(name_str)
-    match = _match(name_str)
-    while match:
-        name_str = match.group(1)
-        match = _match(name_str)
-        if not all:
-            break
-
-    return os.path.join(path, name_str)
-    
-
 def sliding_window(it, l, fill=None):
     args = tee(it, l)
     # advance each iterator as many steps as its rank-1
@@ -151,8 +131,6 @@ def decontaminate_reads(in_fname, index_strs, output_prefix,
 
 
 def check_args(args):
-    if not args.output_prefix:
-        args.output_prefix = rmext(os.path.basename(args.infile1), all=True)
 
     if args.infile2:
         message="memory heavy strategy only supports single-end reads"

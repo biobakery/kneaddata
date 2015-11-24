@@ -567,9 +567,6 @@ def checktrim_output(output_prefix, b_single_end):
 
 def check_missing_files(args):
     """check inputs"""
-    # deal with missing prefix
-    if args.output_prefix == None:
-        args.output_prefix = args.infile1 + "_output"
 
     # check for the existence of required files/paths
     paths = [args.infile1]
