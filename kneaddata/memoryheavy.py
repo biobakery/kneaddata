@@ -137,13 +137,6 @@ def check_args(args):
         logger.critical(message)
         sys.exit(message)
 
-    if not os.path.exists(args.output_dir):
-        message="Creating output directory: "+args.output_dir
-        if args.verbose:
-            print(message)
-        logger.debug(message)
-        os.mkdir(args.output_dir)
-
     for db_base in args.reference_db:
         if not glob(db_base+"*"):
             message="Unable to find database: "+db_base

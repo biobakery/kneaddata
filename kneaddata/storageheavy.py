@@ -714,9 +714,9 @@ def decontaminate(args, bowtie_threads, output_prefix, files_to_align):
     Run bowtie2 or bmtagger then trf if set
     """
     
-    # make temporary directory for Bowtie2 files
+    # make temporary directory for temp output files
     tempdir = output_prefix + "_temp"
-    utilities.try_create_dir(tempdir)
+    utilities.create_directory(tempdir)
 
     # Start aligning
     message="Decontaminating ..."

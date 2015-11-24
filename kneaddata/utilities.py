@@ -26,14 +26,16 @@ def divvy_threads(args):
     return int(trim_threads), int(align_threads)
     
 
-def try_create_dir(d):
-    if not os.path.exists(d):
-        logging.warning("Directory `%s' doesn't exist. Creating.", d)
+def create_directory(directory):
+    """ Try to create a directory if it does not exist """
+    if not os.path.exists(directory):
+        logger.debug("Creating output directory: "+directory)
         try:
-            os.makedirs(d)
-        except Exception as e:
-            logging.crit("Unable to create directory `%s': %s", d, str(e))
-            sys.exit(1)
+            os.makedirs(directory)
+        except EnvironmentError:
+            message="Unable to create output directory: " + directory
+            logger.critical(message)
+            sys.exit(message)
 
 
 @contextmanager

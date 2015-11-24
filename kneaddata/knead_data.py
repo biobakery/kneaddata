@@ -222,7 +222,7 @@ def update_configuration(args):
     args.output_dir = os.path.abspath(args.output_dir)
     
     # create the output directory if needed
-    utilities.try_create_dir(args.output_dir)
+    utilities.create_directory(args.output_dir)
 
     if (not args.no_generate_fastq) and (not args.mask) and args.trf:
         parser.error("\nYou cannot set the --no-generate-fastq flag without"
