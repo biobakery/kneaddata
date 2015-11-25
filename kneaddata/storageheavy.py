@@ -9,6 +9,7 @@ import subprocess
 import collections
 from functools import partial
 import gzip
+import tempfile
 
 from . import utilities
 from . import config
@@ -713,10 +714,14 @@ def decontaminate(args, bowtie_threads, output_prefix, files_to_align):
     """
     Run bowtie2 or bmtagger then trf if set
     """
-    
+
     # make temporary directory for temp output files
-    tempdir = output_prefix + "_temp"
-    utilities.create_directory(tempdir)
+    if args.remove_temp_output:
+        # create a temp folder if we are removing the temp output files
+        tempdir=tempfile.mkdtemp(prefix=args.output_prefix+'_kneaddata_temp_',dir=args.output_dir)
+    else:
+        tempdir = output_prefix + "_temp"
+        utilities.create_directory(tempdir)
 
     # Start aligning
     message="Decontaminating ..."
