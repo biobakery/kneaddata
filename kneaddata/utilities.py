@@ -184,7 +184,7 @@ def count_reads_in_fastq_file(file,verbose):
     
     return total_reads
 
-def log_reads_in_files(files,message_base,verbose=None):
+def log_read_count_for_files(files,message_base,verbose=None):
     """ Log the number of reads in the files """
         
     for file in files:

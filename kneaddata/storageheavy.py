@@ -409,7 +409,7 @@ def combine_tag(llstrFiles, out_prefix, remove_temp_output):
     all_files=[]
     for pair in llstrFiles:
         all_files+=pair
-    utilities.log_reads_in_files(all_files,"Total reads after tagging")
+    utilities.log_read_count_for_files(all_files,"Total reads after tagging")
 
     single_end = True
     # Get the file names and concat them into strings (separated by spaces)
@@ -451,7 +451,7 @@ def combine_tag(llstrFiles, out_prefix, remove_temp_output):
             raise Exception("You have two different .out files for each database")
 
     # Get the read counts for the newly merged files
-    utilities.log_reads_in_files(output_files,"Total reads after merging results from multiple databases")
+    utilities.log_read_count_for_files(output_files,"Total reads after merging results from multiple databases")
 
     # remove temp files if set
     if remove_temp_output:
@@ -801,7 +801,7 @@ def storage_heavy(args):
     files = [args.infile1] if b_single_end else [args.infile1, args.infile2]
 
     # Get number of reads initially, then log
-    utilities.log_reads_in_files(files,"Initial number of reads",args.verbose)
+    utilities.log_read_count_for_files(files,"Initial number of reads",args.verbose)
 
     message="Trimming ..."
     logger.info(message)
@@ -823,7 +823,7 @@ def storage_heavy(args):
     b_continue, outputs, files_to_align = checktrim_output(output_prefix, 
                                                            b_single_end)
 
-    utilities.log_reads_in_files(outputs,"Total reads after trimming",args.verbose)
+    utilities.log_read_count_for_files(outputs,"Total reads after trimming",args.verbose)
 
     if not b_continue:
         message="Trimmomatic produced empty files"
