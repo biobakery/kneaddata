@@ -30,6 +30,7 @@ trf_maxperiod=500
 # File endings for BMTagger's required database files
 bowtie2_db_endings =    [".1.bt2", ".2.bt2", ".3.bt2", ".4.bt2", ".rev.1.bt2", 
                         ".rev.2.bt2"]
+bowtie2_large_index_ext=".1.bt2l"
 bmtagger_db_endings =   [".bitmask", ".srprism.amp", 
                         ".srprism.idx", ".srprism.imp",
                         ".srprism.map", ".srprism.pmp", 

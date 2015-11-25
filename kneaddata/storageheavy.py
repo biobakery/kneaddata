@@ -566,23 +566,6 @@ def check_missing_files(args):
     
     for p in paths:
         checkfile(p, fail_hard=True)
-
-    for db_prefix in args.reference_db:
-        dbs = None
-        if args.bmtagger:
-            dbs = map(lambda x: str(db_prefix + x), config.bmtagger_db_endings)
-        else:
-            dbs = map(lambda x: str(db_prefix + x), config.bowtie2_db_endings)
-
-        checks = [ ( checkfile( db, ftype="reference database", 
-                                fail_hard=False), db) 
-                   for db in dbs ]
-
-        for check, db in checks:
-            if check == 0:
-                message="Could not find reference database file: " + db
-                logger.critical(message)
-                sys.exit(message)
                 
 
 def dict_to_cmd_opts_iter(opts_dict, sep=" ", singlesep=" "):

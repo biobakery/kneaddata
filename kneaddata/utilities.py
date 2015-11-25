@@ -12,6 +12,8 @@ from functools import partial
 from contextlib import contextmanager
 from multiprocessing import cpu_count
 
+from . import config
+
 # name global logging instance
 logger=logging.getLogger(__name__)
 
@@ -233,48 +235,51 @@ def find_dependency(path_provided,exe,name,path_option,bypass_permissions_check)
         
     return os.path.abspath(os.path.join(found_path,exe))
 
-def find_bowtie2_index(directory):
+def find_database_index(directory, database_type):
     """
-    Search through the directory for the name of the bowtie2 index files
-    Or if a file name is provided check it is a bowtie2 index
+    Search through the directory for the name of the database index files
+    Or if a file name is provided check it is a database index
+    For bowtie2 and bmtagger databases
     """
     
     index=""
-    # the extensions for standard bowtie2 index files
-    bowtie2_index_ext_list=[".1.bt2",".2.bt2",".3.bt2",".4.bt2",
-        ".rev.1.bt2",".rev.2.bt2"]
-    # an extension for one of the index files for a large database
-    bowtie2_large_index_ext=".1.bt2l"
-    
-    bowtie2_extensions=bowtie2_index_ext_list+[bowtie2_large_index_ext]
+    if database_type == "bmtagger":
+        all_extensions=config.bmtagger_db_endings
+    else:
+        all_extensions=config.bowtie2_db_endings+[config.bowtie2_large_index_ext]
+        
+    # sort the extensions with the longest first, to test the most specific first
+    # to find the index
+    all_extensions.sort(key=lambda x: len(x), reverse=True)
     
     if not os.path.isdir(directory):
-        # check if this is the bowtie2 index file
+        # check if this is the database index file
         if os.path.isfile(directory):
-            # check for the bowtie2 extension
-            for ext in bowtie2_extensions:
-                if re.search(ext+"$",directory):
-                    index=directory.replace(ext,"")
+            # check for the database extension
+            for extension in all_extensions:
+                if re.search(extension+"$",directory):
+                    index=directory.replace(extension,"")
                     break
         else:
-            # check if this is the basename of the bowtie2 index files
-            small_index=directory+bowtie2_index_ext_list[0]
-            large_index=directory+bowtie2_large_index_ext
-            if os.path.isfile(small_index) or os.path.isfile(large_index):
-                index=directory
+            # check if this is the basename of the index files
+            # only need to check the first three (to include bowtie2 large index)
+            for extension in all_extensions[:3]:
+                if os.path.isfile(directory+extension):
+                    index=directory
+                    break
     else:
         # search through the files to find one with the bowtie2 extension
         for file in os.listdir(directory):
             # look for an extension for a standard and large bowtie2 indexed database
-            for ext in [bowtie2_index_ext_list[-1],bowtie2_large_index_ext]:
-                if re.search(ext+"$",file):
-                    index=os.path.join(directory,file.replace(ext,""))
+            for extension in all_extensions:
+                if re.search(extension+"$",file):
+                    index=os.path.join(directory,file.replace(extension,""))
                     break
             if index:
                 break
     
     if not index:
-        sys.exit("ERROR: Unable to find bowtie2 index files in directory: " + directory)
+        sys.exit("ERROR: Unable to find "+database_type+" index files in directory: " + directory)
     
     return index
 
