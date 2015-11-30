@@ -464,41 +464,6 @@ def combine_tag(llstrFiles, out_prefix, remove_temp_output):
                     os.remove(filename)
     return output_files
 
-def checkfile(fname, ftype="file", fail_hard=False):
-    '''
-    input:
-        fnames:         One or more file names. Must be strings
-        ftype:          A string describing what type of file we are checking. 
-                        Used to clarify error messages.
-        empty_failhard: Boolean, whether or not to raise an error when the file
-                        is empty, or whether to return a value. 
-        dne_failhard:   Boolean, whether or not to raise an error when the file
-                        does not exist, or whether to return a value. 
-    output:
-        1:      the file exists
-        0:      the file does not exist
-        -1:     the file exists but is an empty file (size = 0 bytes)
-
-        If fail_hard=True, then raises IOError on empty file and OSError on
-        non-existent file instead of returning 0 and -1, respectively
-
-    Summary: Helper function to test if a file exists and is nonempty, exists
-    and is empty, or does not exist. Can fail loudly or silently
-    '''
-    try:
-        if os.stat(fname).st_size > 0:
-            return 1
-        else:
-            if fail_hard:
-                raise IOError(str(fname + " is an empty " + ftype))
-            else:
-                return -1
-    except OSError:
-        if fail_hard:
-            raise OSError(str("Could not find " + ftype + " " + fname))
-        else:
-            return 0
-
 def checktrim_output(output_prefix, b_single_end):
     '''
     input:  output_prefix: a string containing the output prefix
@@ -519,8 +484,7 @@ def checktrim_output(output_prefix, b_single_end):
     if b_single_end:
 
         outputs.append(output_prefix + config.trimomatic_se_ending)
-        checks = checkfile(outputs[0])
-        if checks <= 0:
+        if not utilities.is_file_nonempty_readable(outputs[0]):
             return (False, outputs, ll_new_inputs)
         else:
             ll_new_inputs = [outputs]
@@ -529,25 +493,25 @@ def checktrim_output(output_prefix, b_single_end):
         len_endings = len(config.trimomatic_pe_endings)
         outputs = [output_prefix + ending for ending in config.trimomatic_pe_endings]
 
-        checks = [checkfile(out) for out in outputs]
+        checks = [utilities.is_file_nonempty_readable(out) for out in outputs]
 
         # check that all the files at least exist. If they don't exist this
         # means that something went wrong with Trimmomatic
         for i in range(len_endings):
-            if checks[i] == 0:
-                message="Could not find file: " + outputs[i]
+            if not checks[i]:
+                message="File does not exist or is empty: " + outputs[i]
                 print(message)
                 logger.critical(message)
                 return(False, outputs, ll_new_inputs)
         
-        if checks[0] == 1 and checks[1] == 1:
+        if checks[0] and checks[1]:
             ll_new_inputs.append([outputs[0], outputs[1]])
-        elif checks[0] == 1:
+        elif checks[0]:
             ll_new_inputs.append([outputs[0]])
-        elif checks[1] == 1:
+        elif checks[1]:
             ll_new_inputs.append([outputs[1]])
         for i in [2,3]:
-            if checks[i] == 1:
+            if checks[i]:
                 ll_new_inputs.append([outputs[i]])
 
         # If no valid inputs, return False
@@ -556,17 +520,6 @@ def checktrim_output(output_prefix, b_single_end):
 
     return (True, outputs, ll_new_inputs)
 
-def check_missing_files(args):
-    """check inputs"""
-
-    # check for the existence of required files/paths
-    paths = [args.infile1]
-    if args.infile2 != None:
-        paths.append(args.infile2)
-    
-    for p in paths:
-        checkfile(p, fail_hard=True)
-                
 
 def dict_to_cmd_opts_iter(opts_dict, sep=" ", singlesep=" "):
     """sep separates long options and their values, singlesep separates
@@ -791,7 +744,6 @@ def decontaminate(args, bowtie_threads, output_prefix, files_to_align):
     
 
 def storage_heavy(args):
-    check_missing_files(args)
 
     trim_threads, bowtie_threads = utilities.divvy_threads(args)
     output_prefix = os.path.join(args.output_dir, args.output_prefix)
@@ -826,7 +778,7 @@ def storage_heavy(args):
     utilities.log_read_count_for_files(outputs,"Total reads after trimming",args.verbose)
 
     if not b_continue:
-        message="Trimmomatic produced empty files"
+        message="Trimmomatic did not output any trimmed reads"
         logger.critical(message)
         sys.exit(message)
 

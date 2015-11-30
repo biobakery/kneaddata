@@ -283,4 +283,31 @@ def find_database_index(directory, database_type):
     
     return index
 
+def is_file_nonempty_readable(file, exit_on_error=None):
+    """ Check that the file exists, is readable, and is not empty """
+    
+    error_message=""
+    # check the file exists
+    if os.path.exists(file):
+        # check for read access
+        if os.access(file, os.R_OK):
+            try:
+                # try to get the file size
+                if os.stat(file).st_size == 0:
+                    error_message="ERROR: File is empty: " + file
+            except EnvironmentError:
+                error_message="ERROR: Unable to check size of file: " + file
+        else:
+            error_message="ERROR: File is not readable: " + file
+    else:
+        error_message="ERROR: File does not exist: " + file
+        
+    
+    if exit_on_error and error_message:
+        sys.exit(error_message)
+        
+    if not error_message:
+        return True
+    else:
+        return False
     

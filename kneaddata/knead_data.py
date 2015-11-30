@@ -221,6 +221,14 @@ def update_configuration(args):
     # get the full path for the output directory
     args.output_dir = os.path.abspath(args.output_dir)
     
+    # check the input files are non-empty and readable
+    args.infile1 = os.path.abspath(args.infile1)
+    utilities.is_file_nonempty_readable(args.infile1,exit_on_error=True)
+    
+    if args.infile2:
+        args.infile2 = os.path.abspath(args.infile2)
+        utilities.is_file_nonempty_readable(args.infile2,exit_on_error=True)
+    
     # create the output directory if needed
     utilities.create_directory(args.output_dir)
 
