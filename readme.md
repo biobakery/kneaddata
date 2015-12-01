@@ -21,11 +21,12 @@ KneadData is a tool designed to perform quality control on metagenomic sequencin
 2.  [Bowtie2](http://bowtie-bio.sourceforge.net/bowtie2/index.shtml) (version >= 2.1) (automatically installed)
 3.  [Python](http://www.python.org/) (version >= 2.7)
 4.  [Java Runtime Environment](http://www.oracle.com/technetwork/java/javase/downloads/jre7-downloads-1880261.html)
-5.  Operating system (Linux or Mac)
+5.  Memory (>= 4 Gb if using Bowtie2, >= 8 Gb if using BMTagger)
+6.  Operating system (Linux or Mac)
 
 Optionally, [BMTagger](ftp://ftp.ncbi.nlm.nih.gov/pub/agarwala/bmtagger/) can be used instead of Bowtie2.
 
-The executables for the required software packages should be installed in your $PATH. Alternatively, you can provide the location of the Bowtie2 install ($BOWTIE2_DIR) with the following KneadData option “--bowtie2-path $BOWTIE2_DIR”. 
+The executables for the required software packages should be installed in your $PATH. Alternatively, you can provide the location of the Bowtie2 install ($BOWTIE2_DIR) with the following KneadData option “--bowtie2 $BOWTIE2_DIR”. 
 
 ### Installation ###
 
