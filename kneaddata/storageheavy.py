@@ -24,8 +24,7 @@ def _generate_bowtie2_commands( infile_list, db_prefix_list,
     db_prefix_bases = _prefix_bases(db_prefix_list)
     for basename, fullpath in db_prefix_bases:
         is_paired = (len(infile_list) == 2)
-        cmd = [bowtie2_path] 
-        #cmd += list(dict_to_cmd_opts_iter(bowtie2_opts))
+        cmd = [bowtie2_path]
         cmd += [ "-x", fullpath ]
         cmd += [ "--threads", str(threads) ]
 
@@ -524,27 +523,6 @@ def checktrim_output(output_prefix, input_files):
             return(False, outputs, ll_new_inputs)
 
     return (True, outputs, ll_new_inputs)
-
-
-def dict_to_cmd_opts_iter(opts_dict, sep=" ", singlesep=" "):
-    """sep separates long options and their values, singlesep separates
-    short options and their values e.g. --long=foobar vs -M 2
-
-    """
-
-    for key, val in opts_dict.iteritems():
-        key = key.replace('_', '-')
-        if len(key) > 1:
-            key = "--%s"% (key)
-        else:
-            key = "-%s"% (key)
-            
-        if val:
-            yield key
-            yield val
-        else:
-            yield key
-
 
 def _prefix_bases(db_prefix_list):
     """From a list of absolute or relative paths, returns an iterator of the
