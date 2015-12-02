@@ -133,6 +133,12 @@ def parse_arguments(args):
         default=config.trimmomatic_memory, 
         help="max amount of memory\n[ DEFAULT : "+config.trimmomatic_memory+" ]")
     group2.add_argument(
+        "-q","--quality-scores",
+        default=config.trimmomatic_quality_scores,
+        choices=config.trimmomatic_quality_scores_options,
+        dest='trimmomatic_quality_scores',
+        help="quality scores\n[ DEFAULT : "+config.trimmomatic_quality_scores+" ]")
+    group2.add_argument(
         "-a", "--trimmomatic-options",
         default=[], action="append",
         help="options for trimmomatic\n[ DEFAULT : "+" ".join(config.trimmomatic_options)+" ]")
@@ -242,6 +248,9 @@ def update_configuration(args):
 
     if args.bowtie2_options == []:
         args.bowtie2_options = config.bowtie2_options
+        
+    # update the trimmomatic quality score option into a flag for trimmomatic
+    args.trimmomatic_quality_scores=config.trimmomatic_flag_start+args.trimmomatic_quality_scores
 
     # set the default output prefix 
     if args.output_prefix == None:

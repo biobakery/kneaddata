@@ -564,7 +564,7 @@ def _prefix_bases(db_prefix_list):
         else:
             yield (group[0][0], group[0][1])
 
-def trim(infile, prefix, trimmomatic_path, 
+def trim(infile, prefix, trimmomatic_path, quality_scores, 
          java_mem="500m", addl_args=list(), threads=1, verbose=None):
     '''
     Trim a sequence file using trimmomatic. 
@@ -602,14 +602,14 @@ def trim(infile, prefix, trimmomatic_path,
 
     if single_end:
         trim_cmd += ["SE",
-                    "-threads", str(threads), 
-                    "-phred33", 
+                    "-threads", str(threads),
+                    quality_scores, 
                     infile[0],
                     prefix + config.trimomatic_se_ending] + addl_args
     else:
         trim_cmd += ["PE", 
-                    "-threads", str(threads), 
-                    "-phred33", 
+                    "-threads", str(threads),
+                    quality_scores,
                     infile[0], infile[1], 
                     prefix + config.trimomatic_pe_endings[0], 
                     prefix + config.trimomatic_pe_endings[2],
@@ -760,7 +760,8 @@ def storage_heavy(args):
     print(message)
     trim(files, 
          threads          = trim_threads,
-         trimmomatic_path = args.trimmomatic_path, 
+         trimmomatic_path = args.trimmomatic_path,
+         quality_scores   = args.trimmomatic_quality_scores,
          prefix           = output_prefix,
          java_mem         = args.max_mem, 
          addl_args        = args.trimmomatic_options,

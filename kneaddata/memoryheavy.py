@@ -22,11 +22,12 @@ def sliding_window(it, l, fill=None):
     return izip_longest(*args, fillvalue=fill)
 
 
-def trimmomatic(fastq_in, fastq_out, filter_args_list, jar_path, verbose,
+def trimmomatic(fastq_in, fastq_out, quality_scores, filter_args_list, jar_path, verbose,
                 maxmem="500m", threads=1):
     args = ["java", "-Xmx"+maxmem, "-d64",
             "-jar", jar_path,
             "SE", "-threads", str(threads),
+            quality_scores,
             fastq_in, fastq_out]
     args += filter_args_list
     utilities.log_run_and_arguments("trimmomatic",args,verbose)
@@ -76,7 +77,7 @@ def run_tandem(in_fastq, out, match=2, mismatch=7, delta=7, pm=80, pi=10,
 
 def decontaminate_reads(in_fname, index_strs, output_prefix,
                         output_dir, filter_args_list, filter_jar_path,
-                        trim_threads, bowtie_threads, bowtie2_args, 
+                        trim_threads, trimmomatic_quality_scores, bowtie_threads, bowtie2_args, 
                         bowtie2_path, trf, match, mismatch, delta, pm, pi,
                         minscore, maxperiod, generate_fastq, mask, html,
                         trf_path, verbose):
@@ -88,6 +89,7 @@ def decontaminate_reads(in_fname, index_strs, output_prefix,
     with utilities.mktempfifo(tmpfilebases) as filenames:
         clean_file = os.path.join(output_dir, output_prefix+".fastq")
         filter_proc = trimmomatic(in_fname, filenames[0],
+                                  trimmomatic_quality_scores,
                                   filter_args_list, filter_jar_path, verbose,
                                   threads=trim_threads)
         staggered = sliding_window(filenames, 2)
@@ -152,6 +154,7 @@ def memory_heavy(args):
     decontaminate_reads(args.infile1, args.reference_db,
                         args.output_prefix, args.output_dir,
                         args.trimmomatic_options, args.trimmomatic_path, trim_threads,
+                        args.trimmomatic_quality_scores,
                         bowtie_threads, bowtie2_args=args.bowtie2_options, 
                         bowtie2_path=args.bowtie2_path,
                         trf=args.trf, match=args.match, mismatch=args.mismatch,

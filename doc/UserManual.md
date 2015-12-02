@@ -15,15 +15,10 @@ If you use this software, please cite our paper: (TBA)
 ## Table of Contents
 - [Introduction](#markdown-header-introduction)
 - [Tutorial and Demo](#markdown-header-tutorial-and-demo) 
+- [Requirements](#markdown-header-requirements)
 - [Installation](#markdown-header-installation)
-- [Quick Start Guide](#markdown-header-quick-start-guide)
-
-    1. [Data Locations](#markdown-header-data-locations)
-    2. [Indexing](#markdown-header-indexing)
-    3. [How to Run](#markdown-header-how-to-run)
-
-- [Detailed Documentation](#markdown-header-detailed-documentation)
-- [Usage Notes](#markdown-header-usage-notes)
+- [How to Run](#markdown-header-how-to-run)
+- [Complete Option List](#markdown-header-complete-option-list)
 
 
 ## Introduction
@@ -380,7 +375,7 @@ Aggregated files:
 
 ---------------------------------
 
-## Complete option list
+## Complete Option List
 
 All options can be accessed with `$ kneaddata --help`.
 
@@ -390,8 +385,9 @@ usage: kneaddata [-h] [--version] [-v] -i INFILE1 [--input2 INFILE2] -o
                  [--threads <1>] [-s {memory,storage}] [--run-bmtagger]
                  [--run-trf] [--remove-temp-output]
                  [--log-level {DEBUG,INFO,WARNING,ERROR,CRITICAL}] [--log LOG]
-                 [-t TRIMMOMATIC_PATH] [-m MAX_MEM] [-a TRIMMOMATIC_OPTIONS]
-                 [--bowtie2 BOWTIE2_PATH] [--bowtie2-options BOWTIE2_OPTIONS]
+                 [-t TRIMMOMATIC_PATH] [-m MAX_MEM] [-q {phred33,phred64}]
+                 [-a TRIMMOMATIC_OPTIONS] [--bowtie2 BOWTIE2_PATH]
+                 [--bowtie2-options BOWTIE2_OPTIONS]
                  [--bmtagger BMTAGGER_PATH] [--extract] [--trf TRF_PATH]
                  [--match MATCH] [--mismatch MISMATCH] [--delta DELTA]
                  [--pm PM] [--pi PI] [--minscore MINSCORE]
@@ -438,6 +434,9 @@ trimmomatic arguments:
   -m MAX_MEM, --max-mem MAX_MEM
                         max amount of memory
                         [ DEFAULT : 500m ]
+  -q {phred33,phred64}, --quality-scores {phred33,phred64}
+                        quality scores
+                        [ DEFAULT : phred33 ]
   -a TRIMMOMATIC_OPTIONS, --trimmomatic-options TRIMMOMATIC_OPTIONS
                         options for trimmomatic
                         [ DEFAULT : SLIDINGWINDOW:4:20 MINLEN:60 ]
