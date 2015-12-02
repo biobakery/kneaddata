@@ -135,7 +135,7 @@ def parse_arguments(args):
         help="quality scores\n[ DEFAULT : "+config.trimmomatic_quality_scores+" ]")
     group2.add_argument(
         "-a", "--trimmomatic-options",
-        default=[], action="append",
+        action="append",
         help="options for trimmomatic\n[ DEFAULT : "+" ".join(config.trimmomatic_options)+" ]")
 
     group3 = parser.add_argument_group("bowtie2 arguments")
@@ -145,7 +145,7 @@ def parse_arguments(args):
         help="path to bowtie2\n[ DEFAULT : $PATH ]")
     group3.add_argument(
         "--bowtie2-options",
-        default=[], action="append",
+        action="append",
         help="options for bowtie2\n[ DEFAULT : "+ " ".join(config.bowtie2_options)+" ]")
         
     group4 = parser.add_argument_group("bmtagger arguments")
@@ -239,11 +239,20 @@ def update_configuration(args):
         parser.error("\nYou cannot set the --no-generate-fastq flag without"
         " the --mask flag. Exiting...\n")
 
-    # allow users to overwrite the defaults instead of appending to defaults
-    if args.trimmomatic_options == []:
+    # set trimmomatic options
+    if args.trimmomatic_options:
+        # parse the options from the user into an array of options
+        args.trimmomatic_options=utilities.format_options_to_list(args.trimmomatic_options)
+    else:
+        # if not set by user, then set to default options
         args.trimmomatic_options = config.trimmomatic_options
 
-    if args.bowtie2_options == []:
+    # set bowtie2 options
+    if args.bowtie2_options:
+        # parse the options from the user into any array of options
+        args.bowtie2_options=utilities.format_options_to_list(args.bowtie2_options)
+    else:
+        # if not set by user, then set to default options
         args.bowtie2_options = config.bowtie2_options
         
     # update the trimmomatic quality score option into a flag for trimmomatic

@@ -43,7 +43,7 @@ def _generate_bowtie2_commands( infile_list, db_prefix_list,
                      "--un", output_str + "_clean.fastq"]
             outputs_to_combine = [output_str + "_clean.fastq"]
 
-        cmd += list(utilities._get_bowtie2_args(bowtie2_opts))
+        cmd += bowtie2_opts
         if remove_temp_output:
             # if we are removing the temp output, then write the sam output to dev null to save space
             sam_out = os.devnull

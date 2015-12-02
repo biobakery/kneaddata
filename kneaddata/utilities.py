@@ -89,12 +89,16 @@ def parse_positive_int(string):
     if val <= 0:
         raise argparse.ArgumentTypeError("%s is not a positive integer" %string)
     return val
-
-
-def _get_bowtie2_args(bowtie2_args):
-    for arg in map(shlex.split, bowtie2_args):
-        for a in arg:
-            yield a
+            
+def format_options_to_list(input_options):
+    """ Take in a list of strings with each string containing one or more options
+    Format into a list of options which can be appended to a command to be run as a subprocess
+    """
+    formatted_options_list=[]
+    for option in input_options:
+        formatted_options_list+=shlex.split(option)
+        
+    return formatted_options_list
             
 def get_file_format(file):
     """ Determine the format of the file """
