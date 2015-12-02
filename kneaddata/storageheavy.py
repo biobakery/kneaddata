@@ -687,7 +687,7 @@ def decontaminate(args, bowtie_threads, output_prefix, files_to_align):
         fails = [(i, ret_code) for i, ret_code in enumerate(ret_codes) if ret_code != 0]
         if len(fails) > 0:
             for i, ret_code in fails:
-                message="The following command failed: " + " ".join(commands[i])
+                message="The following command failed: " + commands[i]
                 logger.critical(message)
                 print(message)
             sys.exit(1)
