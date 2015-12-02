@@ -464,10 +464,10 @@ def combine_tag(llstrFiles, out_prefix, remove_temp_output):
                     os.remove(filename)
     return output_files
 
-def checktrim_output(output_prefix, b_single_end):
+def checktrim_output(output_prefix, input_files):
     '''
     input:  output_prefix: a string containing the output prefix
-            b_single_end:  True/False, single end or not
+            input_files: the list of input files
 
     output: a tuple (b, outputs, new_inputs)
             b:          a boolean. True if at least 1 Trimmomatic output file is
@@ -481,8 +481,13 @@ def checktrim_output(output_prefix, b_single_end):
     '''
     outputs = []
     ll_new_inputs = []
+    
+    # determine if paired input files
+    b_single_end = True
+    if len(input_files) == 2:
+        b_single_end = False
+    
     if b_single_end:
-
         outputs.append(output_prefix + config.trimomatic_se_ending)
         if not utilities.is_file_nonempty_readable(outputs[0]):
             return (False, outputs, ll_new_inputs)
@@ -748,17 +753,13 @@ def storage_heavy(args):
     trim_threads, bowtie_threads = utilities.divvy_threads(args)
     output_prefix = os.path.join(args.output_dir, args.output_prefix)
 
-    # determine single-ended or pair ends
-    b_single_end = (args.infile2 is None)
-    files = [args.infile1] if b_single_end else [args.infile1, args.infile2]
-
     # Get number of reads initially, then log
-    utilities.log_read_count_for_files(files,"Initial number of reads",args.verbose)
+    utilities.log_read_count_for_files(args.input,"Initial number of reads",args.verbose)
 
     message="Trimming ..."
     logger.info(message)
     print(message)
-    trim(files, 
+    trim(args.input, 
          threads          = trim_threads,
          trimmomatic_path = args.trimmomatic_path,
          quality_scores   = args.trimmomatic_quality_scores,
@@ -773,8 +774,7 @@ def storage_heavy(args):
     logger.info(message)
 
     # check that Trimmomatic's output files exist
-    b_continue, outputs, files_to_align = checktrim_output(output_prefix, 
-                                                           b_single_end)
+    b_continue, outputs, files_to_align = checktrim_output(output_prefix, args.input)
 
     utilities.log_read_count_for_files(outputs,"Total reads after trimming",args.verbose)
 

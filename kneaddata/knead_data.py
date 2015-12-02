@@ -68,14 +68,9 @@ def parse_arguments(args):
         help="additional output is printed\n")
     group1.add_argument(
         "-i", "--input",
-        help="input FASTQ file", 
-        dest='infile1',
+        help="input FASTQ file (add a second argument instance to run with paired input files)", 
+        action="append",
         required=True)
-    group1.add_argument(
-        "--input2",
-        help="input FASTQ file pair",
-        dest='infile2',
-        default=None)
     group1.add_argument(
         "-o", "--output",
         dest='output_dir',
@@ -84,7 +79,7 @@ def parse_arguments(args):
     group1.add_argument(
         "-db", "--reference-db",
         default=[], action="append",
-        help="location of reference database")
+        help="location of reference database (additional arguments add databases)")
     group1.add_argument(
         "--output-prefix",
         help="prefix for all output files\n[ DEFAULT : $SAMPLE_kneaddata ]")
@@ -228,12 +223,14 @@ def update_configuration(args):
     args.output_dir = os.path.abspath(args.output_dir)
     
     # check the input files are non-empty and readable
-    args.infile1 = os.path.abspath(args.infile1)
-    utilities.is_file_nonempty_readable(args.infile1,exit_on_error=True)
+    args.input[0] = os.path.abspath(args.input[0])
+    utilities.is_file_nonempty_readable(args.input[0],exit_on_error=True)
     
-    if args.infile2:
-        args.infile2 = os.path.abspath(args.infile2)
-        utilities.is_file_nonempty_readable(args.infile2,exit_on_error=True)
+    if len(args.input) == 2:
+        args.input[1] = os.path.abspath(args.input[1])
+        utilities.is_file_nonempty_readable(args.input[1],exit_on_error=True)
+    elif len(args.input) > 2:
+        sys.exit("ERROR: Please provide at most 2 input files.")
     
     # create the output directory if needed
     utilities.create_directory(args.output_dir)
@@ -254,7 +251,7 @@ def update_configuration(args):
 
     # set the default output prefix 
     if args.output_prefix == None:
-        infile_base = os.path.splitext(os.path.basename(args.infile1))[0]
+        infile_base = os.path.splitext(os.path.basename(args.input[0]))[0]
         args.output_prefix = infile_base + "_kneaddata"
         
     # find the location of trimmomatic
@@ -327,7 +324,7 @@ def main():
     setup_logging(args)
 
     # Get the format of the first input file
-    file_format=utilities.get_file_format(args.infile1)
+    file_format=utilities.get_file_format(args.input[0])
 
     if file_format != "fastq":
         message="Your input file is of type: "+file_format+". Please provide an input file of fastq format."

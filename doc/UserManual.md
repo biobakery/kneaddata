@@ -257,11 +257,11 @@ reads, the ones that were not identified as human reads.
 
 To run KneadData in paired end mode with Bowtie2, run
 
-    ` $ kneaddata --input seq1.fastq --input2 seq2.fastq -db $DATABASE --output kneaddata_output`
+    ` $ kneaddata --input seq1.fastq --input seq2.fastq -db $DATABASE --output kneaddata_output`
 
 To run KneadData in paired end mode with BMTagger, run
 
-    ` $ kneaddata --input seq1.fastq --input2 seq2.fastq -db $DATABASE --run-bmtagger --output kneaddata_output `
+    ` $ kneaddata --input seq1.fastq --input seq2.fastq -db $DATABASE --run-bmtagger --output kneaddata_output `
 
 + `seq1.fastq`: Your input FASTQ file, first mate
 + `seq2.fastq`: Your input FASTQ file, second mate
@@ -297,7 +297,7 @@ You have two databases, one prefixed `bact_rrna_db` and the other prefixed
 `human_rna_db`, and your sequence files are `seq1.fastq` and `seq2.fastq`. To
 run with Bowtie2, execute
 
-    `$ kneaddata --input seq1.fastq --input2 seq2.fastq -db bact_rrna_db -db human_rna_db --output seq_out `
+    `$ kneaddata --input seq1.fastq --input seq2.fastq -db bact_rrna_db -db human_rna_db --output seq_out `
 
 This will output files in the folder `seq_out` named:
 
@@ -380,8 +380,8 @@ Aggregated files:
 All options can be accessed with `$ kneaddata --help`.
 
 ```
-usage: kneaddata [-h] [--version] [-v] -i INFILE1 [--input2 INFILE2] -o
-                 OUTPUT_DIR [-db REFERENCE_DB] [--output-prefix OUTPUT_PREFIX]
+usage: kneaddata [-h] [--version] [-v] -i INPUT -o OUTPUT_DIR
+                 [-db REFERENCE_DB] [--output-prefix OUTPUT_PREFIX]
                  [--threads <1>] [-s {memory,storage}] [--run-bmtagger]
                  [--run-trf] [--remove-temp-output]
                  [--log-level {DEBUG,INFO,WARNING,ERROR,CRITICAL}] [--log LOG]
@@ -402,13 +402,12 @@ optional arguments:
 
 global options:
   --version             show program's version number and exit
-  -i INFILE1, --input INFILE1
-                        input FASTQ file
-  --input2 INFILE2      input FASTQ file pair
+  -i INPUT, --input INPUT
+                        input FASTQ file (add a second argument instance to run with paired input files)
   -o OUTPUT_DIR, --output OUTPUT_DIR
                         directory to write output files
   -db REFERENCE_DB, --reference-db REFERENCE_DB
-                        location of reference database
+                        location of reference database (additional arguments add databases)
   --output-prefix OUTPUT_PREFIX
                         prefix for all output files
                         [ DEFAULT : $SAMPLE_kneaddata ]

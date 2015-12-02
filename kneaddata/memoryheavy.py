@@ -134,7 +134,7 @@ def decontaminate_reads(in_fname, index_strs, output_prefix,
 
 def check_args(args):
 
-    if args.infile2:
+    if len(args.input) > 1:
         message="memory heavy strategy only supports single-end reads"
         logger.critical(message)
         sys.exit(message)
@@ -151,7 +151,7 @@ def check_args(args):
 def memory_heavy(args):
     args = check_args(args)
     trim_threads, bowtie_threads = utilities.divvy_threads(args)
-    decontaminate_reads(args.infile1, args.reference_db,
+    decontaminate_reads(args.input[0], args.reference_db,
                         args.output_prefix, args.output_dir,
                         args.trimmomatic_options, args.trimmomatic_path, trim_threads,
                         args.trimmomatic_quality_scores,
