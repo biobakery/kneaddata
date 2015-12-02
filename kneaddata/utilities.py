@@ -67,16 +67,16 @@ def mkfifo_here(names=("a",), mode=0600):
 
 def process_return(name, retcode, stdout, stderr):
     if name:
-        logging.debug("Finished running %s!" %name)
+        logger.debug("Finished running %s!" %name)
     if retcode:
-        log = logging.critical
-        log("%s exited with exit status %d", name, retcode)
-    else:
-        log = logging.debug
+        message="ERROR: " + name + " exited with code " + str(retcode)
+        logger.critical(message)
+        print(message)
+    
     if stdout:
-        log("%s stdout:\n%s", name, stdout)
+        logger.debug("%s stdout:\n%s", name, stdout)
     if stderr:
-        log("%s stderr:\n%s", name, stderr)
+        logger.debug("%s stderr:\n%s", name, stderr)
     if retcode:
         sys.exit(retcode)
 
