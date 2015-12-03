@@ -31,27 +31,29 @@ trf_minscore=50
 trf_maxperiod=500
 
 # File endings for BMTagger's required database files
-bowtie2_db_endings =    [".1.bt2", ".2.bt2", ".3.bt2", ".4.bt2", ".rev.1.bt2", 
-                        ".rev.2.bt2"]
-bowtie2_large_index_ext=".1.bt2l"
-bmtagger_db_endings =   [".bitmask", ".srprism.amp", 
-                        ".srprism.idx", ".srprism.imp",
-                        ".srprism.map", ".srprism.pmp", 
-                        ".srprism.rmp", ".srprism.ss",
-                        ".srprism.ssa", ".srprism.ssd", 
-                        ".nhr", ".nin", ".nsq"]
+bowtie2_db_endings = [
+    ".1.bt2", ".2.bt2", ".3.bt2", ".4.bt2", ".rev.1.bt2", ".rev.2.bt2"]
+bowtie2_large_index_ext = ".1.bt2l"
+bmtagger_db_endings = [
+    ".bitmask", ".srprism.amp", ".srprism.idx", ".srprism.imp",
+    ".srprism.map", ".srprism.pmp", ".srprism.rmp", ".srprism.ss",
+    ".srprism.ssa", ".srprism.ssd", ".nhr", ".nin", ".nsq"]
     
 
 # Trimmomatic file endings for single end and paired end, respectively
 trimomatic_se_ending = ".trimmed.fastq"
 
-trimomatic_pe_endings =   [".trimmed.1.fastq", 
-                    ".trimmed.2.fastq", 
-                    ".trimmed.single.1.fastq", 
-                    ".trimmed.single.2.fastq"]
+
+# Trimmomatic in paired end mode writes four output files
+# The first two files are the trimmed fastq files for input file 1 and 2
+# The second two files are the trimmed sequences that lost their pair
+# For example the third file is the trimmed sequences from input file 1
+# that do not have a pair from input file 2 after trimming
+trimomatic_pe_endings = [
+    ".trimmed.1.fastq", ".trimmed.2.fastq", 
+    ".trimmed.single.1.fastq", ".trimmed.single.2.fastq"]
 
 # BMTagger file endings if you choose to remove the contaminant reads. For
 # single end and paired end reads, respectively.
 bmtagger_se_ending = ".fastq"
-bmtagger_pe_endings =   ["_1.fastq",
-                        "_2.fastq"]
+bmtagger_pe_endings = ["_1.fastq", "_2.fastq"]

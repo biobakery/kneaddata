@@ -463,67 +463,6 @@ def combine_tag(llstrFiles, out_prefix, remove_temp_output):
                     os.remove(filename)
     return output_files
 
-def checktrim_output(output_prefix, input_files):
-    '''
-    input:  output_prefix: a string containing the output prefix
-            input_files: the list of input files
-
-    output: a tuple (b, outputs, new_inputs)
-            b:          a boolean. True if at least 1 Trimmomatic output file is
-                        existing and nonempty
-            outputs:    a list of the outputs we are checking against. 
-            new_inputs: a list of lists [l_1, l_2, l_3, ...] where each l_i is
-                        a (nonempty) input to BMTagger. Each l_i has length 1 or
-                        length 2.
-    Summary:    Checks if Trimmomatic output files exist, and if at least some
-                of them do, assemble them into lists to pass to BMTagger.
-    '''
-    outputs = []
-    ll_new_inputs = []
-    
-    # determine if paired input files
-    b_single_end = True
-    if len(input_files) == 2:
-        b_single_end = False
-    
-    if b_single_end:
-        outputs.append(output_prefix + config.trimomatic_se_ending)
-        if not utilities.is_file_nonempty_readable(outputs[0]):
-            return (False, outputs, ll_new_inputs)
-        else:
-            ll_new_inputs = [outputs]
-
-    else:
-        len_endings = len(config.trimomatic_pe_endings)
-        outputs = [output_prefix + ending for ending in config.trimomatic_pe_endings]
-
-        checks = [utilities.is_file_nonempty_readable(out) for out in outputs]
-
-        # check that all the files at least exist. If they don't exist this
-        # means that something went wrong with Trimmomatic
-        for i in range(len_endings):
-            if not checks[i]:
-                message="File does not exist or is empty: " + outputs[i]
-                print(message)
-                logger.critical(message)
-                return(False, outputs, ll_new_inputs)
-        
-        if checks[0] and checks[1]:
-            ll_new_inputs.append([outputs[0], outputs[1]])
-        elif checks[0]:
-            ll_new_inputs.append([outputs[0]])
-        elif checks[1]:
-            ll_new_inputs.append([outputs[1]])
-        for i in [2,3]:
-            if checks[i]:
-                ll_new_inputs.append([outputs[i]])
-
-        # If no valid inputs, return False
-        if ll_new_inputs == []:
-            return(False, outputs, ll_new_inputs)
-
-    return (True, outputs, ll_new_inputs)
-
 def _prefix_bases(db_prefix_list):
     """From a list of absolute or relative paths, returns an iterator of the
     following tuple:
@@ -547,66 +486,68 @@ def _prefix_bases(db_prefix_list):
         else:
             yield (group[0][0], group[0][1])
 
-def trim(infile, prefix, trimmomatic_path, quality_scores, 
-         java_mem="500m", addl_args=list(), threads=1, verbose=None):
-    '''
-    Trim a sequence file using trimmomatic. 
-        infile:     input fastq file list (either length 1 or length 2)
-                    length 1: single end
-                    length 2: paired end
-        prefix:     prefix for outputs
-        java_mem:   string, ie "500m" or "8g"; specifies how much memory
-                    the Java VM is allowed to use
-        addl_args:  list of string, additional arguments for Trimmomatic
-        threads:    int, number of threads for Trimmomatic to use
+def trim(infiles, outfiles_prefix, trimmomatic_path, quality_scores, 
+         java_memory, additional_options, threads, verbose):
+    """ 
+    Create trimmomatic command based on input files and options and then run 
+    Return a list of the output files
+    """
 
-    output: 4 files for paired end
-        (1) prefix.trimmed.1.fastq: trimmed first pair-end file
-        (2) prefix.trimmed.2.fastq: trimmed second pair-end file
-        (3) prefix.trimmed.single.1.fastq: trimmed sequences from the first file
-        that lost their partner from the second file
-        (4) prefix.trimmed.single.2.fastq: trimmed sequences from the second
-        file that lost their partner from the first file
+    command = ["java", "-Xmx" + java_memory, "-d64", "-jar", trimmomatic_path]
 
-            1 file for single end:
-        prefix.trimmed.fastq
-
-    returns:
-        (res, cmd)              res is the error code of the command
-                                cmd (string) is the command itself
-    Summary: Calls Trimmomatic to trim reads based on quality
-    '''
-
-    single_end = (len(infile) == 1)
-    trim_cmd = ["java", 
-                "-Xmx" + java_mem, 
-                "-d64",
-                "-jar", trimmomatic_path]
-
-    if single_end:
-        trim_cmd += ["SE",
-                    "-threads", str(threads),
-                    quality_scores, 
-                    infile[0],
-                    prefix + config.trimomatic_se_ending] + addl_args
+    # determine if paired end input files
+    paired_end=False
+    if len(infiles) == 2:
+        paired_end = True
+        
+    if paired_end:
+        # set options for paired end input files
+        mode = "PE"
+        outfiles = [outfiles_prefix + config.trimomatic_pe_endings[0], 
+                    outfiles_prefix + config.trimomatic_pe_endings[2],
+                    outfiles_prefix + config.trimomatic_pe_endings[1],
+                    outfiles_prefix + config.trimomatic_pe_endings[3]]
     else:
-        trim_cmd += ["PE", 
-                    "-threads", str(threads),
-                    quality_scores,
-                    infile[0], infile[1], 
-                    prefix + config.trimomatic_pe_endings[0], 
-                    prefix + config.trimomatic_pe_endings[2],
-                    prefix + config.trimomatic_pe_endings[1],
-                    prefix + config.trimomatic_pe_endings[3]] + addl_args
+        # set options for single input file
+        mode = "SE"
+        outfiles = [outfiles_prefix + config.trimomatic_se_ending]
+    
+    # add positional arguments to command
+    command += [mode, "-threads", str(threads), quality_scores] + infiles + outfiles
+    # add optional arguments to command
+    command += additional_options
 
-    utilities.log_run_and_arguments("trimmomatic",trim_cmd,verbose)
-    proc = subprocess.Popen(trim_cmd,
-                            stderr=subprocess.PIPE,
-                            stdout=subprocess.PIPE)
-    stdout, stderr = proc.communicate()
-    retcode = proc.returncode
-    utilities.process_return("Trimmomatic", retcode, stdout, stderr)
-    return(retcode, trim_cmd)
+    # only check the first of the many paired end output files as it is okay
+    # if the unmatched trimmed reads files are empty
+    checked_output_files=[outfiles[0]]
+
+    # run trimmomatic command
+    utilities.run_command(command,"Trimmomatic",infiles,checked_output_files,verbose)
+    
+    # now check all of the output files to find which are non-empty and return as 
+    # sets for running the alignment steps
+    nonempty_outfiles=[]
+    if paired_end:
+        outfile_size = [utilities.file_size(file) for file in outfiles]
+        # if paired fastq files remain after trimming, preserve pairing
+        if outfile_size[0] > 0 and outfile_size[1] > 0:
+            nonempty_outfiles.append([outfiles[0],outfiles[1]])
+        elif outfile_size[0] > 0:
+            nonempty_outfiles.append([outfiles[0]])
+        elif outfile_size[1] > 0:
+            nonempty_outfiles.append([outfiles[1]])
+        
+        # add sequences without pairs, if present
+        if outfile_size[2] > 0:
+            nonempty_outfiles.append([outfiles[2]])
+            
+        if outfile_size[3] > 0:
+            nonempty_outfiles.append([outfiles[3]])
+        
+    else:
+        nonempty_outfiles=[outfiles]
+        
+    return nonempty_outfiles
 
 
 def run_trf(fastqs, outs, match=2, mismatch=7, delta=7, pm=80, pi=10,
@@ -731,35 +672,17 @@ def storage_heavy(args):
     trim_threads, bowtie_threads = utilities.divvy_threads(args)
     output_prefix = os.path.join(args.output_dir, args.output_prefix)
 
-    # Get number of reads initially, then log
+    # Get the number of reads initially
     utilities.log_read_count_for_files(args.input,"Initial number of reads",args.verbose)
 
-    message="Trimming ..."
-    logger.info(message)
-    print(message)
-    trim(args.input, 
-         threads          = trim_threads,
-         trimmomatic_path = args.trimmomatic_path,
-         quality_scores   = args.trimmomatic_quality_scores,
-         prefix           = output_prefix,
-         java_mem         = args.max_mem, 
-         addl_args        = args.trimmomatic_options,
-         verbose          = args.verbose)
+    # Run trimmomatic
+    trimmomatic_output_files = trim(
+        args.input, output_prefix, args.trimmomatic_path, 
+        args.trimmomatic_quality_scores, args.max_mem, args.trimmomatic_options, 
+        args.threads, args.verbose)
 
-    message="Finished running trimmomatic"
-    if args.verbose:
-        print(message)
-    logger.info(message)
-
-    # check that Trimmomatic's output files exist
-    b_continue, outputs, files_to_align = checktrim_output(output_prefix, args.input)
-
-    utilities.log_read_count_for_files(outputs,"Total reads after trimming",args.verbose)
-
-    if not b_continue:
-        message="Trimmomatic did not output any trimmed reads"
-        logger.critical(message)
-        sys.exit(message)
+    # Get the number of reads after trimming
+    utilities.log_read_count_for_files(trimmomatic_output_files,"Total reads after trimming",args.verbose)
 
     # Start aligning
     if not args.reference_db:
@@ -767,10 +690,10 @@ def storage_heavy(args):
         logger.info(message)
         print(message)
     else:
-        decontaminate(args, bowtie_threads, output_prefix, files_to_align)
+        decontaminate(args, bowtie_threads, output_prefix, trimmomatic_output_files)
         # remove temp trimmomatic files
         if args.remove_temp_output:
             logger.debug("Removing temporary trim files...")
-            for output in outputs:
+            for output in itertools.chain.from_iterable(trimmomatic_output_files):
                 os.remove(output)
 

@@ -6,6 +6,8 @@ import tempfile
 import gzip
 import re
 import logging
+import subprocess
+import itertools
 
 from math import floor
 from functools import partial
@@ -89,6 +91,42 @@ def parse_positive_int(string):
     if val <= 0:
         raise argparse.ArgumentTypeError("%s is not a positive integer" %string)
     return val
+
+def run_command(command,command_name,infiles,outfiles,verbose):
+    """ Run and log command """
+    
+    # convert any numbers in command to strings
+    command = [str(i) for i in command]
+    
+    # check that the input files exist and are readable
+    for file in infiles:
+        logger.debug("Checking input file to "+command_name+" : "+file)
+        is_file_nonempty_readable(file, exit_on_error=True)
+        
+    message="Running " + command_name + " ... "
+    print(message)
+    logger.info(message)
+    
+    message=" ".join(command)
+    logger.info("Execute command: " + message)
+    if verbose:
+        print("\n" + message + "\n")
+        
+    try:
+        p_out = subprocess.check_output(command, stderr=subprocess.STDOUT)
+        logger.debug(p_out)
+    except (EnvironmentError, subprocess.CalledProcessError) as e:
+        message="Error executing: " + " ".join(command) + "\n"
+        if hasattr(e, 'output') and e.output:
+            message+="\nError message returned from " + os.path.basename(command_name) + " :\n" + e.output
+        logger.critical(message)
+        sys.exit("CRITICAL ERROR: " + message)
+
+    # check that the output files exist and are readable
+    for file in outfiles:
+        logger.debug("Checking output file from "+command_name+" : "+file)
+        is_file_nonempty_readable(file, exit_on_error=True) 
+    
             
 def format_options_to_list(input_options):
     """ Take in a list of strings with each string containing one or more options
@@ -191,6 +229,11 @@ def count_reads_in_fastq_file(file,verbose):
 def log_read_count_for_files(files,message_base,verbose=None):
     """ Log the number of reads in the files """
         
+    # convert possible list of lists to list
+    if isinstance(files[0],list):
+        files=itertools.chain.from_iterable(files)
+
+    # count reads in each file
     for file in files:
         total_reads=count_reads_in_fastq_file(file,verbose)
         message=message_base+" ( "+file+" ): " + str(total_reads)
@@ -286,6 +329,16 @@ def find_database_index(directory, database_type):
         sys.exit("ERROR: Unable to find "+database_type+" index files in directory: " + directory)
     
     return index
+
+def file_size(file):
+    """ Return the size of the file """
+    
+    try:
+        size = os.stat(file).st_size
+    except EnvironmentError:
+        size = 0
+        
+    return size
 
 def is_file_nonempty_readable(file, exit_on_error=None):
     """ Check that the file exists, is readable, and is not empty """
