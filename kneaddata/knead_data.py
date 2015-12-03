@@ -84,11 +84,17 @@ def parse_arguments(args):
         "--output-prefix",
         help="prefix for all output files\n[ DEFAULT : $SAMPLE_kneaddata ]")
     group1.add_argument(
-        "--threads",
+        "-t","--threads",
         type=int, 
         default=config.threads,
         metavar="<" + str(config.threads) + ">",  
         help="number of threads\n[ Default : "+str(config.threads)+" ]")
+    group1.add_argument(
+        "-p","--processes",
+        type=int, 
+        default=config.processes,
+        metavar="<" + str(config.processes) + ">",  
+        help="number of processes\n[ Default : "+str(config.processes)+" ]")
     group1.add_argument(
         "-q","--quality-scores",
         default=config.quality_scores,

@@ -19,17 +19,6 @@ from . import config
 # name global logging instance
 logger=logging.getLogger(__name__)
 
-def divvy_threads(args):
-    avail_cpus = args.threads or cpu_count()-1
-    n_consumers = len(args.reference_db)
-    trim_threads = 1
-    if n_consumers > 0:
-        align_threads = max(1, floor(avail_cpus/float(n_consumers)))
-    else:
-        align_threads = 1
-    return int(trim_threads), int(align_threads)
-    
-
 def create_directory(directory):
     """ Try to create a directory if it does not exist """
     if not os.path.exists(directory):

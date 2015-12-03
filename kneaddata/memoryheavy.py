@@ -77,7 +77,7 @@ def run_tandem(in_fastq, out, match=2, mismatch=7, delta=7, pm=80, pi=10,
 
 def decontaminate_reads(in_fname, index_strs, output_prefix,
                         output_dir, filter_args_list, filter_jar_path,
-                        trim_threads, trimmomatic_quality_scores, bowtie_threads, bowtie2_args, 
+                        threads, trimmomatic_quality_scores, bowtie2_args, 
                         bowtie2_path, trf, match, mismatch, delta, pm, pi,
                         minscore, maxperiod, generate_fastq, mask, html,
                         trf_path, max_memory, verbose):
@@ -91,7 +91,7 @@ def decontaminate_reads(in_fname, index_strs, output_prefix,
         filter_proc = trimmomatic(in_fname, filenames[0],
                                   trimmomatic_quality_scores,
                                   filter_args_list, filter_jar_path, verbose, max_memory,
-                                  trim_threads)
+                                  threads)
         staggered = sliding_window(filenames, 2)
 
         def _procs():
@@ -104,7 +104,7 @@ def decontaminate_reads(in_fname, index_strs, output_prefix,
                 if trf:
                     if in_next != None:
                         yield bowtie2(index_str, in_cur, in_next, contam_file,
-                                    bowtie_threads, bowtie2_args, verbose,
+                                    threads, bowtie2_args, verbose,
                                     bowtie2_path)
                     else:
                         assert(index_str == None)
@@ -114,7 +114,7 @@ def decontaminate_reads(in_fname, index_strs, output_prefix,
                 else:
                     in_next = in_next or clean_file
                     yield bowtie2(index_str, in_cur, in_next, contam_file,
-                                bowtie_threads, bowtie2_args, verbose,
+                                threads, bowtie2_args, verbose,
                                 bowtie2_path)
 
 
@@ -144,18 +144,21 @@ def check_args(args):
             message="Unable to find database: "+db_base
             logger.critical(message)
             sys.exit(message)
+            
+    if len(args.reference_db) != args.processes:
+        sys.exit("ERROR: Memory heavy mode with "+str(len(args.reference_db))+
+                 " reference databases requires "+str(len(args.reference_db))+" processes.")
 
     return args
 
 
 def memory_heavy(args):
     args = check_args(args)
-    trim_threads, bowtie_threads = utilities.divvy_threads(args)
     decontaminate_reads(args.input[0], args.reference_db,
                         args.output_prefix, args.output_dir,
-                        args.trimmomatic_options, args.trimmomatic_path, trim_threads,
+                        args.trimmomatic_options, args.trimmomatic_path, args.threads,
                         args.trimmomatic_quality_scores,
-                        bowtie_threads, bowtie2_args=args.bowtie2_options, 
+                        bowtie2_args=args.bowtie2_options, 
                         bowtie2_path=args.bowtie2_path,
                         trf=args.trf, match=args.match, mismatch=args.mismatch,
                         delta=args.delta, pm=args.pm, pi=args.pi,

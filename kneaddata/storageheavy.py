@@ -82,7 +82,7 @@ def _poll_workers(popen_list):
 
 
 def align(infile_list, db_prefix_list, output_prefix, tmp_dir, remove_temp_output,
-          bowtie2_path, n_procs=None, bowtie2_opts=list(),verbose=None):
+          bowtie2_path, threads, processors, bowtie2_opts, verbose):
 
     """Align a single-end sequence file or a paired-end duo of sequence
     files using bowtie2.
@@ -99,17 +99,14 @@ def align(infile_list, db_prefix_list, output_prefix, tmp_dir, remove_temp_outpu
                     sam file output
     :param remove_temp_output: Boolean; If set, remove temp output
     :keyword bowtie2_path: String; File path to the bowtie2 binary's location.
-    :keyword n_procs: Int; Number of bowtie2 subprocesses to run.
+    :keyword processes: Int; Number of bowtie2 subprocesses to run.
     :keyword bowtie2_opts: List; List of additional arguments, as strings, to 
                             be passed to Bowtie2.
     """
 
-    if not n_procs:
-        n_procs = len(db_prefix_list)
-
     commands_to_run = _generate_bowtie2_commands( infile_list,
         db_prefix_list, bowtie2_path, output_prefix, bowtie2_opts,
-        tmp_dir, n_procs, remove_temp_output)
+        tmp_dir, threads, remove_temp_output)
     commands_to_run = list(commands_to_run)
     
     procs_running = list()
@@ -119,7 +116,7 @@ def align(infile_list, db_prefix_list, output_prefix, tmp_dir, remove_temp_outpu
     while commands_to_run:
         cmd, output_to_combine = commands_to_run.pop()
         n_running, procs_running = _poll_workers(procs_running)
-        if n_running >= n_procs:
+        if n_running >= processors:
             commands_to_run.append((cmd, output_to_combine))
             time.sleep(0.5)
         else:
@@ -167,7 +164,7 @@ def align(infile_list, db_prefix_list, output_prefix, tmp_dir, remove_temp_outpu
 
 
 def tag(infile_list, db_prefix_list, temp_dir, remove_temp_output, prefix,
-        bmtagger_path, n_procs=2, remove=False, verbose=None):
+        bmtagger_path, processes, remove, verbose):
     """
     Runs BMTagger on a single-end sequence file or a paired-end duo of sequence
     files. Returns a tuple (ret_codes, bmt_args). Both are lists, each which has
@@ -190,7 +187,7 @@ def tag(infile_list, db_prefix_list, temp_dir, remove_temp_output, prefix,
     :param remove_temp_output: Boolean; If set, remove temp output
     :param prefix: String; prefix for output files
     :keyword bmtagger_path: String; file path to the bmtagger.sh executable
-    :keyword n_procs: Int; Max number of BMTagger subprocesses to run
+    :keyword processes: Int; Max number of BMTagger subprocesses to run
     :keyword remove: Boolean; If True, output cleaned FASTQ files with reads
                      identified as contaminants removed. Otherwise, outputs
                      list(s) of reads identified as contaminants.
@@ -270,7 +267,7 @@ def tag(infile_list, db_prefix_list, temp_dir, remove_temp_output, prefix,
     while bmt_args:
         cmd = bmt_args.pop() 
         n_running, procs_running = _poll_workers(procs_running)
-        if n_running >= n_procs:
+        if n_running >= processes:
             bmt_args.append(cmd)
             time.sleep(0.5)
         else:
@@ -550,9 +547,8 @@ def trim(infiles, outfiles_prefix, trimmomatic_path, quality_scores,
     return nonempty_outfiles
 
 
-def run_trf(fastqs, outs, match=2, mismatch=7, delta=7, pm=80, pi=10,
-        minscore=50, maxperiod=500, generate_fastq=True, mask=False, html=False,
-        trf_path="trf", n_procs=None):
+def run_trf(fastqs, outs, match, mismatch, delta, pm, pi, minscore, maxperiod, 
+            generate_fastq, mask, html, trf_path, n_procs):
     nfiles = len(fastqs)
     # 1-2 files being passed in
     assert(nfiles == 2 or nfiles == 1)
@@ -570,7 +566,7 @@ def run_trf(fastqs, outs, match=2, mismatch=7, delta=7, pm=80, pi=10,
         retcode = proc.returncode
         utilities.process_return(name, retcode, stdout, stderr)
         
-def decontaminate(args, bowtie_threads, output_prefix, files_to_align, tempdir):
+def decontaminate(args, output_prefix, files_to_align, tempdir):
     """
     Run bowtie2 or bmtagger then trf if set
     """
@@ -595,25 +591,17 @@ def decontaminate(args, bowtie_threads, output_prefix, files_to_align, tempdir):
             prefix = prefix + "_pre_tandem"
     
         if args.bmtagger:
-            ret_codes, commands, c_outs = tag(infile_list=files_list,
-                                              db_prefix_list=args.reference_db,
-                                              temp_dir=tempdir,
-                                              remove_temp_output=args.remove_temp_output,
-                                              prefix=prefix,
-                                              bmtagger_path=args.bmtagger_path,
-                                              n_procs=bowtie_threads,
-                                              remove=args.extract,
-                                              verbose=args.verbose)
+            ret_codes, commands, c_outs = tag(files_list, args.reference_db,
+                                              tempdir, args.remove_temp_output,
+                                              prefix, args.bmtagger_path,
+                                              args.processes, args.extract,
+                                              args.verbose)
         else:
-            ret_codes, commands, c_outs = align(infile_list=files_list,
-                                                db_prefix_list=args.reference_db,
-                                                output_prefix=prefix,
-                                                tmp_dir=tempdir,
-                                                remove_temp_output=args.remove_temp_output,
-                                                bowtie2_path=args.bowtie2_path,
-                                                n_procs=bowtie_threads,
-                                                bowtie2_opts=args.bowtie2_options,
-                                                verbose=args.verbose)
+            ret_codes, commands, c_outs = align(files_list, args.reference_db, prefix,
+                                                tempdir, args.remove_temp_output,
+                                                args.bowtie2_path, args.threads,
+                                                args.processes, args.bowtie2_options,
+                                                args.verbose)
                 
         # check that everything returned correctly
         # gather non-zero return codes
@@ -645,7 +633,7 @@ def decontaminate(args, bowtie_threads, output_prefix, files_to_align, tempdir):
                     mask=args.mask,
                     html=args.html,
                     trf_path=args.trf_path,
-                    n_procs=bowtie_threads)
+                    n_procs=args.processes)
             if args.remove_temp_output:
                 for c_out in c_outs:
                     os.remove(c_out)
@@ -655,8 +643,7 @@ def decontaminate(args, bowtie_threads, output_prefix, files_to_align, tempdir):
     
 
 def storage_heavy(args):
-
-    trim_threads, bowtie_threads = utilities.divvy_threads(args)
+    # set the prefix for the output files
     output_prefix = os.path.join(args.output_dir, args.output_prefix)
     
     # make temporary directory for temp output files
@@ -693,7 +680,7 @@ def storage_heavy(args):
         logger.info(message)
         print(message)
     else:
-        decontaminate(args, bowtie_threads, output_prefix, trimmomatic_output_files, tempdir)
+        decontaminate(args, output_prefix, trimmomatic_output_files, tempdir)
 
     # Remove temp output files, if set to remove
     if args.remove_temp_output:

@@ -2,6 +2,7 @@
 
 # Default settings for command line arguments
 threads=1
+processes=1
 
 strategy_choices=["memory","storage"]
 strategy=strategy_choices[1]
