@@ -23,7 +23,7 @@ def sliding_window(it, l, fill=None):
 
 
 def trimmomatic(fastq_in, fastq_out, quality_scores, filter_args_list, jar_path, verbose,
-                maxmem="500m", threads=1):
+                maxmem, threads):
     args = ["java", "-Xmx"+maxmem, "-d64",
             "-jar", jar_path,
             "SE", "-threads", str(threads),
@@ -80,7 +80,7 @@ def decontaminate_reads(in_fname, index_strs, output_prefix,
                         trim_threads, trimmomatic_quality_scores, bowtie_threads, bowtie2_args, 
                         bowtie2_path, trf, match, mismatch, delta, pm, pi,
                         minscore, maxperiod, generate_fastq, mask, html,
-                        trf_path, verbose):
+                        trf_path, max_memory, verbose):
     
     tmpfilebases = ['filter']+map(os.path.basename, index_strs[:-1])
     if trf:
@@ -90,8 +90,8 @@ def decontaminate_reads(in_fname, index_strs, output_prefix,
         clean_file = os.path.join(output_dir, output_prefix+".fastq")
         filter_proc = trimmomatic(in_fname, filenames[0],
                                   trimmomatic_quality_scores,
-                                  filter_args_list, filter_jar_path, verbose,
-                                  threads=trim_threads)
+                                  filter_args_list, filter_jar_path, verbose, max_memory,
+                                  trim_threads)
         staggered = sliding_window(filenames, 2)
 
         def _procs():
@@ -161,4 +161,5 @@ def memory_heavy(args):
                         delta=args.delta, pm=args.pm, pi=args.pi,
                         minscore=args.minscore, maxperiod=args.maxperiod,
                         generate_fastq=args.no_generate_fastq, mask=args.mask,
-                        html=args.html, trf_path=args.trf_path, verbose=args.verbose)
+                        html=args.html, trf_path=args.trf_path, max_memory=args.max_memory,
+                        verbose=args.verbose)

@@ -126,15 +126,15 @@ def parse_arguments(args):
 
     group2 = parser.add_argument_group("trimmomatic arguments")
     group2.add_argument(
-        "-t", "--trimmomatic",
+        "--trimmomatic",
         dest='trimmomatic_path',
         help="path to trimmomatic\n[ DEFAULT : $PATH ]")
     group2.add_argument(
-        "-m", "--max-mem",
+        "--max-memory",
         default=config.trimmomatic_memory, 
         help="max amount of memory\n[ DEFAULT : "+config.trimmomatic_memory+" ]")
     group2.add_argument(
-        "-a", "--trimmomatic-options",
+        "--trimmomatic-options",
         action="append",
         help="options for trimmomatic\n[ DEFAULT : "+" ".join(config.trimmomatic_options)+" ]")
 

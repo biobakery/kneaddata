@@ -681,7 +681,7 @@ def storage_heavy(args):
     # Run trimmomatic
     trimmomatic_output_files = trim(
         args.input, trimmomatic_files_prefix, args.trimmomatic_path, 
-        args.trimmomatic_quality_scores, args.max_mem, args.trimmomatic_options, 
+        args.trimmomatic_quality_scores, args.max_memory, args.trimmomatic_options, 
         args.threads, args.verbose)
 
     # Get the number of reads after trimming
