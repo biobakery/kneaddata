@@ -14,11 +14,14 @@ bmtagger_exe="bmtagger.sh"
 trimmomatic_jar="trimmomatic-0.33.jar"
 trimmomatic_memory="500m"
 trimmomatic_flag_start="-"
-trimmomatic_quality_scores_options=["phred33","phred64"]
-trimmomatic_quality_scores=trimmomatic_quality_scores_options[0]
 trimmomatic_options=["SLIDINGWINDOW:4:20", "MINLEN:60"]
 
+# quality score flags for trimmomatic and bowtie2
+quality_scores_options=["phred33","phred64"]
+quality_scores=quality_scores_options[0]
+
 bowtie2_exe="bowtie2"
+bowtie2_flag_start="--"
 bowtie2_options=["--very-sensitive"]
 
 trf_exe="trf"

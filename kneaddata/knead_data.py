@@ -90,6 +90,12 @@ def parse_arguments(args):
         metavar="<" + str(config.threads) + ">",  
         help="number of threads\n[ Default : "+str(config.threads)+" ]")
     group1.add_argument(
+        "-q","--quality-scores",
+        default=config.quality_scores,
+        choices=config.quality_scores_options,
+        dest='trimmomatic_quality_scores',
+        help="quality scores\n[ DEFAULT : "+config.quality_scores+" ]")
+    group1.add_argument(
         "-s", "--strategy",
         default=config.strategy, choices=config.strategy_choices,
         help="define operating strategy\n[ DEFAULT : "+config.strategy+" ]")
@@ -127,12 +133,6 @@ def parse_arguments(args):
         "-m", "--max-mem",
         default=config.trimmomatic_memory, 
         help="max amount of memory\n[ DEFAULT : "+config.trimmomatic_memory+" ]")
-    group2.add_argument(
-        "-q","--quality-scores",
-        default=config.trimmomatic_quality_scores,
-        choices=config.trimmomatic_quality_scores_options,
-        dest='trimmomatic_quality_scores',
-        help="quality scores\n[ DEFAULT : "+config.trimmomatic_quality_scores+" ]")
     group2.add_argument(
         "-a", "--trimmomatic-options",
         action="append",
@@ -255,7 +255,10 @@ def update_configuration(args):
         # if not set by user, then set to default options
         args.bowtie2_options = config.bowtie2_options
         
-    # update the trimmomatic quality score option into a flag for trimmomatic
+    # add the quality scores to the bowtie2 options
+    args.bowtie2_options+=[config.bowtie2_flag_start+args.trimmomatic_quality_scores]    
+    
+    # update the quality score option into a flag for trimmomatic
     args.trimmomatic_quality_scores=config.trimmomatic_flag_start+args.trimmomatic_quality_scores
 
     # set the default output prefix 

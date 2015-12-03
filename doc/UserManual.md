@@ -382,12 +382,11 @@ All options can be accessed with `$ kneaddata --help`.
 ```
 usage: kneaddata [-h] [--version] [-v] -i INPUT -o OUTPUT_DIR
                  [-db REFERENCE_DB] [--output-prefix OUTPUT_PREFIX]
-                 [--threads <1>] [-s {memory,storage}] [--run-bmtagger]
-                 [--run-trf] [--remove-temp-output]
+                 [--threads <1>] [-q {phred33,phred64}] [-s {memory,storage}]
+                 [--run-bmtagger] [--run-trf] [--remove-temp-output]
                  [--log-level {DEBUG,INFO,WARNING,ERROR,CRITICAL}] [--log LOG]
-                 [-t TRIMMOMATIC_PATH] [-m MAX_MEM] [-q {phred33,phred64}]
-                 [-a TRIMMOMATIC_OPTIONS] [--bowtie2 BOWTIE2_PATH]
-                 [--bowtie2-options BOWTIE2_OPTIONS]
+                 [-t TRIMMOMATIC_PATH] [-m MAX_MEM] [-a TRIMMOMATIC_OPTIONS]
+                 [--bowtie2 BOWTIE2_PATH] [--bowtie2-options BOWTIE2_OPTIONS]
                  [--bmtagger BMTAGGER_PATH] [--extract] [--trf TRF_PATH]
                  [--match MATCH] [--mismatch MISMATCH] [--delta DELTA]
                  [--pm PM] [--pi PI] [--minscore MINSCORE]
@@ -413,6 +412,9 @@ global options:
                         [ DEFAULT : $SAMPLE_kneaddata ]
   --threads <1>         number of threads
                         [ Default : 1 ]
+  -q {phred33,phred64}, --quality-scores {phred33,phred64}
+                        quality scores
+                        [ DEFAULT : phred33 ]
   -s {memory,storage}, --strategy {memory,storage}
                         define operating strategy
                         [ DEFAULT : storage ]
@@ -433,9 +435,6 @@ trimmomatic arguments:
   -m MAX_MEM, --max-mem MAX_MEM
                         max amount of memory
                         [ DEFAULT : 500m ]
-  -q {phred33,phred64}, --quality-scores {phred33,phred64}
-                        quality scores
-                        [ DEFAULT : phred33 ]
   -a TRIMMOMATIC_OPTIONS, --trimmomatic-options TRIMMOMATIC_OPTIONS
                         options for trimmomatic
                         [ DEFAULT : SLIDINGWINDOW:4:20 MINLEN:60 ]
