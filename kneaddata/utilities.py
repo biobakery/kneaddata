@@ -8,11 +8,12 @@ import re
 import logging
 import subprocess
 import itertools
+import multiprocessing
+import datetime
 
 from math import floor
 from functools import partial
 from contextlib import contextmanager
-from multiprocessing import cpu_count
 
 from . import config
 
@@ -81,7 +82,36 @@ def parse_positive_int(string):
         raise argparse.ArgumentTypeError("%s is not a positive integer" %string)
     return val
 
-def run_command(command,command_name,infiles,outfiles,verbose):
+def start_processes(commands,processes,verbose):
+    """ Run the processes with the commands provided """
+    
+    # add verbose to command list
+    commands = [i+[verbose] for i in commands]
+    
+    # create a pool of workers
+    pool = multiprocessing.Pool(processes)
+    returncodes = pool.map(run_command_returncode,commands)
+    pool.close()
+    pool.join()
+    
+    # exit if any subprocesses reported errors
+    if sum(returncodes) > 0:
+        sys.exit(1)
+    
+def run_command_returncode(args):
+    """
+    Convert the list of args to function arguments
+    Catch errors and return code for subprocess
+    """
+    returncode=0
+    try:
+        run_command(*args, exit_on_error=False)
+    except (EnvironmentError, subprocess.CalledProcessError, KeyboardInterrupt):
+        returncode=1
+        
+    return returncode
+
+def run_command(command,command_name,infiles,outfiles,verbose,exit_on_error):
     """ Run and log command """
     
     # convert any numbers in command to strings
@@ -90,7 +120,7 @@ def run_command(command,command_name,infiles,outfiles,verbose):
     # check that the input files exist and are readable
     for file in infiles:
         logger.debug("Checking input file to "+command_name+" : "+file)
-        is_file_nonempty_readable(file, exit_on_error=True)
+        is_file_readable(file, exit_on_error)
         
     message="Running " + command_name + " ... "
     print(message)
@@ -107,14 +137,19 @@ def run_command(command,command_name,infiles,outfiles,verbose):
     except (EnvironmentError, subprocess.CalledProcessError) as e:
         message="Error executing: " + " ".join(command) + "\n"
         if hasattr(e, 'output') and e.output:
-            message+="\nError message returned from " + os.path.basename(command_name) + " :\n" + e.output
+            message+="\nError message returned from " + command_name + " :\n" + e.output
         logger.critical(message)
-        sys.exit("CRITICAL ERROR: " + message)
+        log_system_status()
+        if exit_on_error:
+            sys.exit("CRITICAL ERROR: " + message)
+        else:
+            print(message)
+            raise
 
     # check that the output files exist and are readable
     for file in outfiles:
         logger.debug("Checking output file from "+command_name+" : "+file)
-        is_file_nonempty_readable(file, exit_on_error=True) 
+        is_file_readable(file, exit_on_error) 
     
             
 def format_options_to_list(input_options):
@@ -219,8 +254,9 @@ def log_read_count_for_files(files,message_base,verbose=None):
     """ Log the number of reads in the files """
         
     # convert possible list of lists to list
-    if isinstance(files[0],list):
-        files=itertools.chain.from_iterable(files)
+    if files:
+        if isinstance(files[0],list):
+            files=itertools.chain.from_iterable(files)
 
     # count reads in each file
     for file in files:
@@ -329,31 +365,84 @@ def file_size(file):
         
     return size
 
-def is_file_nonempty_readable(file, exit_on_error=None):
-    """ Check that the file exists, is readable, and is not empty """
+def is_file_readable(file, exit_on_error=None):
+    """ Check that the file exists and is readable """
     
     error_message=""
     # check the file exists
     if os.path.exists(file):
         # check for read access
-        if os.access(file, os.R_OK):
-            try:
-                # try to get the file size
-                if os.stat(file).st_size == 0:
-                    error_message="ERROR: File is empty: " + file
-            except EnvironmentError:
-                error_message="ERROR: Unable to check size of file: " + file
-        else:
+        if not os.access(file, os.R_OK):
             error_message="ERROR: File is not readable: " + file
     else:
         error_message="ERROR: File does not exist: " + file
         
-    
-    if exit_on_error and error_message:
-        sys.exit(error_message)
+    if error_message:
+        if exit_on_error:
+            sys.exit(error_message)
+        else:
+            print(error_message)
+            raise IOError
         
     if not error_message:
         return True
     else:
         return False
+
+def byte_to_gigabyte(byte):
+    """
+    Convert byte value to gigabyte
+    """
     
+    return byte / (1024.0**3)
+    
+def log_system_status():
+    """
+    Print the status of the system
+    """
+    
+    module_available=True
+    try:
+        import psutil
+    except ImportError:
+        module_available=False
+        
+    if module_available:
+        try:
+            # record the memory used
+            memory = psutil.virtual_memory()
+            logger.info("Total memory = " + str(byte_to_gigabyte(memory.total)) + " GB")
+            logger.info("Available memory = " + str(byte_to_gigabyte(memory.available)) + " GB")
+            logger.info("Free memory = " + str(byte_to_gigabyte(memory.free)) + " GB")
+            logger.info("Percent memory used = " + str(memory.percent) + " %")
+    
+            # record the cpu info
+            logger.info("CPU percent = " + str(psutil.cpu_percent()) + " %")
+            logger.info("Total cores count = " + str(psutil.cpu_count()))
+            
+            # record the disk usage
+            disk = psutil.disk_usage('/')
+            logger.info("Total disk = " + str(byte_to_gigabyte(disk.total)) + " GB")
+            logger.info("Used disk = "+ str(byte_to_gigabyte(disk.used)) + " GB")
+            logger.info("Percent disk used = " + str(disk.percent) + " %")
+
+            # record information about this current process
+            process=psutil.Process()
+            process_memory=process.memory_info()
+            process_create_time=datetime.datetime.fromtimestamp(
+                process.create_time()).strftime("%Y-%m-%d %H:%M:%S")
+            process_cpu_times=process.cpu_times()
+            # two calls required to cpu percent for non-blocking as per documentation
+            process_cpu_percent=process.cpu_percent()
+            process_cpu_percent=process.cpu_percent()
+            
+            logger.info("Process create time = " + process_create_time)
+            logger.info("Process user time = " + str(process_cpu_times.user) + " seconds")
+            logger.info("Process system time = " + str(process_cpu_times.system) + " seconds")
+            logger.info("Process CPU percent = " + str(process_cpu_percent) + " %")
+            logger.info("Process memory RSS = " + str(byte_to_gigabyte(process_memory.rss)) + " GB")
+            logger.info("Process memory VMS = " + str(byte_to_gigabyte(process_memory.vms)) + " GB")
+            logger.info("Process memory percent = " + str(process.memory_percent()) + " %")
+            
+        except (AttributeError, OSError, TypeError, psutil.Error):
+            pass

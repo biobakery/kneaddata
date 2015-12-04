@@ -18,41 +18,6 @@ from . import memoryheavy
 # name global logging instance
 logger=logging.getLogger(__name__)
 
-def _generate_bowtie2_commands( infile_list, db_prefix_list,
-                                bowtie2_path, output_prefix,
-                                bowtie2_opts, tmp_dir, threads, remove_temp_output ):
-    db_prefix_bases = _prefix_bases(db_prefix_list)
-    for basename, fullpath in db_prefix_bases:
-        is_paired = (len(infile_list) == 2)
-        cmd = [bowtie2_path]
-        cmd += [ "-x", fullpath ]
-        cmd += [ "--threads", str(threads) ]
-
-        output_str = output_prefix + "_" + basename
-        outputs_to_combine = list()
-        if is_paired:
-            cmd += [ "-1", infile_list[0],
-                     "-2", infile_list[1],
-                     "--al-conc", output_str + "_contam_%.fastq",
-                     "--un-conc", output_str + "_clean_%.fastq"]
-            outputs_to_combine = [output_str + "_clean_1.fastq", 
-                                  output_str + "_clean_2.fastq"]
-        else:
-            cmd += [ "-U", infile_list[0],
-                     "--al", output_str + "_contam.fastq",
-                     "--un", output_str + "_clean.fastq"]
-            outputs_to_combine = [output_str + "_clean.fastq"]
-
-        cmd += bowtie2_opts
-        if remove_temp_output:
-            # if we are removing the temp output, then write the sam output to dev null to save space
-            sam_out = os.devnull
-        else:
-            sam_out = os.path.join(tmp_dir, os.path.basename(output_str) + ".sam")
-        cmd += [ "-S", sam_out ]
-        yield (cmd, outputs_to_combine)
-
-
 def _poll_workers(popen_list):
     """ Polls a list of processes initialized by subprocess.Popen. Returns the
     number of processes still running and a list of those processes. If one or
@@ -95,72 +60,56 @@ def align(infile_list, db_prefix_list, output_prefix, tmp_dir, remove_temp_outpu
                            can be specified. Uses subprocesses to run bowtie2 
                            in parallel.
     :param output_prefix: String; Prefix of the output file
-    :param tmp_dir: String; Path name to the temporary for holding bowtie2 
-                    sam file output
+    :param tmp_dir: String; Path name to the temporary output directory
     :param remove_temp_output: Boolean; If set, remove temp output
     :keyword bowtie2_path: String; File path to the bowtie2 binary's location.
+    :keyword threads: Int; Number of threads to request for bowtie2 run.
     :keyword processes: Int; Number of bowtie2 subprocesses to run.
     :keyword bowtie2_opts: List; List of additional arguments, as strings, to 
                             be passed to Bowtie2.
     """
 
-    commands_to_run = _generate_bowtie2_commands( infile_list,
-        db_prefix_list, bowtie2_path, output_prefix, bowtie2_opts,
-        tmp_dir, threads, remove_temp_output)
-    commands_to_run = list(commands_to_run)
+    # determine if the input are paired reads
+    is_paired = (len(infile_list) == 2)
+
+    # create the bowtie2 commands
+    commands = []
+    all_outputs_to_combine = []
+    bowtie2_command = [bowtie2_path, "--threads", str(threads)] + bowtie2_opts
     
-    procs_running = list()
-    outputs = list()
-
-    # poll to see if we can run more Bowtie2 instances
-    while commands_to_run:
-        cmd, output_to_combine = commands_to_run.pop()
-        n_running, procs_running = _poll_workers(procs_running)
-        if n_running >= processors:
-            commands_to_run.append((cmd, output_to_combine))
-            time.sleep(0.5)
+    for basename, fullpath in _prefix_bases(db_prefix_list):
+        output_str = output_prefix + "_" + basename
+        cmd = bowtie2_command + ["-x", fullpath]
+        if is_paired:
+            cmd += ["-1", infile_list[0], "-2", infile_list[1],
+                    "--al-conc", output_str + "_contam_%.fastq",
+                    "--un-conc", output_str + "_clean_%.fastq"]
+            outputs_to_combine = [output_str + "_clean_1.fastq", 
+                                  output_str + "_clean_2.fastq"]
         else:
-            utilities.log_run_and_arguments("bowtie2",cmd[1:],verbose)
-            proc = subprocess.Popen(cmd, stdout=subprocess.PIPE,
-                                    stderr=subprocess.PIPE)
-            procs_running.append((proc, cmd))
-            outputs.append(output_to_combine)
+            cmd += ["-U", infile_list[0], "--al", output_str + "_contam.fastq",
+                    "--un", output_str + "_clean.fastq"]
+            outputs_to_combine = [output_str + "_clean.fastq"]
 
-    # wait for everything to finish after we started running all the processes
-    commands_with_errors=0
-    ret_codes=[]
-    commands_ran=[]
-    for p, cmd in procs_running:
-        stdout, stderr = p.communicate()
-        cmd = " ".join(cmd)
+        if remove_temp_output:
+            # if we are removing the temp output, then write the sam output to dev null to save space
+            sam_out = os.devnull
+        else:
+            sam_out = os.path.join(tmp_dir, os.path.basename(output_str) + ".sam")
+        cmd += [ "-S", sam_out ]
         
-        # check if the command finished without an error
-        returncode = p.returncode
-        ret_codes.append(returncode)
-        commands_ran.append(cmd)
-        if returncode == 0:
-            message="bowtie2 run complete"
-            if verbose:
-                print(message)
-            logger.debug(message)
-        else:
-            message="bowtie2 run reported error"
-            print(message)
-            logger.warning(message)
-            
-        if stdout:
-            logger.debug("bowtie2 run stdout: " + stdout)
-        if stderr:
-            logger.debug("bowtie2 run stderr: " + stderr)
+        commands.append([cmd,"bowtie2",infile_list,outputs_to_combine])
+        all_outputs_to_combine.append(outputs_to_combine)
 
+    # run the bowtie2 commands with the number of processes specified
+    utilities.start_processes(commands,processors,verbose)
    
-    # if Bowtie2 produced correct output, merge the files from multiple
-    # databases
+    # if bowtie2 produced output, merge the files from multiple databases
     combined_outs = []
-    if (outputs != []):
-        combined_outs = combine_tag(outputs, output_prefix, remove_temp_output)
+    if all_outputs_to_combine:
+        combined_outs = combine_tag(all_outputs_to_combine, output_prefix, remove_temp_output)
 
-    return(ret_codes, commands_ran, combined_outs)
+    return combined_outs
 
 
 def tag(infile_list, db_prefix_list, temp_dir, remove_temp_output, prefix,
@@ -514,18 +463,14 @@ def trim(infiles, outfiles_prefix, trimmomatic_path, quality_scores,
     # add optional arguments to command
     command += additional_options
 
-    # only check the first of the many paired end output files as it is okay
-    # if the unmatched trimmed reads files are empty
-    checked_output_files=[outfiles[0]]
-
     # run trimmomatic command
-    utilities.run_command(command,"Trimmomatic",infiles,checked_output_files,verbose)
+    utilities.run_command(command,"Trimmomatic",infiles,outfiles,verbose,exit_on_error=True)
     
     # now check all of the output files to find which are non-empty and return as 
     # sets for running the alignment steps
     nonempty_outfiles=[]
+    outfile_size = [utilities.file_size(file) for file in outfiles]
     if paired_end:
-        outfile_size = [utilities.file_size(file) for file in outfiles]
         # if paired fastq files remain after trimming, preserve pairing
         if outfile_size[0] > 0 and outfile_size[1] > 0:
             nonempty_outfiles.append([outfiles[0],outfiles[1]])
@@ -542,7 +487,11 @@ def trim(infiles, outfiles_prefix, trimmomatic_path, quality_scores,
             nonempty_outfiles.append([outfiles[3]])
         
     else:
-        nonempty_outfiles=[outfiles]
+        if outfile_size[0] > 0:
+            nonempty_outfiles=[[outfiles[0]]]
+        
+    if not nonempty_outfiles:
+        sys.exit("ERROR: Trimmomatic created empty output files.")
         
     return nonempty_outfiles
 
@@ -596,22 +545,20 @@ def decontaminate(args, output_prefix, files_to_align, tempdir):
                                               prefix, args.bmtagger_path,
                                               args.processes, args.extract,
                                               args.verbose)
+            # check that everything returned correctly
+            # gather non-zero return codes
+            fails = [(i, ret_code) for i, ret_code in enumerate(ret_codes) if ret_code != 0]
+            if len(fails) > 0:
+                for i, ret_code in fails:
+                    message="The following command failed: " + commands[i]
+                    logger.critical(message)
+                    print(message)
+                sys.exit(1)
         else:
-            ret_codes, commands, c_outs = align(files_list, args.reference_db, prefix,
-                                                tempdir, args.remove_temp_output,
-                                                args.bowtie2_path, args.threads,
-                                                args.processes, args.bowtie2_options,
-                                                args.verbose)
-                
-        # check that everything returned correctly
-        # gather non-zero return codes
-        fails = [(i, ret_code) for i, ret_code in enumerate(ret_codes) if ret_code != 0]
-        if len(fails) > 0:
-            for i, ret_code in fails:
-                message="The following command failed: " + commands[i]
-                logger.critical(message)
-                print(message)
-            sys.exit(1)
+            c_outs = align(files_list, args.reference_db, prefix, tempdir, 
+                           args.remove_temp_output, args.bowtie2_path, args.threads,
+                           args.processes, args.bowtie2_options, args.verbose)
+
         
         # run TRF (within loop)
         # iterate over all outputs from combining (there should either be 1 or
@@ -637,9 +584,6 @@ def decontaminate(args, output_prefix, files_to_align, tempdir):
             if args.remove_temp_output:
                 for c_out in c_outs:
                     os.remove(c_out)
-        message="Finished removing contaminants"
-        logger.info(message)
-        print(message)
     
 
 def storage_heavy(args):

@@ -230,11 +230,11 @@ def update_configuration(args):
     
     # check the input files are non-empty and readable
     args.input[0] = os.path.abspath(args.input[0])
-    utilities.is_file_nonempty_readable(args.input[0],exit_on_error=True)
+    utilities.is_file_readable(args.input[0],exit_on_error=True)
     
     if len(args.input) == 2:
         args.input[1] = os.path.abspath(args.input[1])
-        utilities.is_file_nonempty_readable(args.input[1],exit_on_error=True)
+        utilities.is_file_readable(args.input[1],exit_on_error=True)
     elif len(args.input) > 2:
         sys.exit("ERROR: Please provide at most 2 input files.")
     
