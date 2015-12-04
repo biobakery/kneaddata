@@ -113,7 +113,7 @@ def align(infile_list, db_prefix_list, output_prefix, tmp_dir, remove_temp_outpu
 
 
 def tag(infile_list, db_prefix_list, temp_dir, remove_temp_output, prefix,
-        bmtagger_path, processes, remove, verbose):
+        bmtagger_path, processes, verbose):
     """
     Runs BMTagger on a single-end sequence file or a paired-end duo of sequence
     files. Returns a tuple (ret_codes, bmt_args). Both are lists, each which has
@@ -137,13 +137,10 @@ def tag(infile_list, db_prefix_list, temp_dir, remove_temp_output, prefix,
     :param prefix: String; prefix for output files
     :keyword bmtagger_path: String; file path to the bmtagger.sh executable
     :keyword processes: Int; Max number of BMTagger subprocesses to run
-    :keyword remove: Boolean; If True, output cleaned FASTQ files with reads
-                     identified as contaminants removed. Otherwise, outputs
-                     list(s) of reads identified as contaminants.
     """
     single_end = (len(infile_list) == 1)
 
-    message="bmtagger prefix list "+db_prefix_list
+    message="bmtagger prefix list "+" ".join(db_prefix_list)
     if verbose:
         print(message)
     logger.debug(message)
@@ -155,56 +152,29 @@ def tag(infile_list, db_prefix_list, temp_dir, remove_temp_output, prefix,
     for (i, (basename, fullpath)) in enumerate(db_list):
         out_prefix = None
         if single_end:
-            if remove:
-                out_prefix = prefix + "_" + basename + "_clean"
-                bmt_args[i] = [bmtagger_path, 
-                              "-q", "1",
-                              "-1", infile_list[0],
-                              "-b", str(fullpath + ".bitmask"),
-                              "-x", str(fullpath + ".srprism"),
-                              "-T", temp_dir, 
-                              "-o", out_prefix,
-                              "--extract"] 
-                outputs[i] = [out_prefix + config.bmtagger_se_ending]
-
-            else:
-                out_prefix = prefix + "_" + basename + "_contam.out"
-                bmt_args[i] = [bmtagger_path, 
-                              "-q", "1",
-                              "-1", infile_list[0],
-                              "-b", str(fullpath + ".bitmask"),
-                              "-x", str(fullpath + ".srprism"),
-                              "-T", temp_dir, 
-                              "-o", out_prefix]
-                outputs[i] = [out_prefix]
-
-
+            out_prefix = prefix + "_" + basename + "_clean"
+            bmt_args[i] = [bmtagger_path, 
+                           "-q", "1",
+                           "-1", infile_list[0],
+                           "-b", str(fullpath + ".bitmask"),
+                           "-x", str(fullpath + ".srprism"),
+                           "-T", temp_dir, 
+                           "-o", out_prefix,
+                           "--extract"] 
+            outputs[i] = [out_prefix + config.bmtagger_se_ending]
         else:
-            if remove:
-                out_prefix = prefix + "_" + basename + "_clean"
-                bmt_args[i] = [bmtagger_path, 
-                              "-q", "1",
-                              "-1", infile_list[0],
-                              "-2", infile_list[1],
-                              "-b", str(fullpath + ".bitmask"),
-                              "-x", str(fullpath + ".srprism"),
-                              "-T", temp_dir, 
-                              "-o", out_prefix,
-                              "--extract"]
-                outputs[i] = [out_prefix + ending for ending in
-                        config.bmtagger_pe_endings]
-                                            
-            else:
-                out_prefix = prefix + "_" + basename + "_contam.out"
-                bmt_args[i] = [bmtagger_path, 
-                              "-q", "1",
-                              "-1", infile_list[0],
-                              "-2", infile_list[1],
-                              "-b", str(fullpath + ".bitmask"),
-                              "-x", str(fullpath + ".srprism"),
-                              "-T", temp_dir, 
-                              "-o", out_prefix]
-                outputs[i] = [out_prefix]
+            out_prefix = prefix + "_" + basename + "_clean"
+            bmt_args[i] = [bmtagger_path, 
+                           "-q", "1",
+                           "-1", infile_list[0],
+                           "-2", infile_list[1],
+                           "-b", str(fullpath + ".bitmask"),
+                           "-x", str(fullpath + ".srprism"),
+                           "-T", temp_dir, 
+                           "-o", out_prefix,
+                           "--extract"]
+            outputs[i] = [out_prefix + ending for ending in
+                          config.bmtagger_pe_endings]
 
     if not bmt_args: # no databases specified
         return ([], [], [])
@@ -220,7 +190,7 @@ def tag(infile_list, db_prefix_list, temp_dir, remove_temp_output, prefix,
             bmt_args.append(cmd)
             time.sleep(0.5)
         else:
-            utilities.log_run_and_command("bmtagger",cmd[1:],verbose)
+            utilities.log_run_and_arguments("bmtagger",cmd[1:],verbose)
             proc = subprocess.Popen(cmd, stderr=subprocess.PIPE,
                                     stdout=subprocess.PIPE)
             procs_running.append((proc, cmd))
@@ -543,8 +513,7 @@ def decontaminate(args, output_prefix, files_to_align, tempdir):
             ret_codes, commands, c_outs = tag(files_list, args.reference_db,
                                               tempdir, args.remove_temp_output,
                                               prefix, args.bmtagger_path,
-                                              args.processes, args.extract,
-                                              args.verbose)
+                                              args.processes, args.verbose)
             # check that everything returned correctly
             # gather non-zero return codes
             fails = [(i, ret_code) for i, ret_code in enumerate(ret_codes) if ret_code != 0]

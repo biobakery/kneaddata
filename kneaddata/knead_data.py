@@ -159,10 +159,6 @@ def parse_arguments(args):
         "--bmtagger",
         dest='bmtagger_path',
         help="path to BMTagger\n[ DEFAULT : $PATH ]")
-    group4.add_argument(
-        "--extract",
-        default=False, action="store_true",
-        help="output cleaned FASTQs without contaminant reads\n[ DEFAULT : output lists of contaminant reads ]")
 
     group5 = parser.add_argument_group("trf arguments")
     group5.add_argument(

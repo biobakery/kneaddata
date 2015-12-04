@@ -388,11 +388,10 @@ usage: kneaddata [-h] [--version] [-v] -i INPUT -o OUTPUT_DIR
                  [--trimmomatic TRIMMOMATIC_PATH] [--max-memory MAX_MEMORY]
                  [--trimmomatic-options TRIMMOMATIC_OPTIONS]
                  [--bowtie2 BOWTIE2_PATH] [--bowtie2-options BOWTIE2_OPTIONS]
-                 [--bmtagger BMTAGGER_PATH] [--extract] [--trf TRF_PATH]
-                 [--match MATCH] [--mismatch MISMATCH] [--delta DELTA]
-                 [--pm PM] [--pi PI] [--minscore MINSCORE]
-                 [--maxperiod MAXPERIOD] [--no-generate-fastq] [--mask]
-                 [--html]
+                 [--bmtagger BMTAGGER_PATH] [--trf TRF_PATH] [--match MATCH]
+                 [--mismatch MISMATCH] [--delta DELTA] [--pm PM] [--pi PI]
+                 [--minscore MINSCORE] [--maxperiod MAXPERIOD]
+                 [--no-generate-fastq] [--mask] [--html]
 
 KneadData
 
@@ -456,8 +455,6 @@ bmtagger arguments:
   --bmtagger BMTAGGER_PATH
                         path to BMTagger
                         [ DEFAULT : $PATH ]
-  --extract             output cleaned FASTQs without contaminant reads
-                        [ DEFAULT : output lists of contaminant reads ]
 
 trf arguments:
   --trf TRF_PATH        path to TRF

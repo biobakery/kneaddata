@@ -278,6 +278,15 @@ def find_exe_in_path(exe, bypass_permissions_check=None):
                 return path
     return None
         
+def add_exe_to_path(exe_dir):
+    """ 
+    Add path to executable to $PATH
+    """
+    
+    logger.debug("Add directory, %s, to path", exe_dir)
+    
+    os.environ["PATH"] = exe_dir + os.pathsep + os.environ["PATH"]        
+
 def find_dependency(path_provided,exe,name,path_option,bypass_permissions_check):
     """ 
     Check if the dependency can be found in the path provided or in $PATH
