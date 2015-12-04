@@ -280,6 +280,8 @@ def update_configuration(args):
     if args.bmtagger:
         args.bmtagger_path=utilities.find_dependency(args.bmtagger_path,config.bmtagger_exe,"bmtagger",
             "--bmtagger", True)
+        # add this folder to path, so as to be able to find other dependencies like bmfilter
+        utilities.add_exe_to_path(os.path.dirname(args.bmtagger_path))
     
     # find the location of trf, if set to run
     if args.trf:
