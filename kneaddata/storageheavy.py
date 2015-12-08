@@ -18,34 +18,6 @@ from . import memoryheavy
 # name global logging instance
 logger=logging.getLogger(__name__)
 
-def _poll_workers(popen_list):
-    """ Polls a list of processes initialized by subprocess.Popen. Returns the
-    number of processes still running and a list of those processes. If one or
-    more of the processes returned with non-zero exit code, raises an error. 
-
-    popen_list: a list of objects from subprocess.Popen
-    """
-    failures = list()
-    still_running = 0
-    polls = [ (proc.poll(), proc, cmd) for proc, cmd in popen_list ]
-    procs_still_running = list()
-    for val, p, cmd in polls:
-        if val is None:
-            still_running += 1
-            procs_still_running.append((p, cmd))
-        elif val != 0:
-            failures.append((val, cmd))
-            
-    if failures:
-        command_msg = "\n".join([ " ".join(cmd) + " Returned code " + str(val) 
-                for val, cmd in failures ])
-        message="The following command failed: " + command_msg
-        logger.critical(message)
-        sys.exit(message)
-    else:
-        return (still_running, procs_still_running)
-
-
 def align(infile_list, db_prefix_list, output_prefix, tmp_dir, remove_temp_output,
           bowtie2_path, threads, processors, bowtie2_opts, verbose):
 
