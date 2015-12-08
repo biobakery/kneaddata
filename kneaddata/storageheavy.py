@@ -138,98 +138,41 @@ def tag(infile_list, db_prefix_list, temp_dir, remove_temp_output, prefix,
     :keyword bmtagger_path: String; file path to the bmtagger.sh executable
     :keyword processes: Int; Max number of BMTagger subprocesses to run
     """
-    single_end = (len(infile_list) == 1)
 
-    message="bmtagger prefix list "+" ".join(db_prefix_list)
-    if verbose:
-        print(message)
-    logger.debug(message)
-    db_list = list(_prefix_bases(db_prefix_list))
-    bmt_args = [None for d in db_list]
+    # determine if the input are paired reads
+    is_paired = (len(infile_list) == 2)
 
-    outputs = [None for d in db_list]
+    # create the bmtagger commands
+    commands = []
+    all_outputs_to_combine = []
+    bmtagger_command = [bmtagger_path, "-q", "1", "-1", infile_list[0], 
+                        "-T", temp_dir,"--extract"]
+
     # build arguments
-    for (i, (basename, fullpath)) in enumerate(db_list):
-        out_prefix = None
-        if single_end:
-            out_prefix = prefix + "_" + basename + "_clean"
-            bmt_args[i] = [bmtagger_path, 
-                           "-q", "1",
-                           "-1", infile_list[0],
-                           "-b", str(fullpath + ".bitmask"),
-                           "-x", str(fullpath + ".srprism"),
-                           "-T", temp_dir, 
-                           "-o", out_prefix,
-                           "--extract"] 
-            outputs[i] = [out_prefix + config.bmtagger_se_ending]
-        else:
-            out_prefix = prefix + "_" + basename + "_clean"
-            bmt_args[i] = [bmtagger_path, 
-                           "-q", "1",
-                           "-1", infile_list[0],
-                           "-2", infile_list[1],
-                           "-b", str(fullpath + ".bitmask"),
-                           "-x", str(fullpath + ".srprism"),
-                           "-T", temp_dir, 
-                           "-o", out_prefix,
-                           "--extract"]
-            outputs[i] = [out_prefix + ending for ending in
+    for (basename, fullpath) in _prefix_bases(db_prefix_list):
+        out_prefix = prefix + "_" + basename + "_clean"
+        cmd = bmtagger_command + ["-b", str(fullpath + ".bitmask"),
+                                  "-x", str(fullpath + ".srprism"),
+                                  "-o", out_prefix]
+        if is_paired:
+            cmd += ["-2", infile_list[1]]
+            outputs_to_combine = [out_prefix + ending for ending in
                           config.bmtagger_pe_endings]
-
-    if not bmt_args: # no databases specified
-        return ([], [], [])
-
-    # similar to what we did for Bowtie2
-    # Poll to see if we can run more BMTagger instances. 
-    procs_ran = list()
-    procs_running = list()
-    while bmt_args:
-        cmd = bmt_args.pop() 
-        n_running, procs_running = _poll_workers(procs_running)
-        if n_running >= processes:
-            bmt_args.append(cmd)
-            time.sleep(0.5)
         else:
-            utilities.log_run_and_arguments("bmtagger",cmd[1:],verbose)
-            proc = subprocess.Popen(cmd, stderr=subprocess.PIPE,
-                                    stdout=subprocess.PIPE)
-            procs_running.append((proc, cmd))
-            procs_ran.append(cmd)
+            outputs_to_combine = [out_prefix + config.bmtagger_se_ending]
 
-    # wait for everything to finish after we started running all the processes
-    for p, cmd in procs_running:
-        stdout, stderr = p.communicate()
-        message="bmtagger run complete"
-        if verbose:
-            print(message)
-        logger.debug(message)
-        if stdout:
-            logger.debug("bmtagger run stdout: " + stdout)
-        if stderr:
-            logger.debug("bmtagger run stderr: " + stderr)
+        commands.append([cmd,"bmtagger",infile_list,outputs_to_combine])
+        all_outputs_to_combine.append(outputs_to_combine)
+        
+    # run the bmtagger commands with the number of processes specified
+    utilities.start_processes(commands,processes,verbose)
 
-    ret_codes = [p.returncode for p, _ in procs_running]
-
-    # if BMTagger produced correct output, merge the files from multiple
-    # databases
-    #if (outputs != []):
-    set_retcodes = set(ret_codes)
+    # merge the output files from multiple databases
     combined_outs = []
-    if (len(set_retcodes) == 1) and (0 in set_retcodes):
-        combined_outs = combine_tag(outputs, prefix, remove_temp_output)
-
-    if remove_temp_output:
-        for output_pair in outputs:
-            for o in output_pair:
-                try:
-                    os.remove(o)
-                except OSError as e:
-                    message="Could not remove temp file: " + str(o)
-                    if verbose:
-                        print(message)
-                    logger.debug(message)
+    if all_outputs_to_combine:
+        combined_outs = combine_tag(all_outputs_to_combine, prefix, remove_temp_output)
                     
-    return (ret_codes, procs_ran, combined_outs)
+    return combined_outs
 
 def intersect_fastq(lstrFiles, out_file):
     ''' 
@@ -510,19 +453,9 @@ def decontaminate(args, output_prefix, files_to_align, tempdir):
             prefix = prefix + "_pre_tandem"
     
         if args.bmtagger:
-            ret_codes, commands, c_outs = tag(files_list, args.reference_db,
-                                              tempdir, args.remove_temp_output,
-                                              prefix, args.bmtagger_path,
-                                              args.processes, args.verbose)
-            # check that everything returned correctly
-            # gather non-zero return codes
-            fails = [(i, ret_code) for i, ret_code in enumerate(ret_codes) if ret_code != 0]
-            if len(fails) > 0:
-                for i, ret_code in fails:
-                    message="The following command failed: " + commands[i]
-                    logger.critical(message)
-                    print(message)
-                sys.exit(1)
+            c_outs = tag(files_list, args.reference_db, tempdir, 
+                         args.remove_temp_output, prefix, args.bmtagger_path,
+                         args.processes, args.verbose)
         else:
             c_outs = align(files_list, args.reference_db, prefix, tempdir, 
                            args.remove_temp_output, args.bowtie2_path, args.threads,
