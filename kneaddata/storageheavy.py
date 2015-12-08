@@ -20,26 +20,8 @@ logger=logging.getLogger(__name__)
 
 def align(infile_list, db_prefix_list, output_prefix, tmp_dir, remove_temp_output,
           bowtie2_path, threads, processors, bowtie2_opts, verbose):
-
-    """Align a single-end sequence file or a paired-end duo of sequence
-    files using bowtie2.
-
-    :param infile_list: List; Input sequence files in fastq format. A
-                        list of length 1 is interpreted as a single-end
-                        sequence file, while a list of length 2 is 
-                        interpreted as a paired-end sequence duo.
-    :param db_prefix_list: List; Bowtie2 database prefixes. Multiple database
-                           can be specified. Uses subprocesses to run bowtie2 
-                           in parallel.
-    :param output_prefix: String; Prefix of the output file
-    :param tmp_dir: String; Path name to the temporary output directory
-    :param remove_temp_output: Boolean; If set, remove temp output
-    :keyword bowtie2_path: String; File path to the bowtie2 binary's location.
-    :keyword threads: Int; Number of threads to request for bowtie2 run.
-    :keyword processes: Int; Number of bowtie2 subprocesses to run.
-    :keyword bowtie2_opts: List; List of additional arguments, as strings, to 
-                            be passed to Bowtie2.
-    """
+    """ Runs bowtie2 on a single-end sequence file or a paired-end set of files. 
+    For each input file set and database provided, a bowtie2 command is generated and run."""
 
     # determine if the input are paired reads
     is_paired = (len(infile_list) == 2)
@@ -84,32 +66,10 @@ def align(infile_list, db_prefix_list, output_prefix, tmp_dir, remove_temp_outpu
     return combined_outs
 
 
-def tag(infile_list, db_prefix_list, temp_dir, remove_temp_output, prefix,
+def tag(infile_list, db_prefix_list, temp_dir, remove_temp_output, output_prefix,
         bmtagger_path, processes, verbose):
-    """
-    Runs BMTagger on a single-end sequence file or a paired-end duo of sequence
-    files. Returns a tuple (ret_codes, bmt_args). Both are lists, each which has
-    the same number of elements as the number of databases. THe first contains
-    the return codes for each of the BMTagger executions, and the second
-    contains the command line calls for these executions.
-
-    :param infile_list: List; a list of input files in FASTQ format. A list of
-                        length 1 is interpreted as a single-end sequence file,
-                        while a list of length 2 is interpreted as a paired-end
-                        sequence duo
-    :param db_prefix_list: List; Prefixes of the BMTagger databases. BMTagger
-                           needs databases of the format db_prefix.bitmask, 
-                           db_prefix.srprism.*, and db_prefix.{blastdb file
-                           extensions} for any fixed db_prefix (see
-                           config.bmtagger_db_endings for full list of endings).
-                           Multiple databases can be specified. Uses
-                           subprocesses to run BMTagger in parallel
-    :param temp_dir: String; Path name to temporary directory for BMTagger
-    :param remove_temp_output: Boolean; If set, remove temp output
-    :param prefix: String; prefix for output files
-    :keyword bmtagger_path: String; file path to the bmtagger.sh executable
-    :keyword processes: Int; Max number of BMTagger subprocesses to run
-    """
+    """ Runs BMTagger on a single-end sequence file or a paired-end set of files. 
+    For each input file set and database provided, a bmtagger command is generated and run."""
 
     # determine if the input are paired reads
     is_paired = (len(infile_list) == 2)
@@ -122,16 +82,16 @@ def tag(infile_list, db_prefix_list, temp_dir, remove_temp_output, prefix,
 
     # build arguments
     for (basename, fullpath) in _prefix_bases(db_prefix_list):
-        out_prefix = prefix + "_" + basename + "_bmtagger_clean"
+        prefix = output_prefix + "_" + basename + "_bmtagger_clean"
         cmd = bmtagger_command + ["-b", str(fullpath + ".bitmask"),
                                   "-x", str(fullpath + ".srprism"),
-                                  "-o", out_prefix]
+                                  "-o", prefix]
         if is_paired:
             cmd += ["-2", infile_list[1]]
-            outputs_to_combine = [out_prefix + "_1.fastq",
-                                  out_prefix + "_2.fastq"]
+            outputs_to_combine = [prefix + "_1.fastq",
+                                  prefix + "_2.fastq"]
         else:
-            outputs_to_combine = [out_prefix + ".fastq"]
+            outputs_to_combine = [prefix + ".fastq"]
 
         commands.append([cmd,"bmtagger",infile_list,outputs_to_combine])
         all_outputs_to_combine.append(outputs_to_combine)
@@ -142,28 +102,23 @@ def tag(infile_list, db_prefix_list, temp_dir, remove_temp_output, prefix,
     # merge the output files from multiple databases
     combined_outs = []
     if all_outputs_to_combine:
-        combined_outs = combine_fastq_output_files(all_outputs_to_combine, prefix, remove_temp_output)
+        combined_outs = combine_fastq_output_files(all_outputs_to_combine, output_prefix, remove_temp_output)
                     
     return combined_outs
 
-def intersect_fastq(lstrFiles, out_file):
-    """
-    Intersects multiple fastq files with one another. Includes only the reads (4
+def intersect_fastq(fastq_files, out_file):
+    """ Intersects multiple fastq files with one another. Includes only the reads (4
     lines long each) that are common to all the files. Writes these reads to the
     output file specified in out_file. 
-
-    Input:
-    lstrFiles:  a list of fastq file names (as strings)
-    out_file:   output file to write the results. 
     """
     
     # optimize for the common case, where we are intersecting 1 file
-    if len(lstrFiles) == 1:
-        shutil.copyfile(lstrFiles[0], out_file)
+    if len(fastq_files) == 1:
+        shutil.copyfile(fastq_files[0], out_file)
         return
 
     counter = collections.Counter()
-    for fname in lstrFiles:
+    for fname in fastq_files:
         with open(fname, "rU") as f:
             # nifty trick to read 4 lines at a time (fastq files have 4 lines
             # per read)
@@ -177,7 +132,7 @@ def intersect_fastq(lstrFiles, out_file):
                 else:
                     counter[read] += 1
 
-    num_files = len(lstrFiles)
+    num_files = len(fastq_files)
     with open(out_file, "w") as f:
         for key in counter:
             # only includes reads that are in n or more files, for n input files
@@ -186,18 +141,9 @@ def intersect_fastq(lstrFiles, out_file):
     return
 
 def combine_fastq_output_files(files_to_combine, out_prefix, remove_temp_output):
-    """
-    Summary: Combines fastq output if we run BMTagger/bowtie2 on multiple databases.
-    Input:
-        files_to_combine: a list of lists of BMTagger/bowtie2 outputs. The 'inner
-        lists' are of length 1 or 2 with lists of 2 having output files for paired reads
-        organized as [output for pair 1, output for pair 2]
-        out_prefix: Prefix for the output files. 
-        remove_temp_output: if true, then remove temp files after combine
-
-    Output:
-        Returns a list of output files. Additionally, the log file is updated
-        with read counts for the different input and output files.
+    """ Combines fastq output created by BMTagger/bowtie2 on multiple databases and 
+    returns a list of output files. Also updates the log file with read counts for the 
+    input and output files.
     """
     
     # print out the reads for all files
@@ -242,15 +188,11 @@ def combine_fastq_output_files(files_to_combine, out_prefix, remove_temp_output)
 
 def _prefix_bases(db_prefix_list):
     """From a list of absolute or relative paths, returns an iterator of the
-    following tuple:
-    (basename of all the files, full path of all the files)
+    following tuple: (basename of all the files, full path of all the files)
     
     If more than one file as the same basename (but have different paths), the
     basenames get post-fixed with indices (starting from 0), based on how their
-    basenames sort
-
-    :param db_prefix_list: A list of databases' paths. Can be absolute or
-    relative paths.
+    basenames sort.
     """
     # sort by basename, but keep full path
     bases = sorted([ (os.path.basename(p), p) for p in db_prefix_list ], 
@@ -265,9 +207,8 @@ def _prefix_bases(db_prefix_list):
 
 def trim(infiles, outfiles_prefix, trimmomatic_path, quality_scores, 
          java_memory, additional_options, threads, verbose):
-    """ 
-    Create trimmomatic command based on input files and options and then run 
-    Return a list of the output files
+    """ Creates and runs trimmomatic commands based on input files and options. 
+    Returns a list of the output files.
     """
 
     command = ["java", "-Xmx" + java_memory, "-d64", "-jar", trimmomatic_path]
