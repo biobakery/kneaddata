@@ -50,7 +50,7 @@ def align(infile_list, db_prefix_list, output_prefix, tmp_dir, remove_temp_outpu
     bowtie2_command = [bowtie2_path, "--threads", str(threads)] + bowtie2_opts
     
     for basename, fullpath in _prefix_bases(db_prefix_list):
-        output_str = output_prefix + "_" + basename
+        output_str = output_prefix + "_" + basename + "_bowtie2"
         cmd = bowtie2_command + ["-x", fullpath]
         if is_paired:
             cmd += ["-1", infile_list[0], "-2", infile_list[1],
@@ -79,7 +79,7 @@ def align(infile_list, db_prefix_list, output_prefix, tmp_dir, remove_temp_outpu
     # if bowtie2 produced output, merge the files from multiple databases
     combined_outs = []
     if all_outputs_to_combine:
-        combined_outs = combine_tag(all_outputs_to_combine, output_prefix, remove_temp_output)
+        combined_outs = combine_fastq_output_files(all_outputs_to_combine, output_prefix, remove_temp_output)
 
     return combined_outs
 
@@ -122,16 +122,16 @@ def tag(infile_list, db_prefix_list, temp_dir, remove_temp_output, prefix,
 
     # build arguments
     for (basename, fullpath) in _prefix_bases(db_prefix_list):
-        out_prefix = prefix + "_" + basename + "_clean"
+        out_prefix = prefix + "_" + basename + "_bmtagger_clean"
         cmd = bmtagger_command + ["-b", str(fullpath + ".bitmask"),
                                   "-x", str(fullpath + ".srprism"),
                                   "-o", out_prefix]
         if is_paired:
             cmd += ["-2", infile_list[1]]
-            outputs_to_combine = [out_prefix + ending for ending in
-                          config.bmtagger_pe_endings]
+            outputs_to_combine = [out_prefix + "_1.fastq",
+                                  out_prefix + "_2.fastq"]
         else:
-            outputs_to_combine = [out_prefix + config.bmtagger_se_ending]
+            outputs_to_combine = [out_prefix + ".fastq"]
 
         commands.append([cmd,"bmtagger",infile_list,outputs_to_combine])
         all_outputs_to_combine.append(outputs_to_combine)
@@ -142,12 +142,12 @@ def tag(infile_list, db_prefix_list, temp_dir, remove_temp_output, prefix,
     # merge the output files from multiple databases
     combined_outs = []
     if all_outputs_to_combine:
-        combined_outs = combine_tag(all_outputs_to_combine, prefix, remove_temp_output)
+        combined_outs = combine_fastq_output_files(all_outputs_to_combine, prefix, remove_temp_output)
                     
     return combined_outs
 
 def intersect_fastq(lstrFiles, out_file):
-    ''' 
+    """
     Intersects multiple fastq files with one another. Includes only the reads (4
     lines long each) that are common to all the files. Writes these reads to the
     output file specified in out_file. 
@@ -155,11 +155,11 @@ def intersect_fastq(lstrFiles, out_file):
     Input:
     lstrFiles:  a list of fastq file names (as strings)
     out_file:   output file to write the results. 
-    '''
+    """
+    
     # optimize for the common case, where we are intersecting 1 file
     if len(lstrFiles) == 1:
-        #shutil.copy(lstrFiles[0], out_file)
-        os.rename(lstrFiles[0], out_file)
+        shutil.copyfile(lstrFiles[0], out_file)
         return
 
     counter = collections.Counter()
@@ -172,9 +172,8 @@ def intersect_fastq(lstrFiles, out_file):
                     read = ("".join(lines)).strip()
                 except TypeError:
                     message="Fastq file is not correctly formatted"
-                    print(message)
                     logger.critical(message)
-                    raise
+                    sys.exit("ERROR:"+message+": "+ fname)
                 else:
                     counter[read] += 1
 
@@ -186,112 +185,59 @@ def intersect_fastq(lstrFiles, out_file):
                 f.write(key+"\n")
     return
 
-def union_outfiles(lstrFiles, out_file):
-    '''
-    Union multiple .out files (lists of contaminant reads output by BMTagger).
-    Includes 1 copy of every read name listed in any of the input files. 
+def combine_fastq_output_files(files_to_combine, out_prefix, remove_temp_output):
+    """
+    Summary: Combines fastq output if we run BMTagger/bowtie2 on multiple databases.
     Input:
-    lstrFiles:  a list of .out file names (as strings)
-    out_file:   output file to write the results
-    '''
-
-    # optimize for the common case, where we are unioning 1 file
-    if len(lstrFiles) == 1:
-        #shutil.copy(lstrFiles[0], out_file)
-        os.rename(lstrFiles[0], out_file)
-        return
-
-    counter = collections.Counter()
-    for fname in lstrFiles:
-        with open(fname, "rU") as f:
-            for line in f:
-                read = line.strip()
-                counter[read] += 1
-    with open(out_file, "w") as f:
-        for key in counter:
-            f.write(key+"\n")
-
-    # TODO: Test which one (above or below) is faster
-
-    '''
-    # implementing union with command line tools
-    strFiles = " ".join(lstrFiles)
-    cmd = shlex.split("sort --unique " + strFiles)
-    with open(out_file, "w") as f:
-        subprocess.call(cmd, stdout=f)
-    '''
-    return 
-
-def combine_tag(llstrFiles, out_prefix, remove_temp_output):
-    '''
-    Summary: Combines output if we run BMTagger/bowtie2 on multiple databases.
-    Input:
-        llstrFiles: a list of lists of BMTagger/bowtie2 outputs. The 'inner
-        lists' are of length 1 or 2 
+        files_to_combine: a list of lists of BMTagger/bowtie2 outputs. The 'inner
+        lists' are of length 1 or 2 with lists of 2 having output files for paired reads
+        organized as [output for pair 1, output for pair 2]
         out_prefix: Prefix for the output files. 
+        remove_temp_output: if true, then remove temp files after combine
 
     Output:
         Returns a list of output files. Additionally, the log file is updated
         with read counts for the different input and output files.
-    '''
+    """
     
     # print out the reads for all files
-    all_files=[]
-    for pair in llstrFiles:
-        all_files+=pair
-    utilities.log_read_count_for_files(all_files,"Total reads after tagging")
+    utilities.log_read_count_for_files(files_to_combine,"Total reads after removing those found in reference database")
 
-    single_end = True
-    # Get the file names and concat them into strings (separated by spaces)
-    fnames1 = [f[0] for f in llstrFiles]
-    fnames2 = []
-    if len(llstrFiles[0]) == 2:
-        fnames2 = [f[1] for f in llstrFiles]
-        single_end = False
+    # create lists of all of the output files for pair 1 and for pair 2
+    files_for_pair1 = [f[0] for f in files_to_combine]
+    try:
+        files_for_pair2 = [f[1] for f in files_to_combine]
+    except IndexError:
+        files_for_pair2 = []
 
-    # Check if it was .fastq or not
-    # Instead of this method, try passing in another parameter? 
-    fIsFastq = utilities.is_file_fastq(fnames1[0])
+    # select an output prefix based on if the outputs are paired or not
+    output_file = out_prefix + "_1.fastq"
+    if not files_for_pair2:
+        output_file = out_prefix + ".fastq"
 
-    output_files = []
-    if fIsFastq:
-        # If BMTagger outputs fastq files, we only want the lines in common
-        # after tagging against all the databases
-        output_file = out_prefix + "_1.fastq"
-        if single_end:
-            output_file = out_prefix + ".fastq"
-
-        intersect_fastq(fnames1, output_file)
+    # create intersect file from all output files for pair 1
+    intersect_fastq(files_for_pair1, output_file)
+    output_files=[output_file]
+    
+    # create an intersect file from all output files for pair 2
+    if files_for_pair2:
+        output_file = out_prefix + "_2.fastq"
+        intersect_fastq(files_for_pair2, output_file)
         output_files.append(output_file)
-        if fnames2 != []:
-            if single_end:
-                raise Exception("Cannot have single end file with two different .fastq's per database")
-            output_file = out_prefix + "_2.fastq"
-            # potential bug here. changed from fnames1 to fnames2
-            intersect_fastq(fnames2, output_file)
-            output_files.append(output_file)
-    else:
-        # Otherwise, if we generate .out files, we want the unique lines from
-        # each, as to not have overlap when we produce the list of contaminant
-        # reads
-        union_outfiles(fnames1, out_prefix + ".out")
-        output_files.append(out_prefix + ".out")
-        if fnames2 != []:
-            # This should not happen
-            raise Exception("You have two different .out files for each database")
 
     # Get the read counts for the newly merged files
     utilities.log_read_count_for_files(output_files,"Total reads after merging results from multiple databases")
 
     # remove temp files if set
     if remove_temp_output:
-        for group in [fnames1, fnames2]:
-            if len(group) > 1:
-                # if len(group) == 1, we renamed the files in intersect and
-                # union
-                for filename in group:
-                    logger.debug("Removing temporary file %s" %filename)
+        for group in [files_for_pair1, files_for_pair2]:
+            for filename in group:
+                logger.debug("Removing temporary file %s" %filename)
+                try:
                     os.remove(filename)
+                except EnvironmentError:
+                    pass
+                
     return output_files
 
 def _prefix_bases(db_prefix_list):
