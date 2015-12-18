@@ -143,7 +143,7 @@ def tag(infile_list, db_prefix_list, remove_temp_output, output_prefix,
                     
     return combined_outs
 
-def intersect_fastq(fastq_files, out_file):
+def intersect_fastq(fastq_files, out_file, remove_temp_output=None):
     """ Intersects multiple fastq files with one another. Includes only the reads (4
     lines long each) that are common to all the files. Writes these reads to the
     output file specified in out_file. 
@@ -151,7 +151,10 @@ def intersect_fastq(fastq_files, out_file):
     
     # optimize for the common case, where we are intersecting 1 file
     if len(fastq_files) == 1:
-        shutil.copyfile(fastq_files[0], out_file)
+        if remove_temp_output:
+            shutil.move(fastq_files[0], out_file)
+        else:
+            shutil.copyfile(fastq_files[0], out_file)
         return
 
     counter = collections.Counter()
@@ -199,13 +202,13 @@ def combine_fastq_output_files(files_to_combine, out_prefix, remove_temp_output)
         output_file = out_prefix + ".fastq"
 
     # create intersect file from all output files for pair 1
-    intersect_fastq(files_for_pair1, output_file)
+    intersect_fastq(files_for_pair1, output_file, remove_temp_output)
     output_files=[output_file]
     
     # create an intersect file from all output files for pair 2
     if files_for_pair2:
         output_file = out_prefix + "_2.fastq"
-        intersect_fastq(files_for_pair2, output_file)
+        intersect_fastq(files_for_pair2, output_file, remove_temp_output)
         output_files.append(output_file)
 
     # Get the read counts for the newly merged files
