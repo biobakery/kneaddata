@@ -188,7 +188,6 @@ def parse_arguments(args):
     group5 = parser.add_argument_group("trf arguments")
     group5.add_argument(
             "--trf",
-            default="trf",
             dest='trf_path',
             help="path to TRF\n[ DEFAULT : $PATH ]")
     group5.add_argument(
