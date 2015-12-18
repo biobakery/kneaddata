@@ -293,25 +293,25 @@ def update_configuration(args):
         infile_base = os.path.splitext(os.path.basename(args.input[0]))[0]
         args.output_prefix = infile_base + "_kneaddata"
         
-    # find the location of trimmomatic
+    # find the location of trimmomatic, trimmomatic does not need to be executable
     args.trimmomatic_path=utilities.find_dependency(args.trimmomatic_path,config.trimmomatic_jar,"trimmomatic",
-        "--trimmomatic", True)
+        "--trimmomatic", bypass_permissions_check=True)
     
     # find the location of bmtagger, if set to run
     if args.bmtagger:
         args.bmtagger_path=utilities.find_dependency(args.bmtagger_path,config.bmtagger_exe,"bmtagger",
-            "--bmtagger", True)
+            "--bmtagger", bypass_permissions_check=False)
         # add this folder to path, so as to be able to find other dependencies like bmfilter
         utilities.add_exe_to_path(os.path.dirname(args.bmtagger_path))
     else:
         # find the location of bowtie2, if not running with bmtagger
         args.bowtie2_path=utilities.find_dependency(args.bowtie2_path, config.bowtie2_exe, "bowtie2",
-            "--bowtie2", False)        
+            "--bowtie2", bypass_permissions_check=False)        
     
     # find the location of trf, if set to run
     if args.trf:
         args.trf_path=utilities.find_dependency(args.trf_path,config.trf_exe,"trf",
-            "--trf", True)
+            "--trf", bypass_permissions_check=False)
     
     # find the bowtie2 indexes for each of the reference databases
     # reference database inputs can be directories, indexes, or index files
