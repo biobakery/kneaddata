@@ -103,7 +103,7 @@ def tag(infile_list, db_prefix_list, remove_temp_output, output_prefix,
     is_paired = (len(infile_list) == 2)
 
     # create a temp directory for bmtagger
-    tempdir=tempfile.mkdtemp(prefix=os.path.basename(output_prefix)+'_kneaddata_temp_',dir=os.path.dirname(output_prefix))
+    tempdir=tempfile.mkdtemp(prefix=os.path.basename(output_prefix)+'_temp_',dir=os.path.dirname(output_prefix))
 
     # create the bmtagger commands
     commands = []
