@@ -280,19 +280,32 @@ def trim(infiles, outfiles_prefix, trimmomatic_path, quality_scores,
             nonempty_outfiles.append([outfiles[0],outfiles[2]])
         elif outfile_size[0] > 0:
             nonempty_outfiles.append([outfiles[0]])
+            # remove the second paired file if empty
+            utilities.remove_file(outfiles[2])
         elif outfile_size[2] > 0:
             nonempty_outfiles.append([outfiles[2]])
+            # remove the second paired file if empty
+            utilities.remove_file(outfiles[0])
         
         # add sequences without pairs, if present
         if outfile_size[1] > 0:
             nonempty_outfiles.append([outfiles[1]])
+        else:
+            # remove the file if empty
+            utilities.remove_file(outfiles[1])
             
         if outfile_size[3] > 0:
             nonempty_outfiles.append([outfiles[3]])
+        else:
+            # remove the file if empty
+            utilities.remove_file(outfiles[3])
         
     else:
         if outfile_size[0] > 0:
             nonempty_outfiles=[[outfiles[0]]]
+        else:
+            # remove the file if empty
+            utilities.remove_file(outfiles[0])
         
     if not nonempty_outfiles:
         sys.exit("ERROR: Trimmomatic created empty output files.")
@@ -376,6 +389,10 @@ def decontaminate(args, output_prefix, files_to_align):
                            args.remove_temp_output, args.bowtie2_path, args.threads,
                            args.processes, args.bowtie2_options, args.verbose)
 
+        # remove the intermediate trimmomatic files, if set
+        if args.remove_temp_output:
+            for file in files_list:
+                utilities.remove_file(file)
         
         # run TRF (within loop)
         # iterate over all outputs from combining (there should either be 1 or
