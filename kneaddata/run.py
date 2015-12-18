@@ -276,16 +276,16 @@ def trim(infiles, outfiles_prefix, trimmomatic_path, quality_scores,
     outfile_size = [utilities.file_size(file) for file in outfiles]
     if paired_end:
         # if paired fastq files remain after trimming, preserve pairing
-        if outfile_size[0] > 0 and outfile_size[1] > 0:
-            nonempty_outfiles.append([outfiles[0],outfiles[1]])
+        if outfile_size[0] > 0 and outfile_size[2] > 0:
+            nonempty_outfiles.append([outfiles[0],outfiles[2]])
         elif outfile_size[0] > 0:
             nonempty_outfiles.append([outfiles[0]])
-        elif outfile_size[1] > 0:
-            nonempty_outfiles.append([outfiles[1]])
+        elif outfile_size[2] > 0:
+            nonempty_outfiles.append([outfiles[2]])
         
         # add sequences without pairs, if present
-        if outfile_size[2] > 0:
-            nonempty_outfiles.append([outfiles[2]])
+        if outfile_size[1] > 0:
+            nonempty_outfiles.append([outfiles[1]])
             
         if outfile_size[3] > 0:
             nonempty_outfiles.append([outfiles[3]])
