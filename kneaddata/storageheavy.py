@@ -18,7 +18,7 @@ from . import memoryheavy
 # name global logging instance
 logger=logging.getLogger(__name__)
 
-def align(infile_list, db_prefix_list, output_prefix, tmp_dir, remove_temp_output,
+def align(infile_list, db_prefix_list, output_prefix, remove_temp_output,
           bowtie2_path, threads, processors, bowtie2_opts, verbose):
     """ Runs bowtie2 on a single-end sequence file or a paired-end set of files. 
     For each input file set and database provided, a bowtie2 command is generated and run."""
@@ -49,7 +49,7 @@ def align(infile_list, db_prefix_list, output_prefix, tmp_dir, remove_temp_outpu
             # if we are removing the temp output, then write the sam output to dev null to save space
             sam_out = os.devnull
         else:
-            sam_out = os.path.join(tmp_dir, os.path.basename(output_str) + ".sam")
+            sam_out = output_str + ".sam"
         cmd += [ "-S", sam_out ]
         
         commands.append([cmd,"bowtie2",infile_list,outputs_to_combine])
@@ -66,7 +66,7 @@ def align(infile_list, db_prefix_list, output_prefix, tmp_dir, remove_temp_outpu
     return combined_outs
 
 
-def tag(infile_list, db_prefix_list, temp_dir, remove_temp_output, output_prefix,
+def tag(infile_list, db_prefix_list, remove_temp_output, output_prefix,
         bmtagger_path, processes, verbose):
     """ Runs BMTagger on a single-end sequence file or a paired-end set of files. 
     For each input file set and database provided, a bmtagger command is generated and run."""
@@ -74,11 +74,14 @@ def tag(infile_list, db_prefix_list, temp_dir, remove_temp_output, output_prefix
     # determine if the input are paired reads
     is_paired = (len(infile_list) == 2)
 
+    # create a temp directory for bmtagger
+    tempdir=tempfile.mkdtemp(prefix=os.path.basename(output_prefix)+'_kneaddata_temp_',dir=os.path.dirname(output_prefix))
+
     # create the bmtagger commands
     commands = []
     all_outputs_to_combine = []
     bmtagger_command = [bmtagger_path, "-q", "1", "-1", infile_list[0], 
-                        "-T", temp_dir,"--extract"]
+                        "-T", tempdir,"--extract"]
 
     # build arguments
     for (basename, fullpath) in _prefix_bases(db_prefix_list):
@@ -98,6 +101,12 @@ def tag(infile_list, db_prefix_list, temp_dir, remove_temp_output, output_prefix
         
     # run the bmtagger commands with the number of processes specified
     utilities.start_processes(commands,processes,verbose)
+
+    # remove the temp directory
+    try:
+        shutil.rmtree(tempdir)
+    except EnvironmentError:
+        logger.debug("Unable to remove temp directory: " +tempdir)
 
     # merge the output files from multiple databases
     combined_outs = []
@@ -287,7 +296,7 @@ def run_trf(fastqs, outs, match, mismatch, delta, pm, pi, minscore, maxperiod,
         retcode = proc.returncode
         utilities.process_return(name, retcode, stdout, stderr)
         
-def decontaminate(args, output_prefix, files_to_align, tempdir):
+def decontaminate(args, output_prefix, files_to_align):
     """
     Run bowtie2 or bmtagger then trf if set
     """
@@ -312,11 +321,11 @@ def decontaminate(args, output_prefix, files_to_align, tempdir):
             prefix = prefix + "_pre_tandem"
     
         if args.bmtagger:
-            c_outs = tag(files_list, args.reference_db, tempdir, 
+            c_outs = tag(files_list, args.reference_db,
                          args.remove_temp_output, prefix, args.bmtagger_path,
                          args.processes, args.verbose)
         else:
-            c_outs = align(files_list, args.reference_db, prefix, tempdir, 
+            c_outs = align(files_list, args.reference_db, prefix, 
                            args.remove_temp_output, args.bowtie2_path, args.threads,
                            args.processes, args.bowtie2_options, args.verbose)
 
@@ -350,29 +359,13 @@ def decontaminate(args, output_prefix, files_to_align, tempdir):
 def storage_heavy(args):
     # set the prefix for the output files
     output_prefix = os.path.join(args.output_dir, args.output_prefix)
-    
-    # make temporary directory for temp output files
-    if args.remove_temp_output:
-        # create a temp folder if we are removing the temp output files
-        tempdir=tempfile.mkdtemp(prefix=args.output_prefix+'_kneaddata_temp_',dir=args.output_dir)
-    else:
-        tempdir = output_prefix + "_temp"
-        utilities.create_directory(tempdir)
-    tempdir_output_prefix = os.path.join(tempdir, args.output_prefix)
 
     # Get the number of reads initially
     utilities.log_read_count_for_files(args.input,"Initial number of reads",args.verbose)
 
-    # Set the location of the trimmomatic output files
-    # Write to temp directory if alignment will also be run
-    if args.reference_db:
-        trimmomatic_files_prefix = tempdir_output_prefix
-    else:
-        trimmomatic_files_prefix = output_prefix
-
     # Run trimmomatic
     trimmomatic_output_files = trim(
-        args.input, trimmomatic_files_prefix, args.trimmomatic_path, 
+        args.input, output_prefix, args.trimmomatic_path, 
         args.trimmomatic_quality_scores, args.max_memory, args.trimmomatic_options, 
         args.threads, args.verbose)
 
@@ -385,13 +378,5 @@ def storage_heavy(args):
         logger.info(message)
         print(message)
     else:
-        decontaminate(args, output_prefix, trimmomatic_output_files, tempdir)
-
-    # Remove temp output files, if set to remove
-    if args.remove_temp_output:
-        logger.debug("Removing temporary files ...")
-        try:
-            shutil.rmtree(tempdir)
-        except EnvironmentError:
-            logger.debug("Unable to remove temp directory: " + tempdir)
+        decontaminate(args, output_prefix, trimmomatic_output_files)
     

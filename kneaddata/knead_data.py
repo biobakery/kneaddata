@@ -272,16 +272,16 @@ def update_configuration(args):
     args.trimmomatic_path=utilities.find_dependency(args.trimmomatic_path,config.trimmomatic_jar,"trimmomatic",
         "--trimmomatic", True)
     
-    # find the location of bowtie2
-    args.bowtie2_path=utilities.find_dependency(args.bowtie2_path, config.bowtie2_exe, "bowtie2",
-        "--bowtie2", False)
-    
     # find the location of bmtagger, if set to run
     if args.bmtagger:
         args.bmtagger_path=utilities.find_dependency(args.bmtagger_path,config.bmtagger_exe,"bmtagger",
             "--bmtagger", True)
         # add this folder to path, so as to be able to find other dependencies like bmfilter
         utilities.add_exe_to_path(os.path.dirname(args.bmtagger_path))
+    else:
+        # find the location of bowtie2, if not running with bmtagger
+        args.bowtie2_path=utilities.find_dependency(args.bowtie2_path, config.bowtie2_exe, "bowtie2",
+            "--bowtie2", False)        
     
     # find the location of trf, if set to run
     if args.trf:
