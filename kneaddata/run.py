@@ -323,7 +323,7 @@ def trim(infiles, outfiles_prefix, trimmomatic_path, quality_scores,
 def run_tandem(in_fastq, out, match=2, mismatch=7, delta=7, pm=80, pi=10,
         minscore=50, maxperiod=500, generate_fastq=True, mask=False, html=False,
         trf_path="trf", verbose=None):
-    tandem_cmd = ["python", os.path.join(here, "tandem.py"),
+    tandem_cmd = ["tandem.py",
                   in_fastq, out, 
                   "--match", str(match),
                   "--mismatch", str(mismatch),
