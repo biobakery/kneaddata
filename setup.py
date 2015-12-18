@@ -312,7 +312,11 @@ setuptools.setup(
         "these \"contaminant\" reads, be they from the host, from bacterial 16S " + \
         "sequences, or other user-defined sources.",
     packages=setuptools.find_packages(),
-    package_data={'kneaddata':['tests/data/*/*']},
+    package_data={
+        'kneaddata' : [
+                       'tests/data/*.fastq',
+                       'tests/data/demo_bowtie2_db/*'
+                       ]},
     zip_safe=False,
     classifiers=[
         "Programming Language :: Python",
