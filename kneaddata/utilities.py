@@ -421,6 +421,14 @@ def is_file_readable(file, exit_on_error=None):
         return True
     else:
         return False
+    
+def remove_file(file):
+    """ Try to remove the file """
+    
+    try:
+        os.unlink(file)
+    except EnvironmentError:
+        logger.warning("Unable to remove file: " + file)
 
 def byte_to_gigabyte(byte):
     """

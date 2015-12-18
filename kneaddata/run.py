@@ -59,13 +59,18 @@ def align(infile_list, db_prefix_list, output_prefix, remove_temp_output,
         cmd = bowtie2_command + ["-x", fullpath]
         if is_paired:
             cmd += ["-1", infile_list[0], "-2", infile_list[1],
-                    "--al-conc", output_str + "_contam_%.fastq",
                     "--un-conc", output_str + "_clean_%.fastq"]
+            # if intermediate outputs are requested, then write contaminated files
+            if not remove_temp_output:
+                cmd+=["--al-conc", output_str + "_contam_%.fastq"]
             outputs_to_combine = [output_str + "_clean_1.fastq", 
                                   output_str + "_clean_2.fastq"]
+
         else:
-            cmd += ["-U", infile_list[0], "--al", output_str + "_contam.fastq",
-                    "--un", output_str + "_clean.fastq"]
+            cmd += ["-U", infile_list[0],"--un", output_str + "_clean.fastq"]
+            # if intermediate outputs are requested, then write contaminated files
+            if not remove_temp_output:
+                cmd+=["--al", output_str + "_contam.fastq"]
             outputs_to_combine = [output_str + "_clean.fastq"]
 
         if remove_temp_output:
