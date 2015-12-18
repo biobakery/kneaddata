@@ -1,3 +1,27 @@
+"""
+KneadData: run module
+
+Copyright (c) 2015 Harvard School of Public Health
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.
+"""
+
 import os
 import re
 import sys
@@ -11,9 +35,8 @@ from functools import partial
 import gzip
 import tempfile
 
-from . import utilities
-from . import config
-from . import memoryheavy
+from kneaddata import utilities
+from kneaddata import config
 
 # name global logging instance
 logger=logging.getLogger(__name__)
@@ -276,6 +299,30 @@ def trim(infiles, outfiles_prefix, trimmomatic_path, quality_scores,
         
     return nonempty_outfiles
 
+def run_tandem(in_fastq, out, match=2, mismatch=7, delta=7, pm=80, pi=10,
+        minscore=50, maxperiod=500, generate_fastq=True, mask=False, html=False,
+        trf_path="trf", verbose=None):
+    tandem_cmd = ["python", os.path.join(here, "tandem.py"),
+                  in_fastq, out, 
+                  "--match", str(match),
+                  "--mismatch", str(mismatch),
+                  "--delta", str(delta),
+                  "--pm", str(pm),
+                  "--pi", str(pi),
+                  "--minscore", str(minscore),
+                  "--maxperiod", str(maxperiod),
+                  "--trf-path", trf_path]
+
+    if mask:
+        tandem_cmd += ["--mask"]
+    if not generate_fastq:
+        tandem_cmd += ["--no-generate-fastq"]
+    if html:
+        tandem_cmd += ["--html"]
+
+    utilities.log_run_and_arguments("trf",tandem_cmd,verbose)
+    return subprocess.Popen(tandem_cmd, stdout=subprocess.PIPE,
+                            stderr=subprocess.PIPE)
 
 def run_trf(fastqs, outs, match, mismatch, delta, pm, pi, minscore, maxperiod, 
             generate_fastq, mask, html, trf_path, n_procs):
@@ -286,7 +333,7 @@ def run_trf(fastqs, outs, match, mismatch, delta, pm, pi, minscore, maxperiod,
     procs = list()
     names = list()
     for (fastq, out) in zip(fastqs, outs):
-        proc = memoryheavy.run_tandem(fastq, out, match, mismatch, delta, pm,
+        proc = run_tandem(fastq, out, match, mismatch, delta, pm,
                 pi, minscore, maxperiod, generate_fastq,mask,html, trf_path)
         procs.append(proc)
         names.append("tandem.py on " + fastq)
@@ -354,29 +401,4 @@ def decontaminate(args, output_prefix, files_to_align):
             if args.remove_temp_output:
                 for c_out in c_outs:
                     os.remove(c_out)
-    
-
-def storage_heavy(args):
-    # set the prefix for the output files
-    output_prefix = os.path.join(args.output_dir, args.output_prefix)
-
-    # Get the number of reads initially
-    utilities.log_read_count_for_files(args.input,"Initial number of reads",args.verbose)
-
-    # Run trimmomatic
-    trimmomatic_output_files = trim(
-        args.input, output_prefix, args.trimmomatic_path, 
-        args.trimmomatic_quality_scores, args.max_memory, args.trimmomatic_options, 
-        args.threads, args.verbose)
-
-    # Get the number of reads after trimming
-    utilities.log_read_count_for_files(trimmomatic_output_files,"Total reads after trimming",args.verbose)
-
-    # If a reference database is not provided, then bypass decontamination step
-    if not args.reference_db:
-        message="Bypass decontamination"
-        logger.info(message)
-        print(message)
-    else:
-        decontaminate(args, output_prefix, trimmomatic_output_files)
     

@@ -1,11 +1,41 @@
 #!/usr/bin/env python
 
-'''
-kneaddata.py
-Author: Andy Shi
+"""
+KneadData
 
-Pipeline for processing metagenomics sequencing data
-'''
+KneadData is a tool designed to perform quality control on metagenomic 
+sequencing data, especially data from microbiome experiments. In these 
+experiments, samples are typically taken from a host in hopes of learning 
+something about the microbial community on the host. However, metagenomic 
+sequencing data from such experiments will often contain a high ratio of host 
+to bacterial reads. This tool aims to perform principled in silico separation 
+of bacterial reads from these "contaminant" reads, be they from the host, 
+from bacterial 16S sequences, or other user-defined sources.
+
+Dependencies: Trimmomatic, Bowtie2 or BMTagger, and TRF (optional)
+
+To Run: kneaddata -i <input.fastq> -o <output_dir>
+
+Copyright (c) 2015 Harvard School of Public Health
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.
+"""
 
 import sys
 
@@ -34,14 +64,13 @@ import re
 
 # Try to load one of the kneaddata modules to check the installation
 try:
-    from . import utilities
+    from kneaddata import utilities
 except ImportError:
     sys.exit("ERROR: Unable to find the kneaddata python package." +
         " Please check your install.")
 
-from . import storageheavy
-from . import memoryheavy
-from . import config
+from kneaddata import run
+from kneaddata import config
 
 VERSION="0.4.6.1"
 
@@ -101,10 +130,6 @@ def parse_arguments(args):
         choices=config.quality_scores_options,
         dest='trimmomatic_quality_scores',
         help="quality scores\n[ DEFAULT : "+config.quality_scores+" ]")
-    group1.add_argument(
-        "-s", "--strategy",
-        default=config.strategy, choices=config.strategy_choices,
-        help="define operating strategy\n[ DEFAULT : "+config.strategy+" ]")
     group1.add_argument(
         "--run-bmtagger",
         default=False,
@@ -347,10 +372,28 @@ def main():
         logger.critical(message)
         sys.exit(message)
 
-    if args.strategy == 'memory':
-        memoryheavy.memory_heavy(args)
-    elif args.strategy == 'storage':
-        storageheavy.storage_heavy(args)
+    # set the prefix for the output files
+    output_prefix = os.path.join(args.output_dir, args.output_prefix)
+
+    # Get the number of reads initially
+    utilities.log_read_count_for_files(args.input,"Initial number of reads",args.verbose)
+
+    # Run trimmomatic
+    trimmomatic_output_files = run.trim(
+        args.input, output_prefix, args.trimmomatic_path, 
+        args.trimmomatic_quality_scores, args.max_memory, args.trimmomatic_options, 
+        args.threads, args.verbose)
+
+    # Get the number of reads after trimming
+    utilities.log_read_count_for_files(trimmomatic_output_files,"Total reads after trimming",args.verbose)
+
+    # If a reference database is not provided, then bypass decontamination step
+    if not args.reference_db:
+        message="Bypass decontamination"
+        logger.info(message)
+        print(message)
+    else:
+        run.decontaminate(args, output_prefix, trimmomatic_output_files)
 
 if __name__ == '__main__':
     main()
