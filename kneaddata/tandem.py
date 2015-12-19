@@ -203,7 +203,7 @@ def run_tandem(fastq, output, match=2, mismatch=7, delta=7, pm=80, pi=10,
         minscore=50, maxperiod=500, generate_fastq=True, mask=False, html=False,
         trf_path="trf"):
 
-    fasta_fname = os.path.basename(fastq) + ".fasta"
+    fasta_fname = os.path.splitext(fastq)[0] + ".fasta"
     trf_args = map(str, [match, mismatch, delta, pm, pi, minscore, maxperiod])
 
     # set output properly
@@ -217,6 +217,12 @@ def run_tandem(fastq, output, match=2, mismatch=7, delta=7, pm=80, pi=10,
         else:
             mask_out = output + ".mask"
 
+    # remove file if exists
+    try:
+        os.unlink(fasta_fname)
+    except EnvironmentError:
+        pass
+        
     with utilities.mkfifo_here((fasta_fname, )) as filenames:
         #logging.debug(filenames)
         #qual_queue = multiprocessing.JoinableQueue()
