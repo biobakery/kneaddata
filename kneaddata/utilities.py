@@ -34,6 +34,7 @@ import subprocess
 import itertools
 import multiprocessing
 import datetime
+import errno
 
 from math import floor
 from functools import partial
@@ -298,8 +299,9 @@ def find_exe_in_path(exe, bypass_permissions_check=None):
     for path in paths:
         fullexe = os.path.join(path,exe)
         if os.path.exists(fullexe):
-            if bypass_permissions_check or os.access(fullexe,os.X_OK):
-                return path
+            if not bypass_permissions_check:
+                check_file_executable(fullexe)
+            return path
     return None
         
 def add_exe_to_path(exe_dir):
@@ -310,6 +312,19 @@ def add_exe_to_path(exe_dir):
     logger.debug("Add directory, %s, to path", exe_dir)
     
     os.environ["PATH"] = exe_dir + os.pathsep + os.environ["PATH"]        
+    
+def check_file_executable(exe):
+    """
+    Check the file can be executed
+    """
+    
+    try:
+        output=subprocess.check_output([exe,"--version"],stderr=subprocess.STDOUT)
+    except EnvironmentError as error:
+        if error.errno == errno.EACCES:
+            sys.exit("ERROR: Unable to execute software: " + exe)
+    except subprocess.CalledProcessError:
+        pass
 
 def find_dependency(path_provided,exe,name,path_option,bypass_permissions_check):
     """ 
@@ -331,9 +346,7 @@ def find_dependency(path_provided,exe,name,path_option,bypass_permissions_check)
             found_path=path_provided
             # check permissions
             if not bypass_permissions_check:
-                if not os.access(found_path,os.X_OK):
-                    sys.exit("ERROR: The "+exe+" is not executable: " + found_path)
-                
+                check_file_executable(os.path.abspath(os.path.join(found_path,exe)))
     else:
         # search for the exe
         exe_path=find_exe_in_path(exe, bypass_permissions_check)
