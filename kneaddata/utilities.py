@@ -329,6 +329,11 @@ def find_dependency(path_provided,exe,name,path_option,bypass_permissions_check)
             sys.exit("ERROR: The "+exe+" executable is not included in the directory: " + path_provided)
         else:
             found_path=path_provided
+            # check permissions
+            if not bypass_permissions_check:
+                if not os.access(found_path,os.X_OK):
+                    sys.exit("ERROR: The "+exe+" is not executable: " + found_path)
+                
     else:
         # search for the exe
         exe_path=find_exe_in_path(exe, bypass_permissions_check)
