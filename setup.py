@@ -336,7 +336,6 @@ setuptools.setup(
             "kneaddata_build_database = kneaddata.generate_db:main",
             "kneaddata_test = kneaddata.tests.kneaddata_test:main"
         ]
-    },
-    scripts=["kneaddata/tandem.py"],
+    }
 )
 

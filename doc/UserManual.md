@@ -391,7 +391,6 @@ usage: kneaddata [-h] [--version] [-v] -i INPUT -o OUTPUT_DIR
                  [--bmtagger BMTAGGER_PATH] [--trf TRF_PATH] [--match MATCH]
                  [--mismatch MISMATCH] [--delta DELTA] [--pm PM] [--pi PI]
                  [--minscore MINSCORE] [--maxperiod MAXPERIOD]
-                 [--no-generate-fastq] [--mask] [--html]
 
 KneadData
 
@@ -423,7 +422,7 @@ global options:
                         define operating strategy
                         [ DEFAULT : storage ]
   --run-bmtagger        run BMTagger instead of Bowtie2 to identify contaminant reads
-  --run-trf             run TRF to remove and/or mask tandem repeats
+  --run-trf             run TRF to remove tandem repeats
   --remove-temp-output  remove temp output files
                         [ DEFAULT : temp output files are not removed ]
   --log-level {DEBUG,INFO,WARNING,ERROR,CRITICAL}
@@ -474,9 +473,6 @@ trf arguments:
   --maxperiod MAXPERIOD
                         maximum period size to report
                         [ DEFAULT : 500 ]
-  --no-generate-fastq   don't generate fastq output from trf
-  --mask                generate mask file from trf output
-  --html                generate html file for trf output
 ```
 
 ----------------------------------

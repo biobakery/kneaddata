@@ -36,10 +36,6 @@ import multiprocessing
 import datetime
 import errno
 
-from math import floor
-from functools import partial
-from contextlib import contextmanager
-
 from kneaddata import config
 
 # name global logging instance
@@ -55,32 +51,6 @@ def create_directory(directory):
             message="Unable to create output directory: " + directory
             logger.critical(message)
             sys.exit(message)
-
-
-@contextmanager
-def mktempfifo(names=("a",)):
-    tmpdir = tempfile.mkdtemp()
-    names = map(partial(os.path.join, tmpdir), names)
-    map(os.mkfifo, names)
-    try:
-        yield names
-    finally:
-        # still perform cleanup even if there were exceptions/errors in the
-        # "with" block
-        map(os.remove, names)
-        os.rmdir(tmpdir)
-
-
-@contextmanager
-def mkfifo_here(names=("a",), mode=0600):
-    for n in names:
-        os.mkfifo(n, mode)
-    try:
-        yield names
-    finally:
-        for n in names:
-            os.remove(n)
-
 
 def process_return(name, retcode, stdout, stderr):
     if name:
@@ -121,6 +91,7 @@ def start_processes(commands,processes,verbose):
     
     # exit if any subprocesses reported errors
     if sum(returncodes) > 0:
+        print("Subprocess reported error. Please see log file for more details.")
         sys.exit(1)
     
 def run_command_returncode(args):
@@ -136,7 +107,7 @@ def run_command_returncode(args):
         
     return returncode
 
-def run_command(command,command_name,infiles,outfiles,verbose,exit_on_error):
+def run_command(command,command_name,infiles,outfiles,stdout_file,verbose,exit_on_error):
     """ Run and log command """
     
     # convert any numbers in command to strings
@@ -156,8 +127,22 @@ def run_command(command,command_name,infiles,outfiles,verbose,exit_on_error):
     if verbose:
         print("\n" + message + "\n")
         
+    if stdout_file:
+        try:
+            stdout=open(stdout_file,"w")
+        except EnvironmentError:
+            message="Unable to open file: " + stdout_file
+            logger.critical(message)
+            if exit_on_error:
+                sys.exit("CRITICAL ERROR: " + message)
+            else:
+                raise EnvironmentError
     try:
-        p_out = subprocess.check_output(command, stderr=subprocess.STDOUT)
+        if stdout_file:
+            # run command, raise CalledProcessError if return code is non-zero
+            p_out = subprocess.check_call(command, stdout=stdout)
+        else:
+            p_out = subprocess.check_output(command, stderr=subprocess.STDOUT)
         logger.debug(p_out)
     except (EnvironmentError, subprocess.CalledProcessError) as e:
         message="Error executing: " + " ".join(command) + "\n"
@@ -505,3 +490,70 @@ def log_system_status():
             
         except (AttributeError, OSError, TypeError, psutil.Error):
             pass
+        
+        
+def read_file_n_lines(file,n):
+    """ Read a file n lines at a time """
+    
+    line_set=[]
+    with open(file) as file_handle:
+        for line in file_handle:
+            if len(line_set) == n:
+                yield line_set
+                line_set=[]
+            line_set.append(line)
+    
+    # yield the last set
+    if len(line_set) == n:
+        yield line_set
+        
+def fastq_to_fasta(file, new_file):
+    """
+    Convert fastq file to fasta
+    
+    Fastq format short example:
+    @SEQ_ID
+    GATCTGG
+    +
+    !''****
+    
+    Fasta format short example:
+    >SEQ_INFO
+    GATCTGG
+    """
+    
+    try:
+        file_handle_read = open(file, "r")
+        line = file_handle_read.readline()
+    except EnvironmentError:
+        sys.exit("ERROR: Unable to read file: " + file)
+    
+    try:
+        file_out=open(new_file,"w")
+    except EnvironmentError:
+        sys.exit("ERROR: Unable to write file: " + file)
+
+    sequence=""
+    sequence_id=""
+    while line:
+        if re.search("^@",line):
+            # write previous sequence
+            if sequence:
+                file_out.write(sequence_id)
+                file_out.write(sequence+"\n")
+            
+            sequence_id=line.replace("@",">",1)
+            sequence=""
+        elif re.search("^[A|a|T|t|G|g|C|c|N|n]+$", line):
+            sequence+=line.rstrip()
+        line=file_handle_read.readline()
+        
+    # write out the last sequence
+    if sequence:
+        file_out.write(sequence_id)
+        file_out.write(sequence+"\n")    
+
+    file_out.close()    
+    file_handle_read.close()
+
+    return new_file    

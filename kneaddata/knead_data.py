@@ -61,6 +61,7 @@ import os
 import logging
 import argparse
 import re
+import itertools
 
 # Try to load one of the kneaddata modules to check the installation
 try:
@@ -141,7 +142,7 @@ def parse_arguments(args):
         default=False,
         dest='trf',
         action="store_true",
-        help="run TRF to remove and/or mask tandem repeats")
+        help="run TRF to remove tandem repeats")
     group1.add_argument(
         "--remove-temp-output",
         action="store_true",
@@ -225,20 +226,6 @@ def parse_arguments(args):
             type=int,
             default=config.trf_maxperiod, 
             help="maximum period size to report\n[ DEFAULT : "+str(config.trf_maxperiod)+" ]")
-    group5.add_argument(
-            "--no-generate-fastq",
-            default=True, 
-            action="store_false", 
-            help="don't generate fastq output from trf")
-    group5.add_argument(
-            "--mask",
-            default=False,
-            action="store_true",
-            help="generate mask file from trf output")
-    group5.add_argument(
-            "--html",
-            default=False, action="store_true",
-            help="generate html file for trf output")
 
     return parser.parse_args()
     
@@ -260,10 +247,6 @@ def update_configuration(args):
     
     # create the output directory if needed
     utilities.create_directory(args.output_dir)
-
-    if (not args.no_generate_fastq) and (not args.mask) and args.trf:
-        parser.error("\nYou cannot set the --no-generate-fastq flag without"
-        " the --mask flag. Exiting...\n")
 
     # set trimmomatic options
     if args.trimmomatic_options:
@@ -391,8 +374,17 @@ def main():
         message="Bypass decontamination"
         logger.info(message)
         print(message)
+        # resolve sub-lists if present
+        final_output_files=trimmomatic_output_files
+        if trimmomatic_output_files:
+            if isinstance(trimmomatic_output_files[0],list):
+                final_output_files=itertools.chain.from_iterable(trimmomatic_output_files)
     else:
-        run.decontaminate(args, output_prefix, trimmomatic_output_files)
+        final_output_files=run.decontaminate(args, output_prefix, trimmomatic_output_files)
+
+    message="\nOutput files created: \n" + "\n".join(final_output_files) + "\n"
+    logger.info(message)
+    print(message)
 
 if __name__ == '__main__':
     main()

@@ -80,7 +80,7 @@ def align(infile_list, db_prefix_list, output_prefix, remove_temp_output,
             sam_out = output_str + ".sam"
         cmd += [ "-S", sam_out ]
         
-        commands.append([cmd,"bowtie2",infile_list,outputs_to_combine])
+        commands.append([cmd,"bowtie2",infile_list,outputs_to_combine,None])
         all_outputs_to_combine.append(outputs_to_combine)
 
     # run the bowtie2 commands with the number of processes specified
@@ -124,7 +124,7 @@ def tag(infile_list, db_prefix_list, remove_temp_output, output_prefix,
         else:
             outputs_to_combine = [prefix + ".fastq"]
 
-        commands.append([cmd,"bmtagger",infile_list,outputs_to_combine])
+        commands.append([cmd,"bmtagger",infile_list,outputs_to_combine,None])
         all_outputs_to_combine.append(outputs_to_combine)
         
     # run the bmtagger commands with the number of processes specified
@@ -276,7 +276,7 @@ def trim(infiles, outfiles_prefix, trimmomatic_path, quality_scores,
     command += additional_options
 
     # run trimmomatic command
-    utilities.run_command(command,"Trimmomatic",infiles,outfiles,verbose,exit_on_error=True)
+    utilities.run_command(command,"Trimmomatic",infiles,outfiles,None,verbose,exit_on_error=True)
     
     # now check all of the output files to find which are non-empty and return as 
     # sets for running the alignment steps
@@ -319,50 +319,75 @@ def trim(infiles, outfiles_prefix, trimmomatic_path, quality_scores,
         sys.exit("ERROR: Trimmomatic created empty output files.")
         
     return nonempty_outfiles
+        
+def remove_repeats_from_fastq(input_fastq, trf_output, output_fastq):
+    """ Remove the sequences from TRF that contain repeats from the output files """
+    
+    sequences_with_repeats=set()
+    with open(trf_output) as file_handle:
+        for line in file_handle:
+            # sequences start with "@"
+            if line[0] == "@":
+                sequences_with_repeats.add(line)
+                
+    try:
+        file_handle_write=open(output_fastq,"w")
+    except EnvironmentError:
+        sys.exit("ERROR: Unable to open file: " + output_fastq)
+        
+    removed_sequences=0
+    for lines in utilities.read_file_n_lines(input_fastq,4):
+        # check if the sequence was identified by TRF
+        if lines[0] in sequences_with_repeats:
+            removed_sequences+=1
+        else:
+            file_handle_write.write("".join(lines))
+        
+    # log the number of sequences removed for repeats
+    logger.info("Total number of sequences with repeats removed from file ( " + 
+                input_fastq + " ): " + str(removed_sequences))
+        
+def run_tandem(input_fastq_files, output_fastq_files, match, mismatch, delta, pm, pi, minscore,
+               maxperiod, trf_path, processors, verbose, remove_temp_output):
+    """ Run TRF on all input files """
 
-def run_tandem(in_fastq, out, match=2, mismatch=7, delta=7, pm=80, pi=10,
-        minscore=50, maxperiod=500, generate_fastq=True, mask=False, html=False,
-        trf_path="trf", verbose=None):
-    tandem_cmd = ["tandem.py",
-                  in_fastq, out, 
-                  "--match", str(match),
-                  "--mismatch", str(mismatch),
-                  "--delta", str(delta),
-                  "--pm", str(pm),
-                  "--pi", str(pi),
-                  "--minscore", str(minscore),
-                  "--maxperiod", str(maxperiod),
-                  "--trf-path", trf_path]
+    # Convert all arguments to strings    
+    trf_args = map(str, [match, mismatch, delta, pm, pi, minscore, maxperiod])
+    
+    commands=[]
+    temp_fasta_files=[]
+    trf_output_files=[]
+    for input_fastq in input_fastq_files:
+        # create a temp fasta file from the fastq file
+        input_fasta = input_fastq.replace(os.path.splitext(input_fastq)[-1],".fasta")
+        utilities.fastq_to_fasta(input_fastq, input_fasta)
+        temp_fasta_files.append(input_fasta)
+        
+        trf_output_file = input_fasta+".trf.parameters."+".".join(trf_args)+".dat"
+        trf_output_files.append(trf_output_file)
+        
+        # suppress html output and write reduced data file to standard output
+        trf_command=[trf_path, input_fasta] + trf_args + ["-h","-ngs"]
+        
+        commands.append([trf_command,"trf",[input_fasta],[trf_output_file],trf_output_file])
+        
+    # run the trf commands with the number of processes specified
+    utilities.start_processes(commands,processors,verbose)
+    
+    # remove all fasta files when complete
+    for file in temp_fasta_files:
+        utilities.remove_file(file)
 
-    if mask:
-        tandem_cmd += ["--mask"]
-    if not generate_fastq:
-        tandem_cmd += ["--no-generate-fastq"]
-    if html:
-        tandem_cmd += ["--html"]
-
-    utilities.log_run_and_arguments("trf",tandem_cmd,verbose)
-    return subprocess.Popen(tandem_cmd, stdout=subprocess.PIPE,
-                            stderr=subprocess.PIPE)
-
-def run_trf(fastqs, outs, match, mismatch, delta, pm, pi, minscore, maxperiod, 
-            generate_fastq, mask, html, trf_path, n_procs):
-    nfiles = len(fastqs)
-    # 1-2 files being passed in
-    assert(nfiles == 2 or nfiles == 1)
-
-    procs = list()
-    names = list()
-    for (fastq, out) in zip(fastqs, outs):
-        proc = run_tandem(fastq, out, match, mismatch, delta, pm,
-                pi, minscore, maxperiod, generate_fastq,mask,html, trf_path)
-        procs.append(proc)
-        names.append("tandem.py on " + fastq)
-
-    for (proc, name) in zip(procs, names):
-        stdout, stderr = proc.communicate()
-        retcode = proc.returncode
-        utilities.process_return(name, retcode, stdout, stderr)
+    # use the trf output to print the final fastq output files
+    for i in range(len(input_fastq_files)):
+        remove_repeats_from_fastq(input_fastq_files[i], trf_output_files[i], output_fastq_files[i])
+    
+    # remove trf output if remove temp output is set
+    if remove_temp_output:
+        for file in trf_output_files:
+            utilities.remove_file(file)
+            
+    return output_fastq_files
         
 def decontaminate(args, output_prefix, files_to_align):
     """
@@ -386,14 +411,14 @@ def decontaminate(args, output_prefix, files_to_align):
         trf_out_base = None
         if args.trf:
             trf_out_base = prefix
-            prefix = prefix + "_pre_tandem"
+            prefix = prefix + "_pre_tandem_repeat_remove"
     
         if args.bmtagger:
-            c_outs = tag(files_list, args.reference_db,
+            alignment_output_files = tag(files_list, args.reference_db,
                          args.remove_temp_output, prefix, args.bmtagger_path,
                          args.processes, args.verbose)
         else:
-            c_outs = align(files_list, args.reference_db, prefix, 
+            alignment_output_files = align(files_list, args.reference_db, prefix, 
                            args.remove_temp_output, args.bowtie2_path, args.threads,
                            args.processes, args.bowtie2_options, args.verbose)
 
@@ -402,28 +427,18 @@ def decontaminate(args, output_prefix, files_to_align):
             for file in files_list:
                 utilities.remove_file(file)
         
-        # run TRF (within loop)
-        # iterate over all outputs from combining (there should either be 1 or
-        # 2)
+        # run TRF on output from bowtie2 or bmtagger, if set
         if args.trf:
-            trf_outs = [trf_out_base]
-            if len(c_outs) == 2:
-                trf_outs = [trf_out_base + str(i + 1) for i in xrange(2)]
-            run_trf(fastqs=c_outs,
-                    outs=trf_outs,
-                    match=args.match,
-                    mismatch=args.mismatch,
-                    delta=args.delta,
-                    pm=args.pm,
-                    pi=args.pi,
-                    minscore=args.minscore,
-                    maxperiod=args.maxperiod,
-                    generate_fastq=args.no_generate_fastq,
-                    mask=args.mask,
-                    html=args.html,
-                    trf_path=args.trf_path,
-                    n_procs=args.processes)
-            if args.remove_temp_output:
-                for c_out in c_outs:
-                    os.remove(c_out)
-    
+            if len(alignment_output_files) > 1:
+                trf_outs = [trf_out_base + str(i + 1) + ".fastq" for i in xrange(2)]
+            else:
+                trf_outs = [trf_out_base + ".fastq"]
+            # run trf on all output files
+            final_output_files=run_tandem(alignment_output_files, trf_outs, args.match,
+                                          args.mismatch,args.delta,args.pm,args.pi,
+                                          args.minscore,args.maxperiod,args.trf_path,
+                                          args.processes,args.verbose,args.remove_temp_output)
+        else:
+            final_output_files = alignment_output_files
+
+        return final_output_files
