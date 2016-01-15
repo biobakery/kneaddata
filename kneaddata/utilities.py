@@ -260,13 +260,20 @@ def count_reads_in_fastq_file(file,verbose):
     
     return total_reads
 
+def resolve_sublists(lists):
+    """ Resolve the sublists in list """
+    
+    if lists:
+        if isinstance(lists[0], list):
+            lists=itertools.chain.from_iterable(lists)
+            
+    return lists
+
 def log_read_count_for_files(files,message_base,verbose=None):
     """ Log the number of reads in the files """
         
     # convert possible list of lists to list
-    if files:
-        if isinstance(files[0],list):
-            files=itertools.chain.from_iterable(files)
+    files=resolve_sublists(files)
 
     # count reads in each file
     for file in files:

@@ -381,9 +381,10 @@ All options can be accessed with `$ kneaddata --help`.
 
 ```
 usage: kneaddata [-h] [--version] [-v] -i INPUT -o OUTPUT_DIR
-                 [-db REFERENCE_DB] [--output-prefix OUTPUT_PREFIX] [-t <1>]
-                 [-p <1>] [-q {phred33,phred64}] [-s {memory,storage}]
-                 [--run-bmtagger] [--run-trf] [--remove-temp-output]
+                 [-db REFERENCE_DB] [--bypass-trim]
+                 [--output-prefix OUTPUT_PREFIX] [-t <1>] [-p <1>]
+                 [-q {phred33,phred64}] [--run-bmtagger] [--run-trf]
+                 [--remove-temp-output]
                  [--log-level {DEBUG,INFO,WARNING,ERROR,CRITICAL}] [--log LOG]
                  [--trimmomatic TRIMMOMATIC_PATH] [--max-memory MAX_MEMORY]
                  [--trimmomatic-options TRIMMOMATIC_OPTIONS]
@@ -406,6 +407,7 @@ global options:
                         directory to write output files
   -db REFERENCE_DB, --reference-db REFERENCE_DB
                         location of reference database (additional arguments add databases)
+  --bypass-trim         bypass the trim step
   --output-prefix OUTPUT_PREFIX
                         prefix for all output files
                         [ DEFAULT : $SAMPLE_kneaddata ]
@@ -418,9 +420,6 @@ global options:
   -q {phred33,phred64}, --quality-scores {phred33,phred64}
                         quality scores
                         [ DEFAULT : phred33 ]
-  -s {memory,storage}, --strategy {memory,storage}
-                        define operating strategy
-                        [ DEFAULT : storage ]
   --run-bmtagger        run BMTagger instead of Bowtie2 to identify contaminant reads
   --run-trf             run TRF to remove tandem repeats
   --remove-temp-output  remove temp output files

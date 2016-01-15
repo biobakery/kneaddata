@@ -111,6 +111,10 @@ def parse_arguments(args):
         default=[], action="append",
         help="location of reference database (additional arguments add databases)")
     group1.add_argument(
+        "--bypass-trim",
+        action="store_true",
+        help="bypass the trim step")
+    group1.add_argument(
         "--output-prefix",
         help="prefix for all output files\n[ DEFAULT : $SAMPLE_kneaddata ]")
     group1.add_argument(
@@ -361,13 +365,19 @@ def main():
     utilities.log_read_count_for_files(args.input,"Initial number of reads",args.verbose)
 
     # Run trimmomatic
-    trimmomatic_output_files = run.trim(
-        args.input, output_prefix, args.trimmomatic_path, 
-        args.trimmomatic_quality_scores, args.max_memory, args.trimmomatic_options, 
-        args.threads, args.verbose)
-
-    # Get the number of reads after trimming
-    utilities.log_read_count_for_files(trimmomatic_output_files,"Total reads after trimming",args.verbose)
+    if not args.bypass_trim:
+        trimmomatic_output_files = run.trim(
+            args.input, output_prefix, args.trimmomatic_path, 
+            args.trimmomatic_quality_scores, args.max_memory, args.trimmomatic_options, 
+            args.threads, args.verbose)
+        
+        # Get the number of reads after trimming
+        utilities.log_read_count_for_files(trimmomatic_output_files,"Total reads after trimming",args.verbose)
+    else:
+        message="Bypass trimming"
+        logger.info(message)
+        print(message)
+        trimmomatic_output_files=[args.input]
 
     # If a reference database is not provided, then bypass decontamination step
     if not args.reference_db:
@@ -375,10 +385,7 @@ def main():
         logger.info(message)
         print(message)
         # resolve sub-lists if present
-        final_output_files=trimmomatic_output_files
-        if trimmomatic_output_files:
-            if isinstance(trimmomatic_output_files[0],list):
-                final_output_files=itertools.chain.from_iterable(trimmomatic_output_files)
+        final_output_files=utilities.resolve_sublists(trimmomatic_output_files)
     else:
         final_output_files=run.decontaminate(args, output_prefix, trimmomatic_output_files)
 
