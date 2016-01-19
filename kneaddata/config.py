@@ -62,6 +62,10 @@ bmtagger_db_endings = [
     ".srprism.map", ".srprism.pmp", ".srprism.rmp", ".srprism.ss",
     ".srprism.ssa", ".srprism.ssd", ".nhr", ".nin", ".nsq"]
     
+    
+# File extensions
+fastq_file_extension=".fastq"
+fasta_file_extension=".fasta"
 
 # Trimmomatic file endings for single end and paired end, respectively
 trimomatic_se_ending = ".trimmed.fastq"

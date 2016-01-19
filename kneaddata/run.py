@@ -59,19 +59,19 @@ def align(infile_list, db_prefix_list, output_prefix, remove_temp_output,
         cmd = bowtie2_command + ["-x", fullpath]
         if is_paired:
             cmd += ["-1", infile_list[0], "-2", infile_list[1],
-                    "--un-conc", output_str + "_clean_%.fastq"]
+                    "--un-conc", output_str + "_clean_%" + config.fastq_file_extension]
             # if intermediate outputs are requested, then write contaminated files
             if not remove_temp_output:
-                cmd+=["--al-conc", output_str + "_contam_%.fastq"]
-            outputs_to_combine = [output_str + "_clean_1.fastq", 
-                                  output_str + "_clean_2.fastq"]
+                cmd+=["--al-conc", output_str + "_contam_%" + config.fastq_file_extension]
+            outputs_to_combine = [output_str + "_clean_1" + config.fastq_file_extension, 
+                                  output_str + "_clean_2" + config.fastq_file_extension]
 
         else:
-            cmd += ["-U", infile_list[0],"--un", output_str + "_clean.fastq"]
+            cmd += ["-U", infile_list[0],"--un", output_str + "_clean" + config.fastq_file_extension]
             # if intermediate outputs are requested, then write contaminated files
             if not remove_temp_output:
-                cmd+=["--al", output_str + "_contam.fastq"]
-            outputs_to_combine = [output_str + "_clean.fastq"]
+                cmd+=["--al", output_str + "_contam" + config.fastq_file_extension]
+            outputs_to_combine = [output_str + "_clean" + config.fastq_file_extension]
 
         if remove_temp_output:
             # if we are removing the temp output, then write the sam output to dev null to save space
@@ -119,10 +119,10 @@ def tag(infile_list, db_prefix_list, remove_temp_output, output_prefix,
                                   "-o", prefix]
         if is_paired:
             cmd += ["-2", infile_list[1]]
-            outputs_to_combine = [prefix + "_1.fastq",
-                                  prefix + "_2.fastq"]
+            outputs_to_combine = [prefix + "_1" + config.fastq_file_extension,
+                                  prefix + "_2" + config.fastq_file_extension]
         else:
-            outputs_to_combine = [prefix + ".fastq"]
+            outputs_to_combine = [prefix + config.fastq_file_extension]
 
         commands.append([cmd,"bmtagger",infile_list,outputs_to_combine,None])
         all_outputs_to_combine.append(outputs_to_combine)
@@ -197,9 +197,9 @@ def combine_fastq_output_files(files_to_combine, out_prefix, remove_temp_output)
         files_for_pair2 = []
 
     # select an output prefix based on if the outputs are paired or not
-    output_file = out_prefix + "_1.fastq"
+    output_file = out_prefix + "_1" + config.fastq_file_extension
     if not files_for_pair2:
-        output_file = out_prefix + ".fastq"
+        output_file = out_prefix + config.fastq_file_extension
 
     # create intersect file from all output files for pair 1
     intersect_fastq(files_for_pair1, output_file, remove_temp_output)
@@ -207,7 +207,7 @@ def combine_fastq_output_files(files_to_combine, out_prefix, remove_temp_output)
     
     # create an intersect file from all output files for pair 2
     if files_for_pair2:
-        output_file = out_prefix + "_2.fastq"
+        output_file = out_prefix + "_2" + config.fastq_file_extension
         intersect_fastq(files_for_pair2, output_file, remove_temp_output)
         output_files.append(output_file)
 
@@ -347,46 +347,56 @@ def remove_repeats_from_fastq(input_fastq, trf_output, output_fastq):
     logger.info("Total number of sequences with repeats removed from file ( " + 
                 input_fastq + " ): " + str(removed_sequences))
         
-def run_tandem(input_fastq_files, output_fastq_files, match, mismatch, delta, pm, pi, minscore,
+def tandem(input_files, output_prefix, match, mismatch, delta, pm, pi, minscore,
                maxperiod, trf_path, processors, verbose, remove_temp_output):
     """ Run TRF on all input files """
 
     # Convert all arguments to strings    
     trf_args = map(str, [match, mismatch, delta, pm, pi, minscore, maxperiod])
-    
-    commands=[]
-    temp_fasta_files=[]
-    trf_output_files=[]
-    for input_fastq in input_fastq_files:
-        # create a temp fasta file from the fastq file
-        input_fasta = input_fastq.replace(os.path.splitext(input_fastq)[-1],".fasta")
-        utilities.fastq_to_fasta(input_fastq, input_fasta)
-        temp_fasta_files.append(input_fasta)
-        
-        trf_output_file = input_fasta+".trf.parameters."+".".join(trf_args)+".dat"
-        trf_output_files.append(trf_output_file)
-        
-        # suppress html output and write reduced data file to standard output
-        trf_command=[trf_path, input_fasta] + trf_args + ["-h","-ngs"]
-        
-        commands.append([trf_command,"trf",[input_fasta],[trf_output_file],trf_output_file])
-        
-    # run the trf commands with the number of processes specified
-    utilities.start_processes(commands,processors,verbose)
-    
-    # remove all fasta files when complete
-    for file in temp_fasta_files:
-        utilities.remove_file(file)
 
-    # use the trf output to print the final fastq output files
-    for i in range(len(input_fastq_files)):
-        remove_repeats_from_fastq(input_fastq_files[i], trf_output_files[i], output_fastq_files[i])
-    
-    # remove trf output if remove temp output is set
-    if remove_temp_output:
-        for file in trf_output_files:
-            utilities.remove_file(file)
+    output_files=[]
+    for input_fastq_files in input_files:
+        # Get the names for the output files
+        if len(input_fastq_files) > 1:
+            output_fastq_files = [output_prefix + str(i + 1) + config.fastq_file_extension for i in range(1,len(input_fastq_files)+1)]
+        else:
+            output_fastq_files = [output_prefix + config.fastq_file_extension]
+        
+        commands=[]
+        temp_fasta_files=[]
+        trf_output_files=[]
+        for input_fastq in input_fastq_files:
+            # create a temp fasta file from the fastq file
+            input_fasta = input_fastq.replace(os.path.splitext(input_fastq)[-1],config.fasta_file_extension)
+            utilities.fastq_to_fasta(input_fastq, input_fasta)
+            temp_fasta_files.append(input_fasta)
             
+            trf_output_file = input_fasta+".trf.parameters."+".".join(trf_args)+".dat"
+            trf_output_files.append(trf_output_file)
+            
+            # suppress html output and write reduced data file to standard output
+            trf_command=[trf_path, input_fasta] + trf_args + ["-h","-ngs"]
+            
+            commands.append([trf_command,"trf",[input_fasta],[trf_output_file],trf_output_file])
+            
+        # run the trf commands with the number of processes specified
+        utilities.start_processes(commands,processors,verbose)
+        
+        # remove all fasta files when complete
+        for file in temp_fasta_files:
+            utilities.remove_file(file)
+    
+        # use the trf output to print the final fastq output files
+        for i in range(len(input_fastq_files)):
+            remove_repeats_from_fastq(input_fastq_files[i], trf_output_files[i], output_fastq_files[i])
+        
+        # remove trf output if remove temp output is set
+        if remove_temp_output:
+            for file in trf_output_files:
+                utilities.remove_file(file)
+            
+        output_files+=output_fastq_files
+        
     return output_fastq_files
         
 def decontaminate(args, output_prefix, files_to_align):
@@ -400,15 +410,15 @@ def decontaminate(args, output_prefix, files_to_align):
     logger.info(message)
     possible_orphan = (len(files_to_align) > 1)
     orphan_count = 1
+    output_files=[]
     for files_list in files_to_align:
         prefix = output_prefix
         if possible_orphan and (len(files_list) == 1):
-            prefix = output_prefix + "_se_" + str(orphan_count)
+            prefix = output_prefix + "_unmatched_" + str(orphan_count)
             orphan_count += 1
         elif len(files_list) == 2:
-            prefix = output_prefix + "_pe"
+            prefix = output_prefix + "_paired"
     
-        trf_out_base = None
         if args.trf:
             trf_out_base = prefix
             prefix = prefix + "_pre_tandem_repeat_remove"
@@ -426,19 +436,8 @@ def decontaminate(args, output_prefix, files_to_align):
         if args.remove_temp_output:
             for file in files_list:
                 utilities.remove_file(file)
+                
+        output_files.append(alignment_output_files)
+    
+    return output_files
         
-        # run TRF on output from bowtie2 or bmtagger, if set
-        if args.trf:
-            if len(alignment_output_files) > 1:
-                trf_outs = [trf_out_base + str(i + 1) + ".fastq" for i in xrange(2)]
-            else:
-                trf_outs = [trf_out_base + ".fastq"]
-            # run trf on all output files
-            final_output_files=run_tandem(alignment_output_files, trf_outs, args.match,
-                                          args.mismatch,args.delta,args.pm,args.pi,
-                                          args.minscore,args.maxperiod,args.trf_path,
-                                          args.processes,args.verbose,args.remove_temp_output)
-        else:
-            final_output_files = alignment_output_files
-
-        return final_output_files

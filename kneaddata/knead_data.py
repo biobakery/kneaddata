@@ -385,9 +385,19 @@ def main():
         logger.info(message)
         print(message)
         # resolve sub-lists if present
-        final_output_files=utilities.resolve_sublists(trimmomatic_output_files)
+        alignment_output_files=trimmomatic_output_files
     else:
-        final_output_files=run.decontaminate(args, output_prefix, trimmomatic_output_files)
+        alignment_output_files=run.decontaminate(args, output_prefix, trimmomatic_output_files)
+        
+    # run TRF, if set
+    if args.trf:
+        # run trf on all output files
+        final_output_files=run.tandem(alignment_output_files, output_prefix, args.match,
+                                      args.mismatch,args.delta,args.pm,args.pi,
+                                      args.minscore,args.maxperiod,args.trf_path,
+                                      args.processes,args.verbose,args.remove_temp_output)
+    else:
+        final_output_files = utilities.resolve_sublists(alignment_output_files)
 
     message="\nOutput files created: \n" + "\n".join(final_output_files) + "\n"
     logger.info(message)
