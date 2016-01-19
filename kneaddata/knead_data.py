@@ -280,8 +280,9 @@ def update_configuration(args):
         args.output_prefix = infile_base + "_kneaddata"
         
     # find the location of trimmomatic, trimmomatic does not need to be executable
-    args.trimmomatic_path=utilities.find_dependency(args.trimmomatic_path,config.trimmomatic_jar,"trimmomatic",
-        "--trimmomatic", bypass_permissions_check=True)
+    if not args.bypass_trim:
+        args.trimmomatic_path=utilities.find_dependency(args.trimmomatic_path,config.trimmomatic_jar,"trimmomatic",
+            "--trimmomatic", bypass_permissions_check=True)
     
     # find the location of bmtagger, if set to run
     if args.bmtagger:
