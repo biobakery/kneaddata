@@ -148,9 +148,9 @@ def parse_arguments(args):
         action="store_true",
         help="run TRF to remove tandem repeats")
     group1.add_argument(
-        "--remove-temp-output",
+        "--store-temp-output",
         action="store_true",
-        help="remove temp output files\n[ DEFAULT : temp output files are not removed ]")
+        help="store temp output files\n[ DEFAULT : temp output files are removed ]")
     group1.add_argument(
         "--log-level",
         default=config.log_level,
@@ -238,6 +238,9 @@ def update_configuration(args):
 
     # get the full path for the output directory
     args.output_dir = os.path.abspath(args.output_dir)
+    
+    # set if temp output should be removed
+    args.remove_temp_output = not args.store_temp_output
     
     # check the input files are non-empty and readable
     args.input[0] = os.path.abspath(args.input[0])
