@@ -61,7 +61,7 @@ For paired end reads, add a second input argument “--input $INPUT2” (with $I
 
 Three types of output files will be created (where $INPUTNAME is the basename of $INPUT):
 
-1. The final file of filtered sequences
+1. The final file of filtered sequences after trimming
     * `` $OUTPUT_DIR/$INPUTNAME_kneaddata.fastq ``
 
 2. The contaminant sequences from testing against a database (with this database name replacing $DATABASE)
@@ -69,6 +69,9 @@ Three types of output files will be created (where $INPUTNAME is the basename of
 
 3. The log file from the run
     * `` $OUTPUT_DIR/$INPUTNAME_kneaddata.log ``
+
+4. The fastq file of trimmed sequences
+    * `` $OUTPUT_DIR/$INPUTNAME_kneaddata.trimmed.fastq ``
 
 
 If there is more than one reference database, there will be a fourth output file type. Files of this type will be named `` $OUTPUT_DIR/$INPUTNAME_kneaddata_$DATABASE_clean.fastq `` and will contain the filtered sequences after testing against a specific database (with this database name replacing $DATABASE in the file name). The file `` $OUTPUT_DIR/$INPUTNAME_kneaddata.fastq `` is the set of all sequences contained in these filtered files.
@@ -85,6 +88,7 @@ This will create three output files:
 1. `` kneaddata_demo_output/demo_kneaddata.fastq ``
 2. `` kneaddata_demo_output/demo_kneaddata_demo_db_contam.fastq ``
 3. `` kneaddata_demo_output/demo_kneaddata.log ``
+3. `` kneaddata_demo_output/demo_kneaddata.trimmed.log ``
 
 ## User Manual ##
 For the full user manual and more advanced usage, see the [User Manual](doc/UserManual.md).
