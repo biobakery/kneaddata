@@ -60,17 +60,13 @@ def align(infile_list, db_prefix_list, output_prefix, remove_temp_output,
         if is_paired:
             cmd += ["-1", infile_list[0], "-2", infile_list[1],
                     "--un-conc", output_str + "_clean_%" + config.fastq_file_extension]
-            # if intermediate outputs are requested, then write contaminated files
-            if not remove_temp_output:
-                cmd+=["--al-conc", output_str + "_contam_%" + config.fastq_file_extension]
+            cmd+=["--al-conc", output_str + "_contam_%" + config.fastq_file_extension]
             outputs_to_combine = [output_str + "_clean_1" + config.fastq_file_extension, 
                                   output_str + "_clean_2" + config.fastq_file_extension]
 
         else:
             cmd += ["-U", infile_list[0],"--un", output_str + "_clean" + config.fastq_file_extension]
-            # if intermediate outputs are requested, then write contaminated files
-            if not remove_temp_output:
-                cmd+=["--al", output_str + "_contam" + config.fastq_file_extension]
+            cmd+=["--al", output_str + "_contam" + config.fastq_file_extension]
             outputs_to_combine = [output_str + "_clean" + config.fastq_file_extension]
 
         if remove_temp_output:
