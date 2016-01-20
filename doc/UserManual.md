@@ -125,7 +125,9 @@ form KneadData databases beforehand. This only needs to be done once per
 reference sequence. 
 
 For certain common databases, we provide indexed files. If you use these, you
-can skip the manual build steps below. 
+can skip the manual build steps below. Alternatively if you would like to bypass
+the reference alignment portion of the workflow, a database does not need to be
+provided when running KneadData.
 
 To download the indexed human reference database, run the following command:
     * `` $ kneaddata_database --download human bowtie2 $DIR ``
@@ -187,15 +189,6 @@ As input, KneadData requires FASTQ files. It supports both single end and paired
 end reads. KneadData uses either Bowtie2 (default) or BMTagger to identify the
 contaminant reads. 
 
-A note on outputs: KneadData by default outputs new FASTQ files containing only
-non-contaminant reads, and new FASTQ files containing only the contaminant
-reads. 
-
-When using BMTagger, the default output is a *list* of contaminant reads.
-It can also output new FASTQ files containing only the non-contaminant reads,
-with the contaminant reads removed. This feature can be enabled by using the
-`-x` or the `--extract` flag. 
-
 #### Single End
 
 To run KneadData in single end mode, run 
@@ -234,7 +227,8 @@ This will create files in the folder `seq_output` named:
 
 + `seq_kneaddata_Homo_sapiens_db_contam.fastq`: FASTQ file containing reads that
   were identified as human reads. 
-+ `seq_kneaddata.fastq`: Contains reads that were not identified as being human. 
++ `seq_kneaddata.fastq`: Contains reads that were not identified as being human after trimming. 
++ `seq_kneaddata.trimmed.fastq`: Contains trimmed reads. 
 + `seq_kneaddata.log`
 
 If you wanted to use BMTagger, suppose the BMTagger executable was located at
