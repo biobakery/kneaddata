@@ -392,8 +392,11 @@ def tandem(input_files, output_prefix, match, mismatch, delta, pm, pi, minscore,
             remove_repeats_from_fastq(input_fastq_files[i], trf_output_files[i], output_fastq_files[i])
         
         # remove trf output if remove temp output is set
+        # also remove input file if set
         if remove_temp_output:
             for file in trf_output_files:
+                utilities.remove_file(file)
+            for file in input_fastq_files:
                 utilities.remove_file(file)
             
         output_files+=output_fastq_files
