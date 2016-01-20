@@ -265,7 +265,7 @@ def resolve_sublists(lists):
     
     if lists:
         if isinstance(lists[0], list):
-            lists=itertools.chain.from_iterable(lists)
+            lists=list(itertools.chain.from_iterable(lists))
             
     return lists
 
