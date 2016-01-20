@@ -52,6 +52,7 @@ def align(infile_list, db_prefix_list, output_prefix, remove_temp_output,
     # create the bowtie2 commands
     commands = []
     all_outputs_to_combine = []
+    all_contaminated_outputs = []
     bowtie2_command = [bowtie2_path, "--threads", str(threads)] + bowtie2_opts
     
     for basename, fullpath in _prefix_bases(db_prefix_list):
@@ -61,12 +62,15 @@ def align(infile_list, db_prefix_list, output_prefix, remove_temp_output,
             cmd += ["-1", infile_list[0], "-2", infile_list[1],
                     "--un-conc", output_str + "_clean_%" + config.fastq_file_extension]
             cmd+=["--al-conc", output_str + "_contam_%" + config.fastq_file_extension]
+            all_contaminated_outputs.append(output_str + "_contam_1" + config.fastq_file_extension)
+            all_contaminated_outputs.append(output_str + "_contam_2" + config.fastq_file_extension)
             outputs_to_combine = [output_str + "_clean_1" + config.fastq_file_extension, 
                                   output_str + "_clean_2" + config.fastq_file_extension]
 
         else:
             cmd += ["-U", infile_list[0],"--un", output_str + "_clean" + config.fastq_file_extension]
             cmd+=["--al", output_str + "_contam" + config.fastq_file_extension]
+            all_contaminated_outputs.append(output_str + "_contam" + config.fastq_file_extension)
             outputs_to_combine = [output_str + "_clean" + config.fastq_file_extension]
 
         if remove_temp_output:
@@ -81,7 +85,15 @@ def align(infile_list, db_prefix_list, output_prefix, remove_temp_output,
 
     # run the bowtie2 commands with the number of processes specified
     utilities.start_processes(commands,processors,verbose)
-   
+
+    # write out total number of contaminated reads found
+    for file in all_contaminated_outputs:
+        total_contaminates=utilities.count_reads_in_fastq_file(file, verbose)
+        message="Total contaminate sequences in file ( " + file + " ) : " + str(total_contaminates)
+        logger.info(message)
+        if verbose:
+            print(message)   
+
     # if bowtie2 produced output, merge the files from multiple databases
     combined_outs = []
     if all_outputs_to_combine:
@@ -89,6 +101,31 @@ def align(infile_list, db_prefix_list, output_prefix, remove_temp_output,
 
     return combined_outs
 
+def write_tagged_sequences_from_fastq(input_fastq, bmtagger_output, output_fastq, verbose):
+    """ Find the sequences bmtagger has tagged as contaminates from the extract output file """
+    
+    # store all of the sequences bmtagger has not tagged as contaminates
+    untagged_sequences=set()
+    for lines in utilities.read_file_n_lines(bmtagger_output,4):
+        untagged_sequences.add(lines[0])
+                        
+    try:
+        file_handle_write=open(output_fastq,"w")
+    except EnvironmentError:
+        sys.exit("ERROR: Unable to open file: " + output_fastq)
+        
+    tagged_sequences=0
+    for lines in utilities.read_file_n_lines(input_fastq,4):
+        # check if the sequence was identified by bmtagger
+        if not lines[0] in untagged_sequences:
+            tagged_sequences+=1
+            file_handle_write.write("".join(lines))
+        
+    # log the number of sequences
+    message="Total contaminate sequences in file ( " + output_fastq + " ): " + str(tagged_sequences)
+    logger.info(message)
+    if verbose:
+        print(message)
 
 def tag(infile_list, db_prefix_list, remove_temp_output, output_prefix,
         bmtagger_path, processes, verbose):
@@ -104,12 +141,13 @@ def tag(infile_list, db_prefix_list, remove_temp_output, output_prefix,
     # create the bmtagger commands
     commands = []
     all_outputs_to_combine = []
+    contaminated_outputs = []
     bmtagger_command = [bmtagger_path, "-q", "1", "-1", infile_list[0], 
                         "-T", tempdir,"--extract"]
 
     # build arguments
     for (basename, fullpath) in _prefix_bases(db_prefix_list):
-        prefix = output_prefix + "_" + basename + "_bmtagger_clean"
+        prefix = output_prefix + "_" + basename + "_bmtagger"
         cmd = bmtagger_command + ["-b", str(fullpath + ".bitmask"),
                                   "-x", str(fullpath + ".srprism"),
                                   "-o", prefix]
@@ -117,14 +155,24 @@ def tag(infile_list, db_prefix_list, remove_temp_output, output_prefix,
             cmd += ["-2", infile_list[1]]
             outputs_to_combine = [prefix + "_1" + config.fastq_file_extension,
                                   prefix + "_2" + config.fastq_file_extension]
+            # name the corresponding contaminated output files
+            contaminated_outputs.append([prefix + "_contam_1" + config.fastq_file_extension,
+                                         prefix + "_contam_2" + config.fastq_file_extension])
         else:
             outputs_to_combine = [prefix + config.fastq_file_extension]
+            # name the corresponding contaminated output files
+            contaminated_outputs.append([prefix + "_contam" + config.fastq_file_extension])
 
         commands.append([cmd,"bmtagger",infile_list,outputs_to_combine,None])
         all_outputs_to_combine.append(outputs_to_combine)
         
     # run the bmtagger commands with the number of processes specified
     utilities.start_processes(commands,processes,verbose)
+    
+    # write the files of contaminate sequences
+    for index, outputs in enumerate(all_outputs_to_combine):
+        for input_fastq, bmtagger_output, contam_output_fastq in zip(infile_list, outputs, contaminated_outputs[index]):
+            write_tagged_sequences_from_fastq(input_fastq, bmtagger_output, contam_output_fastq, verbose)
 
     # remove the temp directory
     try:
