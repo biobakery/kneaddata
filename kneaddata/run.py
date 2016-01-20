@@ -218,11 +218,7 @@ def combine_fastq_output_files(files_to_combine, out_prefix, remove_temp_output)
     if remove_temp_output:
         for group in [files_for_pair1, files_for_pair2]:
             for filename in group:
-                logger.debug("Removing temporary file %s" %filename)
-                try:
-                    os.remove(filename)
-                except EnvironmentError:
-                    pass
+                utilities.remove_file(filename)
                 
     return output_files
 
