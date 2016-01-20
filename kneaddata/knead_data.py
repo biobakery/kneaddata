@@ -400,7 +400,12 @@ def main():
     else:
         final_output_files = utilities.resolve_sublists(alignment_output_files)
 
-    message="\nOutput files created: \n" + "\n".join(final_output_files) + "\n"
+    if len(final_output_files) > 1:
+        message="\nFinal output files created: \n"
+    else:
+        message="\nFinal output file created: \n"
+    
+    message=message+ "\n".join(final_output_files) + "\n"
     logger.info(message)
     print(message)
 

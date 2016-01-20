@@ -351,11 +351,11 @@ def tandem(input_files, output_prefix, match, mismatch, delta, pm, pi, minscore,
     trf_args = map(str, [match, mismatch, delta, pm, pi, minscore, maxperiod])
 
     output_files=[]
-    output_prefix+="_repeats_removed"
+    output_prefix+=".repeats.removed"
     for input_fastq_files in input_files:
         # Get the names for the output files
         if len(input_fastq_files) > 1:
-            output_fastq_files = [output_prefix + str(i + 1) + config.fastq_file_extension for i in range(1,len(input_fastq_files)+1)]
+            output_fastq_files = [output_prefix + "." + str(i) + config.fastq_file_extension for i in range(1,len(input_fastq_files)+1)]
         else:
             output_fastq_files = [output_prefix + config.fastq_file_extension]
         
@@ -388,11 +388,8 @@ def tandem(input_files, output_prefix, match, mismatch, delta, pm, pi, minscore,
             remove_repeats_from_fastq(input_fastq_files[i], trf_output_files[i], output_fastq_files[i])
         
         # remove trf output if remove temp output is set
-        # also remove input file if set
         if remove_temp_output:
             for file in trf_output_files:
-                utilities.remove_file(file)
-            for file in input_fastq_files:
                 utilities.remove_file(file)
             
         output_files+=output_fastq_files
@@ -427,11 +424,6 @@ def decontaminate(args, output_prefix, files_to_align):
             alignment_output_files = align(files_list, args.reference_db, prefix, 
                            args.remove_temp_output, args.bowtie2_path, args.threads,
                            args.processes, args.bowtie2_options, args.verbose)
-
-        # remove the intermediate trimmomatic files, if set
-        if args.remove_temp_output:
-            for file in files_list:
-                utilities.remove_file(file)
                 
         output_files.append(alignment_output_files)
     
