@@ -355,6 +355,7 @@ def tandem(input_files, output_prefix, match, mismatch, delta, pm, pi, minscore,
     trf_args = map(str, [match, mismatch, delta, pm, pi, minscore, maxperiod])
 
     output_files=[]
+    output_prefix+="_repeats_removed"
     for input_fastq_files in input_files:
         # Get the names for the output files
         if len(input_fastq_files) > 1:
@@ -418,10 +419,6 @@ def decontaminate(args, output_prefix, files_to_align):
             orphan_count += 1
         elif len(files_list) == 2:
             prefix = output_prefix + "_paired"
-    
-        if args.trf:
-            trf_out_base = prefix
-            prefix = prefix + "_pre_tandem_repeat_remove"
     
         if args.bmtagger:
             alignment_output_files = tag(files_list, args.reference_db,
