@@ -5,6 +5,8 @@ data_folder=os.path.join(os.path.dirname(os.path.abspath(__file__)),"data")
 
 fastq_file=os.path.join(data_folder,"demo.fastq")
 bowtie2_db_folder=os.path.join(data_folder,"demo_bowtie2_db")
+bowtie2_db_file=os.path.join(bowtie2_db_folder,"demo_db.1.bt2")
+bowtie2_db_index=os.path.join(bowtie2_db_folder,"demo_db")
 
 merge_files=[os.path.join(data_folder,"merge1.fastq"),
              os.path.join(data_folder,"merge2.fastq"),

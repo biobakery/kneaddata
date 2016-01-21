@@ -62,3 +62,31 @@ class TestHumann2Functions(unittest.TestCase):
         """
         
         self.assertTrue(utilities.is_file_fastq(cfg.merge_files[0]))
+        
+    def test_find_database_index_folder(self):
+        """
+        Test the find database index function with a folder as input
+        """
+        
+        db_index=utilities.find_database_index(cfg.bowtie2_db_folder, "bowtie2")
+        
+        self.assertEqual(db_index, cfg.bowtie2_db_index)
+        
+    def test_find_database_index_file(self):
+        """
+        Test the find database index function with a file as input
+        """
+        
+        db_index=utilities.find_database_index(cfg.bowtie2_db_file, "bowtie2")
+        
+        self.assertEqual(db_index, cfg.bowtie2_db_index)
+        
+    def test_find_database_index_index(self):
+        """
+        Test the find database index function with an index as input
+        """
+        
+        db_index=utilities.find_database_index(cfg.bowtie2_db_index, "bowtie2")
+        
+        self.assertEqual(db_index, cfg.bowtie2_db_index)
+
