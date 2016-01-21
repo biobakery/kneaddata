@@ -30,7 +30,6 @@ import shutil
 import logging
 import itertools
 import subprocess
-import collections
 from functools import partial
 import gzip
 import tempfile
@@ -199,30 +198,20 @@ def intersect_fastq(fastq_files, out_file, remove_temp_output=None):
             shutil.move(fastq_files[0], out_file)
         else:
             shutil.copyfile(fastq_files[0], out_file)
-        return
-
-    counter = collections.Counter()
-    for fname in fastq_files:
-        with open(fname, "rU") as f:
-            # nifty trick to read 4 lines at a time (fastq files have 4 lines
-            # per read)
-            for lines in itertools.izip_longest(*[f]*4):
-                try:
-                    read = ("".join(lines)).strip()
-                except TypeError:
-                    message="Fastq file is not correctly formatted"
-                    logger.critical(message)
-                    sys.exit("ERROR:"+message+": "+ fname)
-                else:
-                    counter[read] += 1
-
-    num_files = len(fastq_files)
-    with open(out_file, "w") as f:
-        for key in counter:
-            # only includes reads that are in n or more files, for n input files
-            if counter[key] >= num_files:
-                f.write(key+"\n")
-    return
+    else:
+        # store the number of files that contain each sequence
+        sequence_count={}
+        for fname in fastq_files:
+            for lines in utilities.read_file_n_lines(fname, 4):
+                sequence_count[lines[0]]=sequence_count.get(lines[0],0)+1
+    
+        num_files = len(fastq_files)
+        with open(out_file, "w") as file_handle:
+            # read through one of the files, writing out each sequence that 
+            # is found in all of the files
+            for lines in utilities.read_file_n_lines(fastq_files[0],4):
+                if sequence_count.get(lines[0],0) >= num_files:
+                    file_handle.write("".join(lines))
 
 def combine_fastq_output_files(files_to_combine, out_prefix, remove_temp_output):
     """ Combines fastq output created by BMTagger/bowtie2 on multiple databases and 
