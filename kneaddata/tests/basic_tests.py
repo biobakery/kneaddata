@@ -26,7 +26,7 @@ class TestHumann2Functions(unittest.TestCase):
         # Get the sequences from the file, removing end-lines and the fastq "@" character
         sequences=[lines[0].rstrip()[1:] for lines in utilities.read_file_n_lines(cfg.merge_files[0], 4)]
         
-        self.assertEqual(sorted(sequences), sorted(cfg.merges_files_1_sequences))
+        self.assertEqual(sorted(sequences), sorted(cfg.merge_files_1_sequences))
 
     def test_intersect_fastq(self):
         """
@@ -45,4 +45,20 @@ class TestHumann2Functions(unittest.TestCase):
         utils.remove_temp_file(temp_output_file)
         
         self.assertEqual(sorted(sequences), sorted(cfg.merge_files_sequences_intersect))
+        
+    def test_count_reads_in_fastq_file(self):
+        """
+        Test the count reads in fastq file function 
+        """
+        
+        read_count=utilities.count_reads_in_fastq_file(cfg.merge_files[0],False)
 
+        self.assertEqual(read_count, len(cfg.merge_files_1_sequences))
+        
+
+    def test_is_file_fastq(self):
+        """
+        Test the is file fastq function and also the get file format function
+        """
+        
+        self.assertTrue(utilities.is_file_fastq(cfg.merge_files[0]))

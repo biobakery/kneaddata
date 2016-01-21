@@ -11,7 +11,7 @@ merge_files=[os.path.join(data_folder,"merge1.fastq"),
              os.path.join(data_folder,"merge3.fastq")]
 
 merge_files_sequences_intersect=["all_files_1","all_files_2"]
-merges_files_1_sequences=["all_files_1","file1_1","file1_and_file2_1","all_files_2"]
+merge_files_1_sequences=["all_files_1","file1_1","file1_and_file2_1","all_files_2"]
 
 # kneaddata default file names
 log_extension="_kneaddata.log"
