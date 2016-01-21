@@ -72,6 +72,7 @@ Three types of output files will be created (where $INPUTNAME is the basename of
 
 4. The fastq file of trimmed sequences
     * `` $OUTPUT_DIR/$INPUTNAME_kneaddata.trimmed.fastq ``
+    * Trimmomatic is run with the following arguments by default "SLIDINGWINDOW:4:20 MINLEN:60". To change the Trimmomatic arguments, use the option "--trimmomatic-options".
 
 
 If there is more than one reference database, there will be a fourth output file type. Files of this type will be named `` $OUTPUT_DIR/$INPUTNAME_kneaddata_$DATABASE_clean.fastq `` and will contain the filtered sequences after testing against a specific database (with this database name replacing $DATABASE in the file name). The file `` $OUTPUT_DIR/$INPUTNAME_kneaddata.fastq `` is the set of all sequences contained in these filtered files.
