@@ -40,19 +40,49 @@ def check_dependency(exe,bypass_permissions_check=None):
     if not utilities.find_exe_in_path(exe, bypass_permissions_check):
         sys.exit("ERROR: Unable to find "+exe+". Please install.")
 
+import argparse
+
+def parse_arguments(args):
+    """
+    Parse the arguments from the user
+    """
+    parser = argparse.ArgumentParser(
+        description= "KneadData Test\n",
+        formatter_class=argparse.RawTextHelpFormatter,
+        prog="kneaddata_test")
+    parser.add_argument(
+        "-r","--run-functional-tests",
+        help="also run the functional tests\n",
+        action="store_true",
+        default=False)
+    parser.add_argument(
+        "-b","--bypass-unit-tests",
+        help="do not run the unit tests\n",
+        action="store_true",
+        default=False)
+
+    return parser.parse_args()
+
 def main():
+    # Parse arguments from command line
+    args=parse_arguments(sys.argv)
+    
     # Check for dependencies
-    check_dependency(config.trimmomatic_jar,bypass_permissions_check=True)
-    check_dependency(config.bowtie2_exe)
-    check_dependency(config.bmtagger_exe)
+    if args.run_functional_tests:
+        check_dependency(config.trimmomatic_jar,bypass_permissions_check=True)
+        check_dependency(config.bowtie2_exe)
+        check_dependency(config.bmtagger_exe)
     
     # Get the unittests
     directory_of_tests=os.path.dirname(os.path.abspath(__file__))
     
-    functional_suite = unittest.TestLoader().discover(directory_of_tests,pattern='functional_tests*.py')
-    basic_suite = unittest.TestLoader().discover(directory_of_tests,pattern='basic_tests*.py')
+    tests_to_run=[]
+    if args.run_functional_tests:
+        tests_to_run.append(unittest.TestLoader().discover(directory_of_tests,pattern='functional_tests*.py'))
+    if not args.bypass_unit_tests:
+        tests_to_run.append(unittest.TestLoader().discover(directory_of_tests,pattern='basic_tests*.py'))
 
-    unittest.TextTestRunner(verbosity=2).run(unittest.TestSuite([basic_suite,functional_suite]))
+    unittest.TextTestRunner(verbosity=2).run(unittest.TestSuite(tests_to_run))
 
 if __name__ == '__main__':
     main()
