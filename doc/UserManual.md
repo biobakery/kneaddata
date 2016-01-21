@@ -355,16 +355,18 @@ Depending on the input FASTQ, one or more of the following may be output:
   situation (2) above that were identified as NOT belonging to the
   `human_rna_db` database. 
 
+Note, the files named "*_clean.fastq" will only be written if running with the option "--store-temp-output".
+
 Aggregated files:
 
 + `seq_kneaddata.log`: Log file containing statistics about the run. 
-+ `seq_kneaddata_pe_1.fastq`: Reads from the first mate in situation (1) identified as
++ `seq_kneaddata_paired_1.fastq`: Reads from the first mate in situation (1) identified as
   NOT belonging to any of the reference databases. 
-+ `seq_kneaddata_pe_2.fastq`: Reads from the second mate in situation (1) identified as
++ `seq_kneaddata_paired_2.fastq`: Reads from the second mate in situation (1) identified as
   NOT belonging to any of the reference databases. 
-+ `seq_kneaddata_se_1.fastq`: Reads from the first mate in situation (2) identified as
++ `seq_kneaddata_unmatched_1.fastq`: Reads from the first mate in situation (2) identified as
   NOT belonging to any of the reference databases. 
-+ `seq_kneaddata_se_2.fastq`: Reads from the second mate in situation (3) identified as
++ `seq_kneaddata_unmatched_2.fastq`: Reads from the second mate in situation (3) identified as
   NOT belonging to any of the reference databases. 
 
 ---------------------------------
