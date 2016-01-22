@@ -36,7 +36,7 @@ import time
 
 from setuptools.command.install import install as _install
 
-VERSION="0.4.6.1"
+VERSION="0.5.0"
 
 setup_directory = os.path.abspath(os.path.dirname(__file__))
 
