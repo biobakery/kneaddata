@@ -312,6 +312,11 @@ setuptools.setup(
         "these \"contaminant\" reads, be they from the host, from bacterial 16S " + \
         "sequences, or other user-defined sources.",
     packages=setuptools.find_packages(),
+    package_data={
+        'kneaddata' : [
+                       'tests/data/*.fastq',
+                       'tests/data/demo_bowtie2_db/*'
+                       ]},
     zip_safe=False,
     classifiers=[
         "Programming Language :: Python",
@@ -328,7 +333,8 @@ setuptools.setup(
         "console_scripts": [
             "kneaddata = kneaddata.knead_data:main",
             "kneaddata_database = kneaddata.download_db:main",
-            "kneaddata_build_database = kneaddata.generate_db:main"
+            "kneaddata_build_database = kneaddata.generate_db:main",
+            "kneaddata_test = kneaddata.tests.kneaddata_test:main"
         ]
     }
 )

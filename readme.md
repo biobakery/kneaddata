@@ -21,11 +21,12 @@ KneadData is a tool designed to perform quality control on metagenomic sequencin
 2.  [Bowtie2](http://bowtie-bio.sourceforge.net/bowtie2/index.shtml) (version >= 2.1) (automatically installed)
 3.  [Python](http://www.python.org/) (version >= 2.7)
 4.  [Java Runtime Environment](http://www.oracle.com/technetwork/java/javase/downloads/jre7-downloads-1880261.html)
-5.  Operating system (Linux or Mac)
+5.  Memory (>= 4 Gb if using Bowtie2, >= 8 Gb if using BMTagger)
+6.  Operating system (Linux or Mac)
 
 Optionally, [BMTagger](ftp://ftp.ncbi.nlm.nih.gov/pub/agarwala/bmtagger/) can be used instead of Bowtie2.
 
-The executables for the required software packages should be installed in your $PATH. Alternatively, you can provide the location of the Bowtie2 install ($BOWTIE2_DIR) with the following KneadData option “--bowtie2-path $BOWTIE2_DIR”. 
+The executables for the required software packages should be installed in your $PATH. Alternatively, you can provide the location of the Bowtie2 install ($BOWTIE2_DIR) with the following KneadData option “--bowtie2 $BOWTIE2_DIR”. 
 
 ### Installation ###
 
@@ -56,11 +57,11 @@ $DATABASE = the index of the KneadData database
 $OUTPUT_DIR = the output directory
 ```
 
-For paired end reads, add the option “--input2 $INPUT2” (with $INPUT2 replaced with the second input file). Also please note that more than one reference database can be provided by using multiple database options (for example, "--reference-db $DATABASE1 --reference-db $DATABASE2").
+For paired end reads, add a second input argument “--input $INPUT2” (with $INPUT2 replaced with the second input file). Also please note that more than one reference database can be provided in the same manner by using multiple database options (for example, "--reference-db $DATABASE1 --reference-db $DATABASE2").
 
 Three types of output files will be created (where $INPUTNAME is the basename of $INPUT):
 
-1. The final file of filtered sequences
+1. The final file of filtered sequences after trimming
     * `` $OUTPUT_DIR/$INPUTNAME_kneaddata.fastq ``
 
 2. The contaminant sequences from testing against a database (with this database name replacing $DATABASE)
@@ -69,9 +70,14 @@ Three types of output files will be created (where $INPUTNAME is the basename of
 3. The log file from the run
     * `` $OUTPUT_DIR/$INPUTNAME_kneaddata.log ``
 
+4. The fastq file of trimmed sequences
+    * `` $OUTPUT_DIR/$INPUTNAME_kneaddata.trimmed.fastq ``
+    * Trimmomatic is run with the following arguments by default "SLIDINGWINDOW:4:20 MINLEN:60". To change the Trimmomatic arguments, use the option "--trimmomatic-options".
+
 
 If there is more than one reference database, there will be a fourth output file type. Files of this type will be named `` $OUTPUT_DIR/$INPUTNAME_kneaddata_$DATABASE_clean.fastq `` and will contain the filtered sequences after testing against a specific database (with this database name replacing $DATABASE in the file name). The file `` $OUTPUT_DIR/$INPUTNAME_kneaddata.fastq `` is the set of all sequences contained in these filtered files.
 
+If running with two input files, each type of fastq output file will be created for each one of the pairs of the input files. If running with the TRF step, an additional set of files with repeats removed will be written.
 
 #### Demo run ####
 
@@ -84,6 +90,7 @@ This will create three output files:
 1. `` kneaddata_demo_output/demo_kneaddata.fastq ``
 2. `` kneaddata_demo_output/demo_kneaddata_demo_db_contam.fastq ``
 3. `` kneaddata_demo_output/demo_kneaddata.log ``
+3. `` kneaddata_demo_output/demo_kneaddata.trimmed.log ``
 
 ## User Manual ##
 For the full user manual and more advanced usage, see the [User Manual](doc/UserManual.md).

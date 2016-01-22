@@ -1,396 +1,418 @@
 #!/usr/bin/env python
 
-'''
-kneaddata.py
-Author: Andy Shi
+"""
+KneadData
 
-Pipeline for processing metagenomics sequencing data
-'''
+KneadData is a tool designed to perform quality control on metagenomic 
+sequencing data, especially data from microbiome experiments. In these 
+experiments, samples are typically taken from a host in hopes of learning 
+something about the microbial community on the host. However, metagenomic 
+sequencing data from such experiments will often contain a high ratio of host 
+to bacterial reads. This tool aims to perform principled in silico separation 
+of bacterial reads from these "contaminant" reads, be they from the host, 
+from bacterial 16S sequences, or other user-defined sources.
+
+Dependencies: Trimmomatic, Bowtie2 or BMTagger, and TRF (optional)
+
+To Run: kneaddata -i <input.fastq> -o <output_dir>
+
+Copyright (c) 2015 Harvard School of Public Health
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.
+"""
+
+import sys
+
+# check for the required python version
+required_python_version_major = 2
+required_python_version_minor = 7
+    
+try:
+    if (sys.version_info[0] != required_python_version_major or
+        sys.version_info[1] < required_python_version_minor):
+        sys.exit("CRITICAL ERROR: The python version found (version "+
+            str(sys.version_info[0])+"."+str(sys.version_info[1])+") "+
+            "does not match the version required (version "+
+            str(required_python_version_major)+"."+
+            str(required_python_version_minor)+"+)")
+except (AttributeError,IndexError):
+    sys.exit("CRITICAL ERROR: The python version found (version 1) " +
+        "does not match the version required (version "+
+        str(required_python_version_major)+"."+
+        str(required_python_version_minor)+"+)")  
 
 import os
 import logging
 import argparse
-import gzip
 import re
-import sys
+import itertools
 
 # Try to load one of the kneaddata modules to check the installation
 try:
-    from . import util
+    from kneaddata import utilities
 except ImportError:
     sys.exit("ERROR: Unable to find the kneaddata python package." +
         " Please check your install.")
 
-from . import storageheavy
-from . import memoryheavy
+from kneaddata import run
+from kneaddata import config
 
 VERSION="0.4.6.1"
 
-def handle_cli():
-    """parse command line arguments
-    note: argparse converts dashes '-' in argument prefixes to
-    underscores '_'
+# name global logging instance
+logger=logging.getLogger(__name__)
+
+def parse_arguments(args):
+    """ 
+    Parse the arguments from the user
     """
-    parser = argparse.ArgumentParser()
+    
+    parser = argparse.ArgumentParser(
+        description= "KneadData\n",
+        formatter_class=argparse.RawTextHelpFormatter,
+        prog="kneaddata")
     group1 = parser.add_argument_group("global options")
-    group1.add_argument(
-        "-i", "--input",
-        help="input FASTQ file", 
-        dest='infile1',
-        required=True)
-    group1.add_argument(
-        "--input2",
-        help="input FASTQ file mate",
-        dest='infile2',
-        default=None)
-    group1.add_argument(
-        "-db", "--reference-db",
-        default=[], action="append",
-        help=("prefix for reference databases used for either"
-              " Bowtie2 or BMTagger"))
-    group1.add_argument(
-        "--output-prefix", default=None,
-        help="prefix for all output files")
-    group1.add_argument(
-        "-o", "--output",
-        dest='output_dir',
-        help="where to write all output files",
-        required=True)
-    group1.add_argument(
-        "--threads",
-        type=util.parse_positive_int, default=1, 
-        help=("Maximum number of processes to run."
-              " Default is 1."))
-    group1.add_argument(
-        "-s", "--strategy",
-        default="storage", choices=['memory','storage'],
-        help=("Define operating strategy: 'storage' for IO-heavy"
-              " or 'memory' for memory-heavy"))
-    group1.add_argument(
-        '-l', '--logging',
-        default="INFO",
-        help=("Logging verbosity, options are debug, info, warning,"
-              " and critical. If set to debug, temporary files are not"
-              " removed"))
-    group1.add_argument(
-        '--logfile',
-        default=None,
-        help="Where to save logs")
     group1.add_argument(
         "--version",
         action="version",
         version="%(prog)s v"+VERSION)
+    parser.add_argument(
+        "-v","--verbose",
+        action="store_true",
+        help="additional output is printed\n")
+    group1.add_argument(
+        "-i", "--input",
+        help="input FASTQ file (add a second argument instance to run with paired input files)", 
+        action="append",
+        required=True)
+    group1.add_argument(
+        "-o", "--output",
+        dest='output_dir',
+        help="directory to write output files",
+        required=True)
+    group1.add_argument(
+        "-db", "--reference-db",
+        default=[], action="append",
+        help="location of reference database (additional arguments add databases)")
+    group1.add_argument(
+        "--bypass-trim",
+        action="store_true",
+        help="bypass the trim step")
+    group1.add_argument(
+        "--output-prefix",
+        help="prefix for all output files\n[ DEFAULT : $SAMPLE_kneaddata ]")
+    group1.add_argument(
+        "-t","--threads",
+        type=int, 
+        default=config.threads,
+        metavar="<" + str(config.threads) + ">",  
+        help="number of threads\n[ Default : "+str(config.threads)+" ]")
+    group1.add_argument(
+        "-p","--processes",
+        type=int, 
+        default=config.processes,
+        metavar="<" + str(config.processes) + ">",  
+        help="number of processes\n[ Default : "+str(config.processes)+" ]")
+    group1.add_argument(
+        "-q","--quality-scores",
+        default=config.quality_scores,
+        choices=config.quality_scores_options,
+        dest='trimmomatic_quality_scores',
+        help="quality scores\n[ DEFAULT : "+config.quality_scores+" ]")
+    group1.add_argument(
+        "--run-bmtagger",
+        default=False,
+        action="store_true",
+        dest='bmtagger',
+        help="run BMTagger instead of Bowtie2 to identify contaminant reads")
+    group1.add_argument(
+        "--run-trf",
+        default=False,
+        dest='trf',
+        action="store_true",
+        help="run TRF to remove tandem repeats")
+    group1.add_argument(
+        "--store-temp-output",
+        action="store_true",
+        help="store temp output files\n[ DEFAULT : temp output files are removed ]")
+    group1.add_argument(
+        "--log-level",
+        default=config.log_level,
+        choices=config.log_level_choices,
+        help="level of log messages\n[ DEFAULT : "+config.log_level+" ]")
+    group1.add_argument(
+        "--log",
+        help="log file\n[ DEFAULT : $OUTPUT_DIR/$SAMPLE_kneaddata.log ]")
 
     group2 = parser.add_argument_group("trimmomatic arguments")
     group2.add_argument(
-        "-t", "--trim-path",
-        help="path to Trimmomatic .jar executable")
+        "--trimmomatic",
+        dest='trimmomatic_path',
+        help="path to trimmomatic\n[ DEFAULT : $PATH ]")
     group2.add_argument(
-        "-m", "--max-mem",
-        default="500m", 
-        help=("Maximum amount of memory that will be used by "
-              "Trimmomatic, as a string, ie 500m or 8g"))
-    default_trimargs = ["SLIDINGWINDOW:4:20", "MINLEN:60"]
+        "--max-memory",
+        default=config.trimmomatic_memory, 
+        help="max amount of memory\n[ DEFAULT : "+config.trimmomatic_memory+" ]")
     group2.add_argument(
-        "-a", "--trim-args",
-        default=[], action="append",
-        help=("Additional arguments for Trimmomatic, default: "
-              +" ".join(default_trimargs)))
+        "--trimmomatic-options",
+        action="append",
+        help="options for trimmomatic\n[ DEFAULT : "+" ".join(config.trimmomatic_options)+" ]")
 
     group3 = parser.add_argument_group("bowtie2 arguments")
     group3.add_argument(
-        "--bowtie2-path",
-        default=None, help="path to bowtie2 if not found on $PATH")
-    default_bowtie2_args = ["--very-sensitive"]
+        "--bowtie2",
+        dest='bowtie2_path',
+        help="path to bowtie2\n[ DEFAULT : $PATH ]")
     group3.add_argument(
-        "--bowtie2-args",
-        default=[], action="append",
-        help=("Additional arguments for Bowtie 2, default: " 
-                + " ".join(default_bowtie2_args)))
+        "--bowtie2-options",
+        action="append",
+        help="options for bowtie2\n[ DEFAULT : "+ " ".join(config.bowtie2_options)+" ]")
         
     group4 = parser.add_argument_group("bmtagger arguments")
     group4.add_argument(
         "--bmtagger",
-        default=False, action="store_true",
-        help="If set, use BMTagger to identify contaminant reads")
-    group4.add_argument(
-        "--extract",
-        default=False, action="store_true",
-        help=("Only has an effect if --bmtagger is set. If this is set,"
-              " kneaddata outputs cleaned FASTQs, without contaminant reads."
-              " Else, output a list or lists of contaminant reads."))
-    group4.add_argument(
-        "--bmtagger-path",
-        default=None,
-        help="path to BMTagger executable if not found in $PATH")
+        dest='bmtagger_path',
+        help="path to BMTagger\n[ DEFAULT : $PATH ]")
 
     group5 = parser.add_argument_group("trf arguments")
     group5.add_argument(
             "--trf",
-            default=False, action="store_true",
-            help="If set, use TRF to remove and/or mask tandem repeats")
+            dest='trf_path',
+            help="path to TRF\n[ DEFAULT : $PATH ]")
     group5.add_argument(
-            "--trf-path",
-            default="trf",
-            help="Path to TRF executable if not found in $PATH")
+            "--match", 
+            type=int,
+            default=config.trf_match, 
+            help="matching weight\n[ DEFAULT : "+str(config.trf_match)+" ]")
     group5.add_argument(
-            "--match", type=util.parse_positive_int,
-            default=2, 
-            help="TRF matching weight. Default: 2")
+            "--mismatch",
+            type=int,
+            default=config.trf_mismatch, 
+            help="mismatching penalty\n[ DEFAULT : "+str(config.trf_mismatch)+" ]")
     group5.add_argument(
-            "--mismatch", type=util.parse_positive_int,
-            default=7, 
-            help="TRF mismatching penalty. Default: 7")
+            "--delta",
+            type=int,
+            default=config.trf_delta, 
+            help="indel penalty\n[ DEFAULT : "+str(config.trf_delta)+" ]")
     group5.add_argument(
-            "--delta", type=util.parse_positive_int,
-            default=7, 
-            help="TRF indel penalty. Default: 7")
+            "--pm",
+            type=int,
+            default=config.trf_match_probability,
+            help="match probability\n[ DEFAULT : "+str(config.trf_match_probability)+" ]")
     group5.add_argument(
-            "--pm", type=util.parse_positive_int,
-            default=80,
-            help="TRF match probability (whole number). Default: 80")
+            "--pi",
+            type=int,
+            default=config.trf_pi,
+            help="indel probability\n[ DEFAULT : "+str(config.trf_pi)+" ]")
     group5.add_argument(
-            "--pi", type=util.parse_positive_int,
-            default=10,
-            help="TRF indel probability (whole number). Default: 10")
+            "--minscore",
+            type=int,
+            default=config.trf_minscore, 
+            help="minimum alignment score to report\n[ DEFAULT : "+str(config.trf_minscore)+" ]")
     group5.add_argument(
-            "--minscore", type=util.parse_positive_int,
-            default=50, 
-            help="TRF minimum alignment score to report. Default: 50")
-    group5.add_argument(
-            "--maxperiod", type=util.parse_positive_int,
-            default=500, 
-            help="TRF maximum period size to report. Default: 500")
-    group5.add_argument(
-            "--no-generate-fastq",
-            default=True, action="store_false", 
-            help="If switched on, don't generate fastq output for trf")
-    group5.add_argument(
-            "--mask",
-            default=False, action="store_true",
-            help="If switched on, generate mask file for trf output")
-    group5.add_argument(
-            "--html",
-            default=False, action="store_true",
-            help="If switched on, generate html file for trf output")
+            "--maxperiod",
+            type=int,
+            default=config.trf_maxperiod, 
+            help="maximum period size to report\n[ DEFAULT : "+str(config.trf_maxperiod)+" ]")
 
-    args = parser.parse_args()
+    return parser.parse_args()
     
+def update_configuration(args):
+    """ Update the run settings based on the arguments provided """
+
     # get the full path for the output directory
     args.output_dir = os.path.abspath(args.output_dir)
     
+    # set if temp output should be removed
+    args.remove_temp_output = not args.store_temp_output
+    
+    # check the input files are non-empty and readable
+    args.input[0] = os.path.abspath(args.input[0])
+    utilities.is_file_readable(args.input[0],exit_on_error=True)
+    
+    if len(args.input) == 2:
+        args.input[1] = os.path.abspath(args.input[1])
+        utilities.is_file_readable(args.input[1],exit_on_error=True)
+    elif len(args.input) > 2:
+        sys.exit("ERROR: Please provide at most 2 input files.")
+    
     # create the output directory if needed
-    util.try_create_dir(args.output_dir)
+    utilities.create_directory(args.output_dir)
 
-    if (not args.no_generate_fastq) and (not args.mask) and args.trf:
-        parser.error("\nYou cannot set the --no-generate-fastq flag without"
-        " the --mask flag. Exiting...\n")
+    # set trimmomatic options
+    if args.trimmomatic_options:
+        # parse the options from the user into an array of options
+        args.trimmomatic_options=utilities.format_options_to_list(args.trimmomatic_options)
+    else:
+        # if not set by user, then set to default options
+        args.trimmomatic_options = config.trimmomatic_options
 
-    # allow users to overwrite the defaults instead of appending to defaults
-    if args.trim_args == []:
-        args.trim_args = default_trimargs
-
-    if args.bowtie2_args == []:
-        args.bowtie2_args = default_bowtie2_args
+    # set bowtie2 options
+    if args.bowtie2_options:
+        # parse the options from the user into any array of options
+        args.bowtie2_options=utilities.format_options_to_list(args.bowtie2_options)
+    else:
+        # if not set by user, then set to default options
+        args.bowtie2_options = config.bowtie2_options
+        
+    # add the quality scores to the bowtie2 options
+    args.bowtie2_options+=[config.bowtie2_flag_start+args.trimmomatic_quality_scores]    
+    
+    # update the quality score option into a flag for trimmomatic
+    args.trimmomatic_quality_scores=config.trimmomatic_flag_start+args.trimmomatic_quality_scores
 
     # set the default output prefix 
     if args.output_prefix == None:
-        infile_base = os.path.splitext(os.path.basename(args.infile1))[0]
+        infile_base = os.path.splitext(os.path.basename(args.input[0]))[0]
         args.output_prefix = infile_base + "_kneaddata"
         
-    # find the location of trimmomatic
-    trimmomatic_jar="trimmomatic-0.33.jar"
-    args.trim_path=check_for_dependency(args.trim_path,trimmomatic_jar,"Trimmomatic",
-        "--trim-path", True)
-    # add the full path to the jar file
-    args.trim_path=os.path.abspath(os.path.join(args.trim_path,trimmomatic_jar))
+    # find the location of trimmomatic, trimmomatic does not need to be executable
+    if not args.bypass_trim:
+        args.trimmomatic_path=utilities.find_dependency(args.trimmomatic_path,config.trimmomatic_jar,"trimmomatic",
+            "--trimmomatic", bypass_permissions_check=True)
     
-    # check for bowtie2
-    bowtie2_exe="bowtie2"
-    args.bowtie2_path=check_for_dependency(args.bowtie2_path, bowtie2_exe, "Bowtie2",
-        "--bowtie2-path", False)
-    # add the full path to bowtie2
-    args.bowtie2_path=os.path.abspath(os.path.join(args.bowtie2_path,bowtie2_exe))
+    # find the location of bmtagger, if set to run
+    if args.reference_db:
+        if args.bmtagger:
+            args.bmtagger_path=utilities.find_dependency(args.bmtagger_path,config.bmtagger_exe,"bmtagger",
+                "--bmtagger", bypass_permissions_check=False)
+            # add this folder to path, so as to be able to find other dependencies like bmfilter
+            utilities.add_exe_to_path(os.path.dirname(args.bmtagger_path))
+        else:
+            # find the location of bowtie2, if not running with bmtagger
+            args.bowtie2_path=utilities.find_dependency(args.bowtie2_path, config.bowtie2_exe, "bowtie2",
+                "--bowtie2", bypass_permissions_check=False)        
+    
+    # find the location of trf, if set to run
+    if args.trf:
+        args.trf_path=utilities.find_dependency(args.trf_path,config.trf_exe,"trf",
+            "--trf", bypass_permissions_check=False)
     
     # find the bowtie2 indexes for each of the reference databases
     # reference database inputs can be directories, indexes, or index files
-    reference_indexes=set()
-    for directory in args.reference_db:
-        reference_indexes.add(find_bowtie2_index(os.path.abspath(directory)))
-
-    args.reference_db=list(reference_indexes)
+    if args.reference_db:
+        reference_indexes=set()
+        database_type="bowtie2"
+        if args.bmtagger:
+            database_type="bmtagger"
+        for directory in args.reference_db:
+            reference_indexes.add(utilities.find_database_index(os.path.abspath(directory),database_type))
+    
+        args.reference_db=list(reference_indexes)
     
     return args
-
-def find_bowtie2_index(directory):
-    """
-    Search through the directory for the name of the bowtie2 index files
-    Or if a file name is provided check it is a bowtie2 index
-    """
-    
-    index=""
-    # the extensions for standard bowtie2 index files
-    bowtie2_index_ext_list=[".1.bt2",".2.bt2",".3.bt2",".4.bt2",
-        ".rev.1.bt2",".rev.2.bt2"]
-    # an extension for one of the index files for a large database
-    bowtie2_large_index_ext=".1.bt2l"
-    
-    bowtie2_extensions=bowtie2_index_ext_list+[bowtie2_large_index_ext]
-    
-    if not os.path.isdir(directory):
-        # check if this is the bowtie2 index file
-        if os.path.isfile(directory):
-            # check for the bowtie2 extension
-            for ext in bowtie2_extensions:
-                if re.search(ext+"$",directory):
-                    index=directory.replace(ext,"")
-                    break
-        else:
-            # check if this is the basename of the bowtie2 index files
-            small_index=directory+bowtie2_index_ext_list[0]
-            large_index=directory+bowtie2_large_index_ext
-            if os.path.isfile(small_index) or os.path.isfile(large_index):
-                index=directory
-    else:
-        # search through the files to find one with the bowtie2 extension
-        for file in os.listdir(directory):
-            # look for an extension for a standard and large bowtie2 indexed database
-            for ext in [bowtie2_index_ext_list[-1],bowtie2_large_index_ext]:
-                if re.search(ext+"$",file):
-                    index=os.path.join(directory,file.replace(ext,""))
-                    break
-            if index:
-                break
-    
-    if not index:
-        sys.exit("ERROR: Unable to find bowtie2 index files in directory: " + directory)
-    
-    return index
-
-def check_for_dependency(path_provided,exe,name,path_option,bypass_permissions_check):
-    """ 
-    Check if the dependency can be found in the path provided or in $PATH
-    Return the location of the dependency
-    """
-
-    found_path=""
-    if path_provided:
-        path_provided=os.path.abspath(path_provided)
-        # check that the exe can be found
-        try:
-            files=os.listdir(path_provided)
-        except EnvironmentError:
-            sys.exit("ERROR: Unable to list files in "+name+" directory: "+ path_provided)
-            
-        if not exe in files:
-            sys.exit("ERROR: The "+exe+" executable is not included in the directory: " + path_provided)
-            
-        found_path=path_provided
-    else:
-        # search for the exe
-        exe_path=find_exe_in_path(exe, bypass_permissions_check)
-        if not exe_path:
-            sys.exit("ERROR: Unable to find "+name+". Please provide the "+
-                "full path to "+name+" with "+path_option+".")
-        else:
-            found_path=exe_path  
-        
-    return found_path
-
 
 def setup_logging(args):
-    fmt = "%(asctime)s %(levelname)s: %(message)s"
-    if not args.logfile:
-        args.logfile = os.path.join(args.output_dir,
-                                    args.output_prefix+".log")
-
-    logger = logging.getLogger()
-    logger.setLevel(getattr(logging, args.logging.upper()))
-    logging.basicConfig(format=fmt)
-
-    filehandler = logging.FileHandler(args.logfile)
-    filehandler.setLevel(logging.DEBUG)
-    filehandler.setFormatter(logging.Formatter(fmt=fmt))
-    logger.addHandler(filehandler)
+    """ Set up the log file """
     
-    return args
+    if not args.log:
+        args.log = os.path.join(args.output_dir,args.output_prefix+".log")
 
-
-def get_file_format(file):
-    """ Determine the format of the file """
-
-    format="unknown"
-    file_handle=None
-
-    # check the file exists and is readable
-    if not os.path.isfile(file):
-        logging.critical("The input file selected is not a file: %s.",file)
-
-    if not os.access(file, os.R_OK):
-        logging.critical("The input file selected is not readable: %s.",file)
-
-    try:
-        # check for gzipped files
-        if file.endswith(".gz"):
-            file_handle = gzip.open(file, "r")
+    # configure the logger
+    logging.basicConfig(filename=args.log,format='%(asctime)s - %(name)s - %(levelname)s: %(message)s',
+        level=getattr(logging,args.log_level), filemode='w', datefmt='%m/%d/%Y %I:%M:%S %p')
+    
+    # write the version of the software to the log
+    logger.info("Running kneaddata v"+VERSION)
+    
+    # write the location of the output files to the log
+    message="Output files will be written to: " + args.output_dir
+    logger.info(message)
+    
+    # write out all of the argument settings
+    message="Running with the following arguments: \n"
+    for key,value in vars(args).items():
+        if isinstance(value,list) or isinstance(value,tuple):
+            value_string=" ".join([str(i) for i in value])
         else:
-            file_handle = open(file, "r")
-
-        first_line = file_handle.readline()
-        second_line = file_handle.readline()
-    except EnvironmentError:
-        # if unable to open and read the file, return unknown
-        return "unknown"
-    finally:
-        if file_handle:
-            file_handle.close()
-
-    # check that second line is only nucleotides or amino acids
-    if re.search("^[A-Z|a-z]+$", second_line):
-        # check first line to determine fasta or fastq format
-        if re.search("^@",first_line):
-            format="fastq"
-        if re.search("^>",first_line):
-            format="fasta"
-
-    return format
-
-def find_exe_in_path(exe, bypass_permissions_check=None):
-    """
-    Check that an executable exists in $PATH
-    """
-    
-    paths = os.environ["PATH"].split(os.pathsep)
-    for path in paths:
-        fullexe = os.path.join(path,exe)
-        if os.path.exists(fullexe):
-            if bypass_permissions_check or os.access(fullexe,os.X_OK):
-                return path
-    return None
+            value_string=str(value)
+        
+        message+=key+" = "+value_string+"\n"
+    logger.debug(message)
 
 def main():
-    args = handle_cli()
-    # check args first
+    # Parse the arguments from the user
+    args = parse_arguments(sys.argv)
+    
+    # Update the configuration
+    args = update_configuration(args)
 
-    args = setup_logging(args)
-
-    logging.debug("Running kneaddata with the following"
-                  " arguments (from argparse): %s", str(args))
+    # Start logging
+    setup_logging(args)
 
     # Get the format of the first input file
-    file_format=get_file_format(args.infile1)
+    file_format=utilities.get_file_format(args.input[0])
 
     if file_format != "fastq":
-        logging.critical("Your input file is of type: %s . Please provide an input file of fastq format.",file_format)
-        sys.exit(1)
+        message="Your input file is of type: "+file_format+". Please provide an input file of fastq format."
+        logger.critical(message)
+        sys.exit(message)
 
-    if args.strategy == 'memory':
-        memoryheavy.memory_heavy(args)
-    elif args.strategy == 'storage':
-        storageheavy.storage_heavy(args)
+    # set the prefix for the output files
+    output_prefix = os.path.join(args.output_dir, args.output_prefix)
+
+    # Get the number of reads initially
+    utilities.log_read_count_for_files(args.input,"Initial number of reads",args.verbose)
+
+    # Run trimmomatic
+    if not args.bypass_trim:
+        trimmomatic_output_files = run.trim(
+            args.input, output_prefix, args.trimmomatic_path, 
+            args.trimmomatic_quality_scores, args.max_memory, args.trimmomatic_options, 
+            args.threads, args.verbose)
         
-    logging.info("Done!")
+        # Get the number of reads after trimming
+        utilities.log_read_count_for_files(trimmomatic_output_files,"Total reads after trimming",args.verbose)
+    else:
+        message="Bypass trimming"
+        logger.info(message)
+        print(message)
+        trimmomatic_output_files=[args.input]
 
+    # If a reference database is not provided, then bypass decontamination step
+    if not args.reference_db:
+        message="Bypass decontamination"
+        logger.info(message)
+        print(message)
+        # resolve sub-lists if present
+        alignment_output_files=trimmomatic_output_files
+    else:
+        alignment_output_files=run.decontaminate(args, output_prefix, trimmomatic_output_files)
+        
+    # run TRF, if set
+    if args.trf:
+        # run trf on all output files
+        final_output_files=run.tandem(alignment_output_files, output_prefix, args.match,
+                                      args.mismatch,args.delta,args.pm,args.pi,
+                                      args.minscore,args.maxperiod,args.trf_path,
+                                      args.processes,args.verbose,args.remove_temp_output)
+    else:
+        final_output_files = utilities.resolve_sublists(alignment_output_files)
+
+    if len(final_output_files) > 1:
+        message="\nFinal output files created: \n"
+    else:
+        message="\nFinal output file created: \n"
+    
+    message=message+ "\n".join(final_output_files) + "\n"
+    logger.info(message)
+    print(message)
 
 if __name__ == '__main__':
     main()

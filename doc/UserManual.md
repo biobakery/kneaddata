@@ -15,15 +15,10 @@ If you use this software, please cite our paper: (TBA)
 ## Table of Contents
 - [Introduction](#markdown-header-introduction)
 - [Tutorial and Demo](#markdown-header-tutorial-and-demo) 
+- [Requirements](#markdown-header-requirements)
 - [Installation](#markdown-header-installation)
-- [Quick Start Guide](#markdown-header-quick-start-guide)
-
-    1. [Data Locations](#markdown-header-data-locations)
-    2. [Indexing](#markdown-header-indexing)
-    3. [How to Run](#markdown-header-how-to-run)
-
-- [Detailed Documentation](#markdown-header-detailed-documentation)
-- [Usage Notes](#markdown-header-usage-notes)
+- [How to Run](#markdown-header-how-to-run)
+- [Complete Option List](#markdown-header-complete-option-list)
 
 
 ## Introduction
@@ -49,81 +44,63 @@ homepage](http://huttenhower.org/kneaddata)
 
 ----------------------------------------------
 
+## Requirements
+
+1.  [Trimmomatic](http://www.usadellab.org/cms/?page=trimmomatic) (version == 0.33) (automatically installed)
+2.  [Bowtie2](http://bowtie-bio.sourceforge.net/bowtie2/index.shtml) (version >= 2.1) (automatically installed)
+3.  [Python](http://www.python.org/) (version >= 2.7)
+4.  [Java Runtime Environment](http://www.oracle.com/technetwork/java/javase/downloads/jre7-downloads-1880261.html)
+5.  Memory (>= 4 Gb if using Bowtie2, >= 8 Gb if using BMTagger)
+6.  Operating system (Linux or Mac)
+
+Optionally, [BMTagger](ftp://ftp.ncbi.nlm.nih.gov/pub/agarwala/bmtagger/) can be used instead of Bowtie2. Bowtie2 is run by default. In our tests, we found bowtie2 uses less memory and BMTagger runs faster on larger databases.
+
+The executables for the required software packages should be installed in your $PATH. Alternatively, you can provide the location of the Bowtie2 install ($BOWTIE2_DIR) with the following KneadData option “--bowtie2 $BOWTIE2_DIR”.
+
 ## Installation
 
-To download the latest stable release (recommended), use the link below and extract
-the files.
+### Download KneadData
 
-- [GZ](https://bitbucket.org/biobakery/kneaddata/downloads/kneaddata-v0.4.6.1.tar.gz)
+You can download the latest KneadData release or the development version.
 
-Or
+Option 1: Latest Release (Recommended)
 
-- `pip install -e 'hg+https://bitbucket.org/biobakery/kneaddata@master#egg=knead_datalib-dev'`
+* [Download](https://bitbucket.org/biobakery/kneaddata/downloads/kneaddata-v0.4.6.1.tar.gz) and unpack the latest release of KneadData.
 
-Currently, KneadData is only supported on Linux and Macs. 
+Option 2: Development Version
 
-KneadData requires
-[Trimmomatic](http://www.usadellab.org/cms/?page=trimmomatic), and 
-[Bowtie2](http://bowtie-bio.sourceforge.net/bowtie2/index.shtml). 
+* Create a clone of the repository:
 
-By default, when installing KneadData, Trimmomatic and Bowtie2 will both be installed.
+    `` $ hg clone https://bitbucket.org/biobakery/kneaddata ``
 
-The following dependencies are optional:
-[BMTagger](ftp://ftp.ncbi.nlm.nih.gov/pub/agarwala/bmtagger/) and [NCBI
-BLAST](http://www.ncbi.nlm.nih.gov/books/NBK1762/). 
+    Note: Creating a clone of the repository requires [Mercurial](http://mercurial.selenic.com/) to be installed. Once the clone is created you can always update to the latest version of the repository with `` $ hg pull --update ``.
 
-Please see these respective project websites for download and installation
-instructions. 
+### Install KneadData
 
-### Configuration
-If running with BMTagger, which is optional, the program needs to be manually installed:
+Before installing KneadData, please install the Java Runtime Environment (JRE). First [download](http://www.oracle.com/technetwork/java/javase/downloads/jre7-downloads-1880261.html) the JRE for your platform. Then follow the instructions for your platform: [Linux 64-bit](http://docs.oracle.com/javase/8/docs/technotes/guides/install/linux_jre.html#CFHIEGAA) or [Mac OS](http://docs.oracle.com/javase/8/docs/technotes/guides/install/mac_jre.html#jre_8u40_osx). At the end of the installation, add the location of the java executable to your $PATH.
 
-BMTagger executables:
-- `srprism`
-- `bmfilter`
-- `extract_fullseq`
-- `blastn` (included in NCBI blast)
+1. Download and unpack the KneadData software
+    * Download the software: [kneaddata.tar.gz](https://bitbucket.org/biobakery/kneaddata/downloads/kneaddata-v0.4.6.1.tar.gz)
+    * `` $ tar zxvf kneaddata.tar.gz ``
+    * `` $ cd kneaddata ``
+2. From the KneadData directory, install KneadData
+    * `` $ python setup.py install ``
+    * This command will automatically install Trimmomatic and Bowtie2. To bypass the install of dependencies, add the option "--bypass-dependencies-install".
+    * If you do not have write permissions to '/usr/lib/', then add the option "--user" to the install command. This will install the python package into subdirectories of '~/.local'. Please note when using the "--user" install option on some platforms, you might need to add '~/.local/bin/' to your $PATH as it might not be included by default. You will know if it needs to be added if you see the following message ``kneaddata: command not found`` when trying to run KneadData after installing with the "--user" option.
+3. Download the human reference database to $DIR
+    * `` $ kneaddata_database --download human bowtie2 $DIR ``
+    * When running this command, $DIR should be replaced with the full path to the directory you have selected to store the database.
 
-There are three ways to do this:
+### Creating a Custom Reference Database
 
-1. Specify the location of the BMTagger executables when running KneadData using the `--bmtagger-path` option.
+A human reference database can be downloaded to use when running KneadData. Alternatively, you can create your own custom reference database.
 
-2. Update your PATH. If the executables are in your `~/bin` folder, you should
-   run the following in your shell:
+#### Selecting Reference Sequences
 
-        $ PATH=$PATH:~/bin
-        $ export PATH
-
-You may want to consider putting this in your `~/.bashrc` or `~/.bash_profile`
-file to make it permanent. 
-
-3. Use a `bmtagger.conf` file. This file is included with Knead
-   Data. You can set the locations of the above executables using the variables
-   `SRPRISM`, `BMFILTER`, `EXTRACT_FA`, and `BLASTN` respectively. Make sure
-   this file is in your working directory when you run Knead Data, i.e. if you
-   are running Knead Data from your home directory, copy this `bmtagger.conf`
-   file to your home directory also. 
-
-### Bowtie2 vs. BMTagger
-
-KneadData supports two methods for detecting contaminant reads, either
-[Bowtie2](http://bowtie-bio.sourceforge.net/bowtie2/index.shtml) or
-[BMTagger](ftp://ftp.ncbi.nlm.nih.gov/pub/agarwala/bmtagger/). Bowtie2 is the
-default. In our tests, it uses much less memory compared to BMTagger. Both tools
-are similarly accurate, but BMTagger can run faster on larger databases. By
-default, all runs are performed with Bowtie2, but it is possible to use BMTagger
-as well. 
-
-----------------------------------------------
-
-## Quick Start Guide
-
-### Data Locations
-
-KneadData requires reference sequences for the contamination you are trying to
+First you must select reference sequences for the contamination you are trying to
 remove. Say you wish to filter reads from a particular "host." Broadly
 defined, the host can be an organism, or a set of organisms, or just a set of
-sequences. Then, you simply must provide KneadData with a
+sequences. Then, you simply must generate a reference database for KneadData from a
 [FASTA](http://en.wikipedia.org/wiki/FASTA_format) file containing these
 sequences. Usually, researchers want to remove reads from the human genome, the
 human transcriptome, or ribosomal RNA. You can access some of these FASTA files
@@ -141,32 +118,33 @@ using the resources below:
   this data. 
 
 
-### Generating KneadData Databases
+#### Generating KneadData Databases
 
 KneadData requires that your reference sequences (FASTA files) be indexed to
 form KneadData databases beforehand. This only needs to be done once per
 reference sequence. 
 
 For certain common databases, we provide indexed files. If you use these, you
-can skip the manual build steps below. 
+can skip the manual build steps below. Alternatively if you would like to bypass
+the reference alignment portion of the workflow, a database does not need to be
+provided when running KneadData.
 
 To download the indexed human reference database, run the following command:
     * `` $ kneaddata_database --download human bowtie2 $DIR ``
     * When running this command, $DIR should be replaced with the full path to the directory you have selected to store the database.
 
-#### Bowtie 2
+##### Creating a Bowtie2 Database
 
-Simply run the `bowtie2-build` indexer included with Bowtie 2 as follows:
+Simply run the `bowtie2-build` indexer included with Bowtie2 as follows:
 
 `$ bowtie2-build <reference> <db-name>`
 
 Where `<reference>` is the reference FASTA file, and `<db-name>` is the name you
-wish to call your Bowtie2 database. The `bowtie2-build` command must be in your
-PATH, or you should provide a full path to the commad. For more details, refer
+wish to call your Bowtie2 database. For more details, refer
 to the [bowtie2-build
 documentation](http://bowtie-bio.sourceforge.net/bowtie2/manual.shtml#the-bowtie2-build-indexer)
 
-#### BMTagger
+##### Creating a BMTagger Database
 
 KneadData includes `kneaddata_build_database`, an executable that
 will automatically generate these databases for BMTagger. Simply run
@@ -181,12 +159,12 @@ A note on PATH: The above command will fail if the tools in the BMTagger suite
 your PATH. If this is the case, you can specify a path to these tools using the
 `-b`, `-s`, and `-m` options. Run 
 
-`$ kneaddata_build_database -h` 
+`$ kneaddata_build_database --help` 
 
 for more details.
 
 
-##### Example
+##### Example Custom Database
 
 Say you want to remove human reads from your metagenomic sequencing data.
 You downloaded the human genome in a file called `Homo_sapiens.fasta`. You
@@ -206,19 +184,10 @@ All of the required KneadData database files will have file names prefixed by
 
 ### How to Run
 
-After generating your database file, we can start to remove contaminant reads.
+After downloading or generating your database file, you can start to remove contaminant reads.
 As input, KneadData requires FASTQ files. It supports both single end and paired
-end reads. KneadData uses either Bowtie 2 (default) or BMTagger to identify the
+end reads. KneadData uses either Bowtie2 (default) or BMTagger to identify the
 contaminant reads. 
-
-A note on outputs: KneadData by default outputs new FASTQ files containing only
-non-contaminant reads, and new FASTQ files containing only the contaminant
-reads. 
-
-When using BMTagger, the default output is a *list* of contaminant reads.
-It can also output new FASTQ files containing only the non-contaminant reads,
-with the contaminant reads removed. This feature can be enabled by using the
-`-x` or the `--extract` flag. 
 
 #### Single End
 
@@ -235,7 +204,7 @@ This will create files in the folder `kneaddata_output` named
 
 To run KneadData in single end mode with BMTagger, run
 
-    ` $ kneaddata --input seq.fastq --reference-db $DATABASE --bmtagger --bmtagger-path $BMTAGGER_PATH `
+    ` $ kneaddata --input seq.fastq --reference-db $DATABASE --run-bmtagger`
 
 By default, this will create a file called `seq_kneaddata_output.out` containing a
 list of contaminant reads found in `seq.fastq`. If instead you pass the
@@ -245,9 +214,6 @@ list of contaminant reads found in `seq.fastq`. If instead you pass the
 
 + `seq.fastq`: Your input FASTQ file
 + `$DATABASE`: Prefix for the KneadData database. 
-+ `$BMTAGGER_PATH`: Path to the BMTagger executable. If not specified, the
-  program will attempt to find `bmtagger.sh` in your `$PATH`. 
-
 
 ##### Example
 
@@ -261,20 +227,21 @@ This will create files in the folder `seq_output` named:
 
 + `seq_kneaddata_Homo_sapiens_db_contam.fastq`: FASTQ file containing reads that
   were identified as human reads. 
-+ `seq_kneaddata.fastq`: Contains reads that were not identified as being human. 
++ `seq_kneaddata.fastq`: Contains reads that were not identified as being human after trimming. 
++ `seq_kneaddata.trimmed.fastq`: Contains trimmed reads. 
 + `seq_kneaddata.log`
 
 If you wanted to use BMTagger, suppose the BMTagger executable was located at
 `~/bin/bmtagger.sh`. Say you want your contaminant reads to be stored in a file
 called `seq_contams.out` in the folder `kneaddata_output`. You would then run
 
-    ` $ kneaddata --input seq.fastq -db Homo_sapiens_db --bmtagger --bmtagger-path ~/bin/bmtagger.sh --output-prefix seq_output --output kneaddata_output `
+    ` $ kneaddata --input seq.fastq -db Homo_sapiens_db --run-bmtagger --bmtagger ~/bin/bmtagger.sh --output-prefix seq_output --output kneaddata_output `
 
 Say that, instead of outputting your contaminant reads in a separate file, you
 just want a "cleaned" FASTQ file that contains no contaminant reads. If you
 execute
 
-    ` $ kneaddata --input seq.fastq -db Homo_sapiens_db --bmtagger --bmtagger-path ~/bin/bmtagger.sh --output kneaddata_output`
+    ` $ kneaddata --input seq.fastq -db Homo_sapiens_db --run-bmtagger --bmtagger ~/bin/bmtagger.sh --output kneaddata_output`
 
 you will get a file `seq_kneaddata.fastq` which contains all the non-contaminant
 reads, the ones that were not identified as human reads. 
@@ -284,16 +251,15 @@ reads, the ones that were not identified as human reads.
 
 To run KneadData in paired end mode with Bowtie2, run
 
-    ` $ kneaddata --input seq1.fastq --input2 seq2.fastq -db $DATABASE --output kneaddata_output`
+    ` $ kneaddata --input seq1.fastq --input seq2.fastq -db $DATABASE --output kneaddata_output`
 
 To run KneadData in paired end mode with BMTagger, run
 
-    ` $ kneaddata --input seq1.fastq --input2 seq2.fastq -db $DATABASE --bmtagger --bmtagger-path $BMTAGGER_PATH --output kneaddata_output `
+    ` $ kneaddata --input seq1.fastq --input seq2.fastq -db $DATABASE --run-bmtagger --output kneaddata_output `
 
 + `seq1.fastq`: Your input FASTQ file, first mate
 + `seq2.fastq`: Your input FASTQ file, second mate
 + `$DATABASE`: Prefix for the KneadData database. 
-+ `$BMTAGGER_PATH`: Path to the BMTagger executable.
 + `kneaddata_output`: The folder to write the output files. 
 
 The outputs depend on what happens during the quality filtering and trimming
@@ -325,7 +291,7 @@ You have two databases, one prefixed `bact_rrna_db` and the other prefixed
 `human_rna_db`, and your sequence files are `seq1.fastq` and `seq2.fastq`. To
 run with Bowtie2, execute
 
-    `$ kneaddata --input seq1.fastq --input2 seq2.fastq -db bact_rrna_db -db human_rna_db --output seq_out `
+    `$ kneaddata --input seq1.fastq --input seq2.fastq -db bact_rrna_db -db human_rna_db --output seq_out `
 
 This will output files in the folder `seq_out` named:
 
@@ -389,113 +355,120 @@ Depending on the input FASTQ, one or more of the following may be output:
   situation (2) above that were identified as NOT belonging to the
   `human_rna_db` database. 
 
+Note, the files named "*_clean.fastq" will only be written if running with the option "--store-temp-output".
+
 Aggregated files:
 
 + `seq_kneaddata.log`: Log file containing statistics about the run. 
-+ `seq_kneaddata_pe_1.fastq`: Reads from the first mate in situation (1) identified as
++ `seq_kneaddata_paired_1.fastq`: Reads from the first mate in situation (1) identified as
   NOT belonging to any of the reference databases. 
-+ `seq_kneaddata_pe_2.fastq`: Reads from the second mate in situation (1) identified as
++ `seq_kneaddata_paired_2.fastq`: Reads from the second mate in situation (1) identified as
   NOT belonging to any of the reference databases. 
-+ `seq_kneaddata_se_1.fastq`: Reads from the first mate in situation (2) identified as
++ `seq_kneaddata_unmatched_1.fastq`: Reads from the first mate in situation (2) identified as
   NOT belonging to any of the reference databases. 
-+ `seq_kneaddata_se_2.fastq`: Reads from the second mate in situation (3) identified as
++ `seq_kneaddata_unmatched_2.fastq`: Reads from the second mate in situation (3) identified as
   NOT belonging to any of the reference databases. 
-
-
-To run with BMTagger, execute
-
-    ` $ kneaddata --input seq1.fastq --input2 seq2.fastq -db bact_rrna_db -db human_rna_db --bmtagger --bmtagger-path ~/bin/bmtagger.sh --output seq_contams `
 
 ---------------------------------
 
-## Detailed Documentation
+## Complete Option List
 
-This documentation can be accessed via `kneaddata -h`.
+All options can be accessed with `$ kneaddata --help`.
 
 ```
-#!text
-usage: kneaddata [-h] -i INFILE1 [--input2 INFILE2] -db REFERENCE_DB
-                 [--output-prefix OUTPUT_PREFIX] -o OUTPUT_DIR
-                 [--threads THREADS] [-s {memory,storage}] [-l LOGGING]
-                 [--logfile LOGFILE] [--version] [-t TRIM_PATH] [-m MAX_MEM]
-                 [-a TRIM_ARGS] [--bowtie2-path BOWTIE2_PATH]
-                 [--bowtie2-args BOWTIE2_ARGS] [--bmtagger] [--extract]
-                 [--bmtagger-path BMTAGGER_PATH] [--trf] [--trf-path TRF_PATH]
-                 [--match MATCH] [--mismatch MISMATCH] [--delta DELTA]
-                 [--pm PM] [--pi PI] [--minscore MINSCORE]
-                 [--maxperiod MAXPERIOD] [--no-generate-fastq] [--mask]
-                 [--html]
+usage: kneaddata [-h] [--version] [-v] -i INPUT -o OUTPUT_DIR
+                 [-db REFERENCE_DB] [--bypass-trim]
+                 [--output-prefix OUTPUT_PREFIX] [-t <1>] [-p <1>]
+                 [-q {phred33,phred64}] [--run-bmtagger] [--run-trf]
+                 [--store-temp-output]
+                 [--log-level {DEBUG,INFO,WARNING,ERROR,CRITICAL}] [--log LOG]
+                 [--trimmomatic TRIMMOMATIC_PATH] [--max-memory MAX_MEMORY]
+                 [--trimmomatic-options TRIMMOMATIC_OPTIONS]
+                 [--bowtie2 BOWTIE2_PATH] [--bowtie2-options BOWTIE2_OPTIONS]
+                 [--bmtagger BMTAGGER_PATH] [--trf TRF_PATH] [--match MATCH]
+                 [--mismatch MISMATCH] [--delta DELTA] [--pm PM] [--pi PI]
+                 [--minscore MINSCORE] [--maxperiod MAXPERIOD]
+
+KneadData
 
 optional arguments:
   -h, --help            show this help message and exit
+  -v, --verbose         additional output is printed
 
 global options:
-  -i INFILE1, --input INFILE1
-                        input FASTQ file
-  --input2 INFILE2      input FASTQ file mate
+  --version             show program's version number and exit
+  -i INPUT, --input INPUT
+                        input FASTQ file (add a second argument instance to run with paired input files)
+  -o OUTPUT_DIR, --output OUTPUT_DIR
+                        directory to write output files
   -db REFERENCE_DB, --reference-db REFERENCE_DB
-                        prefix for reference databases used for either Bowtie2
-                        or BMTagger
+                        location of reference database (additional arguments add databases)
+  --bypass-trim         bypass the trim step
   --output-prefix OUTPUT_PREFIX
                         prefix for all output files
-  -o OUTPUT_DIR, --output OUTPUT_DIR
-                        where to write all output files
-  --threads THREADS     Maximum number of processes to run. Default is 1.
-  -s {memory,storage}, --strategy {memory,storage}
-                        Define operating strategy: 'storage' for IO-heavy or
-                        'memory' for memory-heavy
-  -l LOGGING, --logging LOGGING
-                        Logging verbosity, options are debug, info, warning,
-                        and critical. If set to debug, temporary files are not
-                        removed
-  --logfile LOGFILE     Where to save logs
-  --version             show program's version number and exit
+                        [ DEFAULT : $SAMPLE_kneaddata ]
+  -t <1>, --threads <1>
+                        number of threads
+                        [ Default : 1 ]
+  -p <1>, --processes <1>
+                        number of processes
+                        [ Default : 1 ]
+  -q {phred33,phred64}, --quality-scores {phred33,phred64}
+                        quality scores
+                        [ DEFAULT : phred33 ]
+  --run-bmtagger        run BMTagger instead of Bowtie2 to identify contaminant reads
+  --run-trf             run TRF to remove tandem repeats
+  --store-temp-output  store temp output files
+                        [ DEFAULT : temp output files are removed ]
+  --log-level {DEBUG,INFO,WARNING,ERROR,CRITICAL}
+                        level of log messages
+                        [ DEFAULT : DEBUG ]
+  --log LOG             log file
+                        [ DEFAULT : $OUTPUT_DIR/$SAMPLE_kneaddata.log ]
 
 trimmomatic arguments:
-  -t TRIM_PATH, --trim-path TRIM_PATH
-                        path to Trimmomatic .jar executable
-  -m MAX_MEM, --max-mem MAX_MEM
-                        Maximum amount of memory that will be used by
-                        Trimmomatic, as a string, ie 500m or 8g
-  -a TRIM_ARGS, --trim-args TRIM_ARGS
-                        Additional arguments for Trimmomatic, default:
-                        SLIDINGWINDOW:4:20 MINLEN:60
+  --trimmomatic TRIMMOMATIC_PATH
+                        path to trimmomatic
+                        [ DEFAULT : $PATH ]
+  --max-memory MAX_MEMORY
+                        max amount of memory
+                        [ DEFAULT : 500m ]
+  --trimmomatic-options TRIMMOMATIC_OPTIONS
+                        options for trimmomatic
+                        [ DEFAULT : SLIDINGWINDOW:4:20 MINLEN:60 ]
 
 bowtie2 arguments:
-  --bowtie2-path BOWTIE2_PATH
-                        path to bowtie2 if not found on $PATH
-  --bowtie2-args BOWTIE2_ARGS
-                        Additional arguments for Bowtie 2, default: --very-
-                        sensitive
+  --bowtie2 BOWTIE2_PATH
+                        path to bowtie2
+                        [ DEFAULT : $PATH ]
+  --bowtie2-options BOWTIE2_OPTIONS
+                        options for bowtie2
+                        [ DEFAULT : --very-sensitive ]
 
 bmtagger arguments:
-  --bmtagger            If set, use BMTagger to identify contaminant reads
-  --extract             Only has an effect if --bmtagger is set. If this is
-                        set, kneaddata outputs cleaned FASTQs, without
-                        contaminant reads. Else, output a list or lists of
-                        contaminant reads.
-  --bmtagger-path BMTAGGER_PATH
-                        path to BMTagger executable if not found in $PATH
+  --bmtagger BMTAGGER_PATH
+                        path to BMTagger
+                        [ DEFAULT : $PATH ]
 
 trf arguments:
-  --trf                 If set, use TRF to remove and/or mask tandem repeats
-  --trf-path TRF_PATH   Path to TRF executable if not found in $PATH
-  --match MATCH         TRF matching weight. Default: 2
-  --mismatch MISMATCH   TRF mismatching penalty. Default: 7
-  --delta DELTA         TRF indel penalty. Default: 7
-  --pm PM               TRF match probability (whole number). Default: 80
-  --pi PI               TRF indel probability (whole number). Default: 10
-  --minscore MINSCORE   TRF minimum alignment score to report. Default: 50
+  --trf TRF_PATH        path to TRF
+                        [ DEFAULT : $PATH ]
+  --match MATCH         matching weight
+                        [ DEFAULT : 2 ]
+  --mismatch MISMATCH   mismatching penalty
+                        [ DEFAULT : 7 ]
+  --delta DELTA         indel penalty
+                        [ DEFAULT : 7 ]
+  --pm PM               match probability
+                        [ DEFAULT : 80 ]
+  --pi PI               indel probability
+                        [ DEFAULT : 10 ]
+  --minscore MINSCORE   minimum alignment score to report
+                        [ DEFAULT : 50 ]
   --maxperiod MAXPERIOD
-                        TRF maximum period size to report. Default: 500
-  --no-generate-fastq   If switched on, don't generate fastq output for trf
-  --mask                If switched on, generate mask file for trf output
-  --html                If switched on, generate html file for trf output
+                        maximum period size to report
+                        [ DEFAULT : 500 ]
 ```
-
-### Tandem Repeat Detection and Removal
-
-TBD
 
 ----------------------------------
 
@@ -504,22 +477,16 @@ TBD
 ### Specifying Additional Arguments
 
 If you want to specify additional arguments for Bowtie2 using the
-`--bowtie2-args` flag, you will need to use the equals sign. For each additional
-argument, you should specify the `--bowtie2-args` flag. 
+`--bowtie2-options` flag, you will need to use the equals sign along with quotes. Add additional flags for each option.
 
 For example:
 
-`$ kneaddata ... --bowtie2-args=--very-fast --bowtie2-args=-p 2`
+`$ kneaddata --input demo.fastq --output kneaddata_output --reference-db database_folder --bowtie2-options="--very-fast" --bowtie2-options="-p 2"`
 
 A similar approach is used to specify additional arguments for Trimmomatic:
 
-`$ kneaddata ... --trim-args "LEADING:3" --trim-args "TRAILING:3"`
+`$ kneaddata --input demo.fastq --output kneaddata_output --reference-db database_folder --trimmomatic-options="LEADING:3" --trimmomatic-options="TRAILING:3"`
 
 *NOTE*: Manually specifying additional arguments will completely override the
 defaults. 
 
-### Memory
-
-KneadData requires quite a bit of memory when running with BMTagger, around 8-9
-gigabytes. When running with Bowtie2, KneadData only requires around 2-4
-gigabytes.
