@@ -72,6 +72,7 @@ def main():
         check_dependency(config.trimmomatic_jar,bypass_permissions_check=True)
         check_dependency(config.bowtie2_exe)
         check_dependency(config.bmtagger_exe)
+        check_dependency(config.trf_exe)
     
     # Get the unittests
     directory_of_tests=os.path.dirname(os.path.abspath(__file__))
