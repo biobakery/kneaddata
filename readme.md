@@ -59,7 +59,7 @@ $OUTPUT_DIR = the output directory
 
 For paired end reads, add a second input argument “--input $INPUT2” (with $INPUT2 replaced with the second input file). Also please note that more than one reference database can be provided in the same manner by using multiple database options (for example, "--reference-db $DATABASE1 --reference-db $DATABASE2").
 
-Three types of output files will be created (where $INPUTNAME is the basename of $INPUT):
+Four types of output files will be created (where $INPUTNAME is the basename of $INPUT):
 
 1. The final file of filtered sequences after trimming
     * `` $OUTPUT_DIR/$INPUTNAME_kneaddata.fastq ``
@@ -75,9 +75,7 @@ Three types of output files will be created (where $INPUTNAME is the basename of
     * Trimmomatic is run with the following arguments by default "SLIDINGWINDOW:4:20 MINLEN:60". To change the Trimmomatic arguments, use the option "--trimmomatic-options".
 
 
-If there is more than one reference database, there will be a fourth output file type. Files of this type will be named `` $OUTPUT_DIR/$INPUTNAME_kneaddata_$DATABASE_clean.fastq `` and will contain the filtered sequences after testing against a specific database (with this database name replacing $DATABASE in the file name). The file `` $OUTPUT_DIR/$INPUTNAME_kneaddata.fastq `` is the set of all sequences contained in these filtered files.
-
-If running with two input files, each type of fastq output file will be created for each one of the pairs of the input files. If running with the TRF step, an additional set of files with repeats removed will be written.
+If there is more than one reference database, then more than one file of contaminant sequences will be written. If running with two input files, each type of fastq output file will be created for each one of the pairs of the input files. If running with the TRF step, an additional set of files with repeats removed will be written.
 
 #### Demo run ####
 
@@ -85,7 +83,7 @@ The examples folder contains a demo input file. This file is a single read, fast
 
 `` $ kneaddata --input examples/demo.fastq --reference-db examples/demo_db --output kneaddata_demo_output ``
 
-This will create three output files:
+This will create four output files:
 
 1. `` kneaddata_demo_output/demo_kneaddata.fastq ``
 2. `` kneaddata_demo_output/demo_kneaddata_demo_db_contam.fastq ``
