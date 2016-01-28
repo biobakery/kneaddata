@@ -435,7 +435,8 @@ trimmomatic arguments:
                         [ DEFAULT : 500m ]
   --trimmomatic-options TRIMMOMATIC_OPTIONS
                         options for trimmomatic
-                        [ DEFAULT : SLIDINGWINDOW:4:20 MINLEN:60 ]
+                        [ DEFAULT : SLIDINGWINDOW:4:20 MINLEN:70 ]
+                        MINLEN is set to 70 percent of total input read length
 
 bowtie2 arguments:
   --bowtie2 BOWTIE2_PATH

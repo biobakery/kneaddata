@@ -72,7 +72,7 @@ Four types of output files will be created (where $INPUTNAME is the basename of 
 
 4. The fastq file of trimmed sequences
     * `` $OUTPUT_DIR/$INPUTNAME_kneaddata.trimmed.fastq ``
-    * Trimmomatic is run with the following arguments by default "SLIDINGWINDOW:4:20 MINLEN:60". To change the Trimmomatic arguments, use the option "--trimmomatic-options".
+    * Trimmomatic is run with the following arguments by default "SLIDINGWINDOW:4:20 MINLEN:70". The minimum length is computed as 70 percent of the length of the input reads. To change the Trimmomatic arguments, use the option "--trimmomatic-options".
 
 
 If there is more than one reference database, then more than one file of contaminant sequences will be written. If running with two input files, each type of fastq output file will be created for each one of the pairs of the input files. If running with the TRF step, an additional set of files with repeats removed will be written.

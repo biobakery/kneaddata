@@ -34,7 +34,11 @@ bmtagger_exe="bmtagger.sh"
 trimmomatic_jar="trimmomatic-0.33.jar"
 trimmomatic_memory="500m"
 trimmomatic_flag_start="-"
-trimmomatic_options=["SLIDINGWINDOW:4:20", "MINLEN:60"]
+trimmomatic_slidingwindow_option="SLIDINGWINDOW:4:20"
+trimmomatic_minlen_option_tag="MINLEN"
+trimmomatic_option_delimiter=":"
+trimmomatic_min_len_percent=70
+default_read_length=100
 
 # quality score flags for trimmomatic and bowtie2
 quality_scores_options=["phred33","phred64"]

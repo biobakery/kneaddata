@@ -172,7 +172,8 @@ def parse_arguments(args):
     group2.add_argument(
         "--trimmomatic-options",
         action="append",
-        help="options for trimmomatic\n[ DEFAULT : "+" ".join(config.trimmomatic_options)+" ]")
+        help="options for trimmomatic\n[ DEFAULT : "+" ".join(utilities.get_default_trimmomatic_options())+" ]\n"+\
+             "MINLEN is set to "+str(config.trimmomatic_min_len_percent)+" percent of total input read length")
 
     group3 = parser.add_argument_group("bowtie2 arguments")
     group3.add_argument(
@@ -261,7 +262,8 @@ def update_configuration(args):
         args.trimmomatic_options=utilities.format_options_to_list(args.trimmomatic_options)
     else:
         # if not set by user, then set to default options
-        args.trimmomatic_options = config.trimmomatic_options
+        # use read length of input file for minlen
+        args.trimmomatic_options = utilities.get_default_trimmomatic_options(utilities.get_read_length_fastq(args.input[0]))
 
     # set bowtie2 options
     if args.bowtie2_options:

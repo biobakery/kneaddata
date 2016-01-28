@@ -514,6 +514,33 @@ def read_file_n_lines(file,n):
     if len(line_set) == n:
         yield line_set
         
+def get_read_length_fastq(file):
+    """ Get the read length from a fastq file """
+    
+    try:
+        file_handle=open(file)
+    except EnvironmentError:
+        sys.exit("Unable to read file: " + file)
+        
+    sequence_id=file_handle.readline()
+    sequence=file_handle.readline()
+    
+    file_handle.close()
+    
+    return len(sequence.rstrip())
+
+def get_default_trimmomatic_options(read_length=None):
+    """ Get the default trimmomatic options """
+    
+    if not read_length:
+        read_length=config.default_read_length
+        
+    # have the minlen equal to a percent of the read length
+    minlen=int(read_length*(config.trimmomatic_min_len_percent/100.0))
+    
+    return [config.trimmomatic_slidingwindow_option,
+            config.trimmomatic_minlen_option_tag+config.trimmomatic_option_delimiter+str(minlen)]
+
 def fastq_to_fasta(file, new_file):
     """
     Convert fastq file to fasta
