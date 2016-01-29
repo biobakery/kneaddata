@@ -51,13 +51,13 @@ def parse_arguments(args):
         formatter_class=argparse.RawTextHelpFormatter,
         prog="kneaddata_test")
     parser.add_argument(
-        "-r","--run-functional-tests",
-        help="also run the functional tests\n",
+        "--bypass-functional-tests", 
+        help="do not run the kneaddata end to end functional tests\n", 
         action="store_true",
         default=False)
     parser.add_argument(
-        "-b","--bypass-unit-tests",
-        help="do not run the unit tests\n",
+        "--bypass-unit-tests", 
+        help="do not run the unit tests\n", 
         action="store_true",
         default=False)
 
@@ -68,7 +68,7 @@ def main():
     args=parse_arguments(sys.argv)
     
     # Check for dependencies
-    if args.run_functional_tests:
+    if not args.bypass_functional_tests:
         check_dependency(config.trimmomatic_jar,bypass_permissions_check=True)
         check_dependency(config.bowtie2_exe)
         check_dependency(config.bmtagger_exe)
@@ -78,7 +78,7 @@ def main():
     directory_of_tests=os.path.dirname(os.path.abspath(__file__))
     
     tests_to_run=[]
-    if args.run_functional_tests:
+    if not args.bypass_functional_tests:
         tests_to_run.append(unittest.TestLoader().discover(directory_of_tests,pattern='functional_tests*.py'))
     if not args.bypass_unit_tests:
         tests_to_run.append(unittest.TestLoader().discover(directory_of_tests,pattern='basic_tests*.py'))
