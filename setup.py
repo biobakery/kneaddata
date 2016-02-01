@@ -314,7 +314,7 @@ setuptools.setup(
     packages=setuptools.find_packages(),
     package_data={
         'kneaddata' : [
-                       'tests/data/*.fastq',
+                       'tests/data/*.*',
                        'tests/data/demo_bowtie2_db/*'
                        ]},
     zip_safe=False,

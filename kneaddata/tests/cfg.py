@@ -4,6 +4,10 @@ import os
 data_folder=os.path.join(os.path.dirname(os.path.abspath(__file__)),"data")
 
 fastq_file=os.path.join(data_folder,"demo.fastq")
+fastq_file_gzipped=os.path.join(data_folder,"demo.fastq.gz")
+file_sam=os.path.join(data_folder,"demo.sam")
+file_bam=os.path.join(data_folder,"demo.bam")
+fastq_file_matches_sam_and_bam=os.path.join(data_folder,"demo_matches_sam_and_bam.fastq")
 bowtie2_db_folder=os.path.join(data_folder,"demo_bowtie2_db")
 bowtie2_db_file=os.path.join(bowtie2_db_folder,"demo_db.1.bt2")
 bowtie2_db_index=os.path.join(bowtie2_db_folder,"demo_db")

@@ -29,12 +29,12 @@ import logging
 import tempfile
 import gzip
 import re
-import logging
 import subprocess
 import itertools
 import multiprocessing
 import datetime
 import errno
+import shutil
 
 from kneaddata import config
 
@@ -171,6 +171,125 @@ def format_options_to_list(input_options):
         formatted_options_list+=shlex.split(option)
         
     return formatted_options_list
+
+def gunzip_file(gzip_file, new_file):
+    """
+    Return a new copy of the file that is not gzipped
+    """
+    
+    message="Decompressing gzipped file ..."
+    print(message+"\n")
+    logger.info(message)    
+    
+    try:
+        file_handle_gzip=gzip.open(gzip_file,"r")
+        
+        # write the gunzipped file
+        file_handle=open(new_file,"w")
+        shutil.copyfileobj(file_handle_gzip, file_handle)
+        
+    except EnvironmentError:
+        sys.exit("Critical Error: Unable to gunzip input file: " + gzip_file)
+    finally:
+        file_handle.close()
+        file_handle_gzip.close()
+        
+    logger.info("Decompressed file created: " + new_file)
+        
+    return new_file
+
+def file_without_extension(file):
+    """ Return the basename of the file without the extension """
+    
+    return os.path.splitext(os.path.basename(file))[0]
+
+def get_decompressed_file(file, output_folder, temp_file_list):
+    """ Check if a file is compressed, if so decompress """
+    
+    if file.endswith(".gz"):
+        new_file=os.path.join(output_folder,file_without_extension(file))
+        gunzip_file(file,new_file)
+        temp_file_list.append(new_file)
+    else:
+        new_file=file
+        
+    return new_file
+
+def bam_to_sam(bam_file, new_file):
+    """
+    Convert from a bam to sam file
+    """
+
+    exe=config.samtools_exe
+    args=["view","-h",bam_file,"-o",new_file]
+    
+    message="Converting bam file to sam format ..."
+    print(message)
+    logger.info(message)
+    
+    run_command([exe]+args, exe, [bam_file], [new_file], None, None, True)
+    
+    logger.info("Sam file created at: " + new_file)
+    
+def get_sam_from_bam_file(file, output_folder, temp_file_list):
+    """ Check if a file is bam, if so create a sam file """
+    
+    if file.endswith(".bam"):
+        # Check for the samtools software
+        if not find_exe_in_path(config.samtools_exe):
+            sys.exit("CRITICAL ERROR: The samtools executable can not be found. "
+            "Please check the install or select another input format.")
+        new_file=os.path.join(output_folder,file_without_extension(file)+".sam")
+        bam_to_sam(file,new_file)
+        temp_file_list.append(new_file)
+    else:
+        new_file=file
+        
+    return new_file
+
+def sam_to_fastq(file, new_file):
+    """ Create a fastq file from the sam file """
+    
+    message="Converting sam file to fastq format ..."
+    print(message+"\n")
+    logger.info(message)    
+    
+    # First read in all of the ids
+    # Read then write to not write duplicates
+    # Also do not store all sequences and quality scores here to save space
+    ids=set()
+    with open(file) as file_handle:
+        for line in file_handle:
+            if not re.search("^@",line):
+                data=line.rstrip().split(config.sam_delimiter)
+                ids.add(data[config.sam_read_name_index])
+        
+    # Now read through the file again, writing out fastq sequences
+    with open(file) as file_handle:
+        with open(new_file, "w") as write_file_handle:
+            for line in file_handle:
+                if not re.search("^@",line):
+                    data=line.rstrip().split(config.sam_delimiter)
+                    read_id=data[config.sam_read_name_index]
+                    if read_id in ids:
+                        write_file_handle.write("@"+read_id+"\n")
+                        write_file_handle.write(data[config.sam_read_index]+"\n")
+                        write_file_handle.write("+\n")
+                        write_file_handle.write(data[config.sam_read_quality]+"\n")
+                        # remove the id so as to not write it more than once
+                        ids.remove(read_id)
+
+def get_fastq_from_sam_file(file, output_folder, temp_file_list):
+    """ Check if a file is sam, if so create a fastq file """
+    
+    if file.endswith(".sam"):
+        new_file=os.path.join(output_folder,file_without_extension(file)+config.fastq_file_extension)
+        sam_to_fastq(file,new_file)
+        temp_file_list.append(new_file)
+    else:
+        new_file=file
+        
+    return new_file
             
 def get_file_format(file):
     """ Determine the format of the file """
@@ -180,10 +299,10 @@ def get_file_format(file):
 
     # check the file exists and is readable
     if not os.path.isfile(file):
-        logging.critical("The input file selected is not a file: %s.",file)
+        logger.critical("The input file selected is not a file: %s.",file)
 
     if not os.access(file, os.R_OK):
-        logging.critical("The input file selected is not readable: %s.",file)
+        logger.critical("The input file selected is not readable: %s.",file)
 
     try:
         # check for gzipped files

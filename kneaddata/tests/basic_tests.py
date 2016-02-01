@@ -2,6 +2,7 @@ import unittest
 import tempfile
 import os
 import logging
+import filecmp
 
 import cfg
 import utils
@@ -89,4 +90,21 @@ class TestHumann2Functions(unittest.TestCase):
         db_index=utilities.find_database_index(cfg.bowtie2_db_index, "bowtie2")
         
         self.assertEqual(db_index, cfg.bowtie2_db_index)
+        
+    def test_sam_to_fastq(self):
+        """
+        Test the sam to fastq function
+        Test sam file contains one read with two mappings (to test it is only
+        written once to the fastq output file)
+        """
+        
+        file_handle, temp_output_file=tempfile.mkstemp(prefix="kneaddata_test")
+        
+        utilities.sam_to_fastq(cfg.file_sam, temp_output_file)
+        
+        self.assertTrue(filecmp.cmp(temp_output_file, cfg.fastq_file_matches_sam_and_bam,
+                                     shallow=False))
+        
+        utils.remove_temp_file(temp_output_file)
+        
 

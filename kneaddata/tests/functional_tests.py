@@ -448,3 +448,119 @@ class TestFunctionalKneadData(unittest.TestCase):
         # remove the temp directory
         utils.remove_temp_folder(tempdir)
         
+    def test_trimmomatic_bowtie2_database_and_trf_single_end_gzipped_input(self):
+        """
+        Test running the default flow of trimmomatic on single end input with
+        bowtie2 database provided
+        Test with keeping temp files
+        Test with TRF
+        Test with gzipped input fastq file
+        """
+        
+        # create a temp directory for output
+        tempdir = tempfile.mkdtemp(suffix="test_kneaddata_")
+        
+        # run kneaddata test
+        command = ["kneaddata","--input",cfg.fastq_file_gzipped,
+                   "--output",tempdir,"--reference-db",cfg.bowtie2_db_folder,
+                   "--store-temp-output", "--run-trf"]
+        utils.run_kneaddata(command)
+        
+        # get the basename of the input file
+        fastq_file_basename=utils.file_basename(cfg.fastq_file_gzipped)
+        basename=utils.file_basename(cfg.fastq_file)
+        filtered_file_basename=utils.get_filtered_file_basename(basename,cfg.bowtie2_db_folder,"bowtie2")
+        
+        expected_output_files=[fastq_file_basename,
+                               basename+cfg.log_extension,
+                               basename+cfg.single_trim_extension,
+                               filtered_file_basename+cfg.clean_extension,
+                               filtered_file_basename+cfg.contaminated_extension,
+                               filtered_file_basename+cfg.sam_extension,
+                               basename+cfg.final_extension,
+                               basename+cfg.repeats_removed_extension]
+        
+        # check the output files are as expected
+        for expression, message in utils.check_output(expected_output_files, tempdir):
+            self.assertTrue(expression,message)
+
+        # remove the temp directory
+        utils.remove_temp_folder(tempdir)
+        
+    def test_trimmomatic_bowtie2_database_and_trf_single_end_bam_input(self):
+        """
+        Test running the default flow of trimmomatic on single end input with
+        bowtie2 database provided
+        Test with keeping temp files
+        Test with TRF
+        Test with bam input fastq file
+        """
+        
+        # create a temp directory for output
+        tempdir = tempfile.mkdtemp(suffix="test_kneaddata_")
+        
+        # run kneaddata test
+        command = ["kneaddata","--input",cfg.file_bam,
+                   "--output",tempdir,"--reference-db",cfg.bowtie2_db_folder,
+                   "--store-temp-output", "--run-trf"]
+        utils.run_kneaddata(command)
+        
+        # get the basename of the input file
+        basename=utils.file_basename(cfg.file_bam)
+        filtered_file_basename=utils.get_filtered_file_basename(basename,cfg.bowtie2_db_folder,"bowtie2")
+        
+        expected_output_files=[basename+".fastq",
+                               basename+".sam",
+                               basename+cfg.log_extension,
+                               basename+cfg.single_trim_extension,
+                               filtered_file_basename+cfg.clean_extension,
+                               filtered_file_basename+cfg.contaminated_extension,
+                               filtered_file_basename+cfg.sam_extension,
+                               basename+cfg.final_extension,
+                               basename+cfg.repeats_removed_extension]
+        
+        # check the output files are as expected
+        for expression, message in utils.check_output(expected_output_files, tempdir):
+            self.assertTrue(expression,message)
+
+        # remove the temp directory
+        utils.remove_temp_folder(tempdir)
+        
+    def test_trimmomatic_bowtie2_database_and_trf_single_end_sam_input(self):
+        """
+        Test running the default flow of trimmomatic on single end input with
+        bowtie2 database provided
+        Test with keeping temp files
+        Test with TRF
+        Test with sam input fastq file
+        """
+        
+        # create a temp directory for output
+        tempdir = tempfile.mkdtemp(suffix="test_kneaddata_")
+        
+        # run kneaddata test
+        command = ["kneaddata","--input",cfg.file_sam,
+                   "--output",tempdir,"--reference-db",cfg.bowtie2_db_folder,
+                   "--store-temp-output", "--run-trf"]
+        utils.run_kneaddata(command)
+        
+        # get the basename of the input file
+        basename=utils.file_basename(cfg.file_sam)
+        filtered_file_basename=utils.get_filtered_file_basename(basename,cfg.bowtie2_db_folder,"bowtie2")
+        
+        expected_output_files=[basename+".fastq",
+                               basename+cfg.log_extension,
+                               basename+cfg.single_trim_extension,
+                               filtered_file_basename+cfg.clean_extension,
+                               filtered_file_basename+cfg.contaminated_extension,
+                               filtered_file_basename+cfg.sam_extension,
+                               basename+cfg.final_extension,
+                               basename+cfg.repeats_removed_extension]
+        
+        # check the output files are as expected
+        for expression, message in utils.check_output(expected_output_files, tempdir):
+            self.assertTrue(expression,message)
+
+        # remove the temp directory
+        utils.remove_temp_folder(tempdir)
+        

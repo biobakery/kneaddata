@@ -57,6 +57,21 @@ trf_pi=10
 trf_minscore=50
 trf_maxperiod=500
 
+samtools_exe="samtools"
+
+#set the locations of data in the sam file
+sam_read_name_index=0
+sam_flag_index=1
+sam_reference_index=2
+sam_mapq_index=4
+sam_cigar_index=5
+sam_read_index=9
+sam_start_optional_index=11
+
+sam_read_quality=10
+sam_unmapped_flag=0x4
+sam_delimiter="\t"
+
 # File endings for BMTagger's required database files
 bowtie2_db_endings = [
     ".1.bt2", ".2.bt2", ".3.bt2", ".4.bt2", ".rev.1.bt2", ".rev.2.bt2"]

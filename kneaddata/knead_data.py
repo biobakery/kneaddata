@@ -256,15 +256,6 @@ def update_configuration(args):
     # create the output directory if needed
     utilities.create_directory(args.output_dir)
 
-    # set trimmomatic options
-    if args.trimmomatic_options:
-        # parse the options from the user into an array of options
-        args.trimmomatic_options=utilities.format_options_to_list(args.trimmomatic_options)
-    else:
-        # if not set by user, then set to default options
-        # use read length of input file for minlen
-        args.trimmomatic_options = utilities.get_default_trimmomatic_options(utilities.get_read_length_fastq(args.input[0]))
-
     # set bowtie2 options
     if args.bowtie2_options:
         # parse the options from the user into any array of options
@@ -278,11 +269,6 @@ def update_configuration(args):
     
     # update the quality score option into a flag for trimmomatic
     args.trimmomatic_quality_scores=config.trimmomatic_flag_start+args.trimmomatic_quality_scores
-
-    # set the default output prefix 
-    if args.output_prefix == None:
-        infile_base = os.path.splitext(os.path.basename(args.input[0]))[0]
-        args.output_prefix = infile_base + "_kneaddata"
         
     # find the location of trimmomatic, trimmomatic does not need to be executable
     if not args.bypass_trim:
@@ -305,7 +291,16 @@ def update_configuration(args):
     if args.trf:
         args.trf_path=utilities.find_dependency(args.trf_path,config.trf_exe,"trf",
             "--trf", bypass_permissions_check=False)
-    
+
+    # set the default output prefix 
+    if args.output_prefix == None:
+        if args.input[0].endswith(".gz"):
+            # remove compression extension if present
+            infile_base = os.path.splitext(os.path.splitext(os.path.basename(args.input[0]))[0])[0]
+        else:
+            infile_base = os.path.splitext(os.path.basename(args.input[0]))[0]
+        args.output_prefix = infile_base + "_kneaddata"    
+
     # find the bowtie2 indexes for each of the reference databases
     # reference database inputs can be directories, indexes, or index files
     if args.reference_db:
@@ -354,10 +349,20 @@ def main():
     
     # Update the configuration
     args = update_configuration(args)
+    
+    # set the prefix for the output files
+    full_path_output_prefix = os.path.join(args.output_dir, args.output_prefix)
 
     # Start logging
     setup_logging(args)
-
+    
+    temp_output_files=[]
+    # Check for compressed files, bam files, or sam files
+    for index in range(len(args.input)):
+        args.input[index]=utilities.get_decompressed_file(args.input[index], args.output_dir, temp_output_files)
+        args.input[index]=utilities.get_sam_from_bam_file(args.input[index], args.output_dir, temp_output_files)
+        args.input[index]=utilities.get_fastq_from_sam_file(args.input[index], args.output_dir, temp_output_files)
+        
     # Get the format of the first input file
     file_format=utilities.get_file_format(args.input[0])
 
@@ -365,9 +370,17 @@ def main():
         message="Your input file is of type: "+file_format+". Please provide an input file of fastq format."
         logger.critical(message)
         sys.exit(message)
-
-    # set the prefix for the output files
-    output_prefix = os.path.join(args.output_dir, args.output_prefix)
+        
+    # set trimmomatic options
+    # this is done after the decompression and conversions from sam/bam
+    # as the default requires the read length from the input sequences
+    if args.trimmomatic_options:
+        # parse the options from the user into an array of options
+        args.trimmomatic_options = utilities.format_options_to_list(args.trimmomatic_options)
+    else:
+        # if not set by user, then set to default options
+        # use read length of input file for minlen
+        args.trimmomatic_options = utilities.get_default_trimmomatic_options(utilities.get_read_length_fastq(args.input[0]))
 
     # Get the number of reads initially
     utilities.log_read_count_for_files(args.input,"Initial number of reads",args.verbose)
@@ -375,7 +388,7 @@ def main():
     # Run trimmomatic
     if not args.bypass_trim:
         trimmomatic_output_files = run.trim(
-            args.input, output_prefix, args.trimmomatic_path, 
+            args.input, full_path_output_prefix, args.trimmomatic_path, 
             args.trimmomatic_quality_scores, args.max_memory, args.trimmomatic_options, 
             args.threads, args.verbose)
         
@@ -395,17 +408,22 @@ def main():
         # resolve sub-lists if present
         alignment_output_files=trimmomatic_output_files
     else:
-        alignment_output_files=run.decontaminate(args, output_prefix, trimmomatic_output_files)
+        alignment_output_files=run.decontaminate(args, full_path_output_prefix, trimmomatic_output_files)
         
     # run TRF, if set
     if args.trf:
         # run trf on all output files
-        final_output_files=run.tandem(alignment_output_files, output_prefix, args.match,
+        final_output_files=run.tandem(alignment_output_files, full_path_output_prefix, args.match,
                                       args.mismatch,args.delta,args.pm,args.pi,
                                       args.minscore,args.maxperiod,args.trf_path,
                                       args.processes,args.verbose,args.remove_temp_output)
     else:
         final_output_files = utilities.resolve_sublists(alignment_output_files)
+        
+    # Remove any temp output files, if set
+    if not args.store_temp_output:
+        for file in temp_output_files:
+            utilities.remove_file(file)
 
     if len(final_output_files) > 1:
         message="\nFinal output files created: \n"
