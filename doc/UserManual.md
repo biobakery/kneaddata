@@ -64,7 +64,7 @@ You can download the latest KneadData release or the development version.
 
 Option 1: Latest Release (Recommended)
 
-* [Download](https://bitbucket.org/biobakery/kneaddata/downloads/kneaddata_v0.5.0.tar.gz) and unpack the latest release of KneadData.
+* [Download](https://bitbucket.org/biobakery/kneaddata/downloads/kneaddata_v0.5.1.tar.gz) and unpack the latest release of KneadData.
 
 Option 2: Development Version
 

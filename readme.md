@@ -2,7 +2,7 @@
 
 ----
 
- * Download the KneadData software ( [kneaddata.tar.gz](https://bitbucket.org/biobakery/kneaddata/downloads/kneaddata_v0.5.0.tar.gz) ) then follow the [steps to install and run](#markdown-header-getting-started-with-kneaddata).
+ * Download the KneadData software ( [kneaddata.tar.gz](https://bitbucket.org/biobakery/kneaddata/downloads/kneaddata_v0.5.1.tar.gz) ) then follow the [steps to install and run](#markdown-header-getting-started-with-kneaddata).
 
  * If you use the KneadData software, please cite our manuscript: TBD
 
@@ -36,7 +36,7 @@ The executables for the required software packages should be installed in your $
 Before installing KneadData, please install the Java Runtime Environment (JRE). First [download](http://www.oracle.com/technetwork/java/javase/downloads/jre7-downloads-1880261.html) the JRE for your platform. Then follow the instructions for your platform: [Linux 64-bit](http://docs.oracle.com/javase/8/docs/technotes/guides/install/linux_jre.html#CFHIEGAA) or [Mac OS](http://docs.oracle.com/javase/8/docs/technotes/guides/install/mac_jre.html#jre_8u40_osx). At the end of the installation, add the location of the java executable to your $PATH.
 
 1. Download and unpack the KneadData software
-    * Download the software: [kneaddata.tar.gz](https://bitbucket.org/biobakery/kneaddata/downloads/kneaddata_v0.5.0.tar.gz)
+    * Download the software: [kneaddata.tar.gz](https://bitbucket.org/biobakery/kneaddata/downloads/kneaddata_v0.5.1.tar.gz)
     * `` $ tar zxvf kneaddata.tar.gz ``
     * `` $ cd kneaddata ``
 2. From the KneadData directory, install KneadData
