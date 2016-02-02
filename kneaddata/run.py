@@ -40,6 +40,20 @@ from kneaddata import config
 # name global logging instance
 logger=logging.getLogger(__name__)
 
+def fastqc(fastqc_path, output_dir, input_files, threads, verbose):
+    """ Run fastq on the input files, placing output in directory provided """
+    
+    # write output to a subfolder
+    fastqc_output_dir=os.path.join(output_dir, "fastqc")
+    # create the directory if it does not already exist
+    utilities.create_directory(fastqc_output_dir)
+    
+    command=[fastqc_path]+input_files+["--threads",str(threads)]+["--outdir",fastqc_output_dir]
+    
+    # run fastqc command
+    utilities.run_command(command,"fastqc",input_files,[],None,verbose,exit_on_error=True)
+
+
 def align(infile_list, db_prefix_list, output_prefix, remove_temp_output,
           bowtie2_path, threads, processors, bowtie2_opts, verbose):
     """ Runs bowtie2 on a single-end sequence file or a paired-end set of files. 

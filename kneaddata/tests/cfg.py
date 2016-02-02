@@ -40,3 +40,5 @@ unjoined_trim_extensions=["_kneaddata.trimmed.single.1.fastq","_kneaddata.trimme
 
 repeats_removed_extension="_kneaddata.repeats.removed.fastq"
 paired_repeats_removed_extensions=["_kneaddata.repeats.removed.1.fastq","_kneaddata.repeats.removed.2.fastq"]
+
+fastqc_extensions=["_fastqc.html","_fastqc.zip"]

@@ -380,7 +380,7 @@ usage: kneaddata [-h] [--version] [-v] -i INPUT -o OUTPUT_DIR
                  [-db REFERENCE_DB] [--bypass-trim]
                  [--output-prefix OUTPUT_PREFIX] [-t <1>] [-p <1>]
                  [-q {phred33,phred64}] [--run-bmtagger] [--run-trf]
-                 [--store-temp-output]
+                 [--run-fastqc-start] [--run-fastqc-end] [--store-temp-output]
                  [--log-level {DEBUG,INFO,WARNING,ERROR,CRITICAL}] [--log LOG]
                  [--trimmomatic TRIMMOMATIC_PATH] [--max-memory MAX_MEMORY]
                  [--trimmomatic-options TRIMMOMATIC_OPTIONS]
@@ -388,6 +388,7 @@ usage: kneaddata [-h] [--version] [-v] -i INPUT -o OUTPUT_DIR
                  [--bmtagger BMTAGGER_PATH] [--trf TRF_PATH] [--match MATCH]
                  [--mismatch MISMATCH] [--delta DELTA] [--pm PM] [--pi PI]
                  [--minscore MINSCORE] [--maxperiod MAXPERIOD]
+                 [--fastqc FASTQC_PATH]
 
 KneadData
 
@@ -418,7 +419,9 @@ global options:
                         [ DEFAULT : phred33 ]
   --run-bmtagger        run BMTagger instead of Bowtie2 to identify contaminant reads
   --run-trf             run TRF to remove tandem repeats
-  --store-temp-output  store temp output files
+  --run-fastqc-start    run fastqc at the beginning of the workflow
+  --run-fastqc-end      run fastqc at the end of the workflow
+  --store-temp-output   store temp output files
                         [ DEFAULT : temp output files are removed ]
   --log-level {DEBUG,INFO,WARNING,ERROR,CRITICAL}
                         level of log messages
@@ -469,6 +472,10 @@ trf arguments:
   --maxperiod MAXPERIOD
                         maximum period size to report
                         [ DEFAULT : 500 ]
+
+fastqc arguments:
+  --fastqc FASTQC_PATH  path to fastqc
+                        [ DEFAULT : $PATH ]
 ```
 
 ----------------------------------

@@ -74,6 +74,7 @@ def main():
         check_dependency(config.bmtagger_exe)
         check_dependency(config.trf_exe)
         check_dependency(config.samtools_exe)
+        check_dependency(config.fastqc_exe)
     
     # Get the unittests
     directory_of_tests=os.path.dirname(os.path.abspath(__file__))

@@ -98,3 +98,6 @@ trimomatic_se_ending = ".trimmed.fastq"
 trimomatic_pe_endings = [
     ".trimmed.1.fastq", ".trimmed.2.fastq", 
     ".trimmed.single.1.fastq", ".trimmed.single.2.fastq"]
+
+fastqc_exe="fastqc"
+

@@ -148,6 +148,18 @@ def parse_arguments(args):
         action="store_true",
         help="run TRF to remove tandem repeats")
     group1.add_argument(
+        "--run-fastqc-start",
+        default=False,
+        dest='fastqc_start',
+        action="store_true",
+        help="run fastqc at the beginning of the workflow")
+    group1.add_argument(
+        "--run-fastqc-end",
+        default=False,
+        dest='fastqc_end',
+        action="store_true",
+        help="run fastqc at the end of the workflow")
+    group1.add_argument(
         "--store-temp-output",
         action="store_true",
         help="store temp output files\n[ DEFAULT : temp output files are removed ]")
@@ -231,6 +243,11 @@ def parse_arguments(args):
             type=int,
             default=config.trf_maxperiod, 
             help="maximum period size to report\n[ DEFAULT : "+str(config.trf_maxperiod)+" ]")
+    group6 = parser.add_argument_group("fastqc arguments")
+    group6.add_argument(
+            "--fastqc",
+            dest='fastqc_path',
+            help="path to fastqc\n[ DEFAULT : $PATH ]")
 
     return parser.parse_args()
     
@@ -291,6 +308,11 @@ def update_configuration(args):
     if args.trf:
         args.trf_path=utilities.find_dependency(args.trf_path,config.trf_exe,"trf",
             "--trf", bypass_permissions_check=False)
+        
+    # if fastqc is set to be run, check if the executable can be found
+    if args.fastqc_start or args.fastqc_end:
+        args.fastqc_path=utilities.find_dependency(args.fastqc_path,config.fastqc_exe,"fastqc",
+                                                   "--fastqc",bypass_permissions_check=False)
 
     # set the default output prefix 
     if args.output_prefix == None:
@@ -384,6 +406,10 @@ def main():
 
     # Get the number of reads initially
     utilities.log_read_count_for_files(args.input,"Initial number of reads",args.verbose)
+    
+    # Run fastqc if set to run at end of workflow
+    if args.fastqc_start:
+        run.fastqc(args.fastqc_path, args.output_dir, args.input, args.threads, args.verbose)
 
     # Run trimmomatic
     if not args.bypass_trim:
@@ -424,6 +450,10 @@ def main():
     if not args.store_temp_output:
         for file in temp_output_files:
             utilities.remove_file(file)
+            
+    # Run fastqc if set to run at end of workflow
+    if args.fastqc_end:
+        run.fastqc(args.fastqc_path, args.output_dir, final_output_files, args.threads, args.verbose)
 
     if len(final_output_files) > 1:
         message="\nFinal output files created: \n"

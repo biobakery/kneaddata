@@ -564,3 +564,102 @@ class TestFunctionalKneadData(unittest.TestCase):
         # remove the temp directory
         utils.remove_temp_folder(tempdir)
         
+    def test_trimmomatic_fastqc_start_no_reference_database_single_end(self):
+        """
+        Test running the default flow of trimmomatic on single end input as no
+        reference database is provided
+        Test running fastqc at the beginning of the workflow
+        """
+        
+        # create a temp directory for output
+        tempdir = tempfile.mkdtemp(suffix="test_kneaddata_")
+        
+        # run kneaddata test
+        command = ["kneaddata","--input",cfg.fastq_file,
+                   "--output",tempdir,"--run-fastqc-start"]
+        utils.run_kneaddata(command)
+        
+        # get the basename of the input file
+        basename=utils.file_basename(cfg.fastq_file)
+        
+        expected_output_files=[os.path.join("fastqc",basename+cfg.fastqc_extensions[0]),
+                               os.path.join("fastqc",basename+cfg.fastqc_extensions[1]),
+                               basename+cfg.log_extension,
+                               basename+cfg.single_trim_extension]
+        
+        # check the output files are as expected
+        for expression, message in utils.check_output(expected_output_files, tempdir):
+            self.assertTrue(expression,message)
+
+        # remove the temp directory
+        utils.remove_temp_folder(tempdir)
+        
+    def test_trimmomatic_fastqc_start_no_reference_database_paired_end(self):
+        """
+        Test running the default flow of trimmomatic on paired end input as no
+        reference database is provided
+        Test running fastqc at the beginning of the workflow
+        """
+        
+        # create a temp directory for output
+        tempdir = tempfile.mkdtemp(suffix="test_kneaddata_")
+        
+        # run kneaddata test
+        command = ["kneaddata","--input",cfg.fastq_file,"--input",cfg.fastq_file,
+                   "--output",tempdir,"--run-fastqc-start"]
+        utils.run_kneaddata(command)
+        
+        # get the basename of the input file
+        basename=utils.file_basename(cfg.fastq_file)
+        
+        expected_output_files=[os.path.join("fastqc",basename+cfg.fastqc_extensions[0]),
+                               os.path.join("fastqc",basename+cfg.fastqc_extensions[1]),
+                               basename+cfg.log_extension,
+                               basename+cfg.paired_trim_extensions[0],
+                               basename+cfg.paired_trim_extensions[1]]
+        
+        # check the output files are as expected
+        for expression, message in utils.check_output(expected_output_files, tempdir):
+            self.assertTrue(expression,message)
+
+        # remove the temp directory
+        utils.remove_temp_folder(tempdir)
+        
+    def test_trimmomatic_bowtie2_database_fastqc_end_single_end(self):
+        """
+        Test running the default flow of trimmomatic on single end input with
+        bowtie2 database provided
+        Test with keeping temp files
+        Test running fastqc at the end of the workflow
+        """
+        
+        # create a temp directory for output
+        tempdir = tempfile.mkdtemp(suffix="test_kneaddata_")
+        
+        # run kneaddata test
+        command = ["kneaddata","--input",cfg.fastq_file,
+                   "--output",tempdir,"--reference-db",cfg.bowtie2_db_folder,
+                   "--store-temp-output", "--run-fastqc-end"]
+        utils.run_kneaddata(command)
+        
+        # get the basename of the input file
+        basename=utils.file_basename(cfg.fastq_file)
+        final_basename=utils.file_basename(basename+cfg.final_extension)
+        filtered_file_basename=utils.get_filtered_file_basename(basename,cfg.bowtie2_db_folder,"bowtie2")
+        
+        expected_output_files=[os.path.join("fastqc",final_basename+cfg.fastqc_extensions[0]),
+                               os.path.join("fastqc",final_basename+cfg.fastqc_extensions[1]),
+                               basename+cfg.log_extension,
+                               basename+cfg.single_trim_extension,
+                               filtered_file_basename+cfg.clean_extension,
+                               filtered_file_basename+cfg.contaminated_extension,
+                               filtered_file_basename+cfg.sam_extension,
+                               basename+cfg.final_extension]
+        
+        # check the output files are as expected
+        for expression, message in utils.check_output(expected_output_files, tempdir):
+            self.assertTrue(expression,message)
+
+        # remove the temp directory
+        utils.remove_temp_folder(tempdir)
+        
