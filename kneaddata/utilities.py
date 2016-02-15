@@ -23,6 +23,7 @@ THE SOFTWARE.
 """
 
 import os
+import fnmatch
 import sys
 import shlex
 import logging
@@ -451,9 +452,11 @@ def find_dependency(path_provided,exe,name,path_option,bypass_permissions_check)
         except EnvironmentError:
             sys.exit("ERROR: Unable to list files in "+name+" directory: "+ path_provided)
             
-        if not exe in files:
+        found_paths=fnmatch.filter(files, exe)
+        if not found_paths:
             sys.exit("ERROR: The "+exe+" executable is not included in the directory: " + path_provided)
         else:
+            exe=found_paths[0]
             found_path=path_provided
             # check permissions
             if not bypass_permissions_check:

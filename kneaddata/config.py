@@ -31,7 +31,7 @@ log_level=log_level_choices[0]
 
 bmtagger_exe="bmtagger.sh"
 
-trimmomatic_jar="trimmomatic-0.33.jar"
+trimmomatic_jar="trimmomatic*.jar"
 trimmomatic_memory="500m"
 trimmomatic_flag_start="-"
 trimmomatic_slidingwindow_option="SLIDINGWINDOW:4:20"

@@ -44,8 +44,9 @@ required_python_version_major = 2
 required_python_version_minor = 7
     
 try:
-    if (sys.version_info[0] != required_python_version_major or
-        sys.version_info[1] < required_python_version_minor):
+    if (sys.version_info[0] < required_python_version_major or
+        (sys.version_info[0] == required_python_version_major and
+        sys.version_info[1] < required_python_version_minor)):
         sys.exit("CRITICAL ERROR: The python version found (version "+
             str(sys.version_info[0])+"."+str(sys.version_info[1])+") "+
             "does not match the version required (version "+
