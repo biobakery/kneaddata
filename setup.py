@@ -31,7 +31,6 @@ try:
 except ImportError:
     sys.exit("Please install setuptools.")
     
-import urllib
 import tarfile
 import shutil
 import zipfile
