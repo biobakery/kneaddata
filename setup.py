@@ -329,7 +329,6 @@ setuptools.setup(
     author_email=AUTHOR_EMAIL,
     version=VERSION,
     license="MIT",
-    description="KneadData",
     long_description="KneadData is a tool designed to perform quality control on metagenomic " + \
         "sequencing data, especially data from microbiome experiments. In these experiments, " + \
         "samples are typically taken from a host in hopes of learning something about the " + \
