@@ -1,6 +1,12 @@
 
 # KneadData History #
 
+## v0.5.2 10-05-2016 ##
+
+### New Features ###
+
+* KneadData is now python3 compatible.
+
 ## v0.5.1 02-02-2016 ##
 
 ### New Features ###
