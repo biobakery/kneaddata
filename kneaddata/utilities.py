@@ -183,7 +183,7 @@ def gunzip_file(gzip_file, new_file):
     logger.info(message)    
     
     try:
-        file_handle_gzip=gzip.open(gzip_file,"r")
+        file_handle_gzip=gzip.open(gzip_file,"rt")
         
         # write the gunzipped file
         file_handle=open(new_file,"w")
@@ -308,9 +308,9 @@ def get_file_format(file):
     try:
         # check for gzipped files
         if file.endswith(".gz"):
-            file_handle = gzip.open(file, "r")
+            file_handle = gzip.open(file, "rt")
         else:
-            file_handle = open(file, "r")
+            file_handle = open(file, "rt")
 
         first_line = file_handle.readline()
         second_line = file_handle.readline()
@@ -698,7 +698,7 @@ def fastq_to_fasta(file, new_file):
         sys.exit("ERROR: Unable to read file: " + file)
     
     try:
-        file_out=open(new_file,"wt")
+        file_out=open(new_file,"w")
     except EnvironmentError:
         sys.exit("ERROR: Unable to write file: " + file)
 
