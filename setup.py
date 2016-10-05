@@ -41,6 +41,12 @@ import time
 
 from setuptools.command.install import install as _install
 
+# try to import urllib.request.urlretrieve for python3
+try:
+    from urllib.request import urlretrieve
+except ImportError:
+    from urllib import urlretrieve
+
 VERSION="0.5.1"
 
 setup_directory = os.path.abspath(os.path.dirname(__file__))
@@ -90,7 +96,7 @@ def download(url, download_file):
 
     try:
         print("Downloading "+url)
-        file, headers = urllib.urlretrieve(url,download_file,reporthook=ReportHook().report)
+        file, headers = urlretrieve(url,download_file,reporthook=ReportHook().report)
     except EnvironmentError:
         print("Warning: Unable to download "+url)
     
