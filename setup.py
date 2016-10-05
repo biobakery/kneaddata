@@ -47,6 +47,8 @@ except ImportError:
     from urllib import urlretrieve
 
 VERSION="0.5.1"
+AUTHOR = "KneadData Development Team"
+AUTHOR_EMAIL = "kneaddata-users@googlegroups.com"
 
 setup_directory = os.path.abspath(os.path.dirname(__file__))
 
@@ -312,8 +314,12 @@ class Install(_install):
 
 setuptools.setup(
     name='kneaddata',
+    author=AUTHOR,
+    author_email=AUTHOR_EMAIL,
     version=VERSION,
-    description="KneadData is a tool designed to perform quality control on metagenomic " + \
+    license="MIT",
+    description="KneadData",
+    long_description="KneadData is a tool designed to perform quality control on metagenomic " + \
         "sequencing data, especially data from microbiome experiments. In these experiments, " + \
         "samples are typically taken from a host in hopes of learning something about the " + \
         "microbial community on the host. However, metagenomic sequencing data from such " + \
@@ -321,23 +327,26 @@ setuptools.setup(
         "tool aims to perform principled in silico separation of bacterial reads from " + \
         "these \"contaminant\" reads, be they from the host, from bacterial 16S " + \
         "sequences, or other user-defined sources.",
+    url="http://huttenhower.sph.harvard.edu/kneaddata",
+    keywords=['microbial','microbiome','bioinformatics','microbiology','metagenomic','metatranscriptomic','kneaddata'],
+    platforms=['Linux','MacOS'],
     packages=setuptools.find_packages(),
     package_data={
         'kneaddata' : [
-                       'tests/data/*.*',
-                       'tests/data/demo_bowtie2_db/*'
-                       ]},
+            'tests/data/*.*',
+            'tests/data/demo_bowtie2_db/*'
+        ]},
     zip_safe=False,
     classifiers=[
         "Programming Language :: Python",
         "Development Status :: 4 - Beta",
         "Environment :: Console",
-        "License :: MIT License",
         "Operating System :: MacOS",
         "Operating System :: Unix",
+        "Programming Language :: Python :: 2.7",
+        "Programming Language :: Python :: 3.4",
         "Topic :: Scientific/Engineering :: Bio-Informatics"
         ],
-    long_description=open('readme.md').read(),
     cmdclass={'install': Install},
     entry_points = {
         "console_scripts": [
