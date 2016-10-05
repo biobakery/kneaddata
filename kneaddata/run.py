@@ -395,7 +395,7 @@ def tandem(input_files, output_prefix, match, mismatch, delta, pm, pi, minscore,
     """ Run TRF on all input files """
 
     # Convert all arguments to strings    
-    trf_args = map(str, [match, mismatch, delta, pm, pi, minscore, maxperiod])
+    trf_args = list(map(str, [match, mismatch, delta, pm, pi, minscore, maxperiod]))
 
     output_files=[]
     output_prefix+=".repeats.removed"
