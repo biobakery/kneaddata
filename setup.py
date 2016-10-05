@@ -291,7 +291,7 @@ class Install(_install):
         _install.finalize_options(self)
     
     def run(self):
-        _install.do_egg_install(self)
+        _install.run(self)
                     
         # find out the platform
         mac_os=False
