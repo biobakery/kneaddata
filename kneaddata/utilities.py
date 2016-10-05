@@ -402,7 +402,7 @@ def log_read_count_for_files(files,message_base,verbose=None):
         logger.info(message)
         print(message)
         
-def find_exe_in_path(exe, bypass_permissions_check=None):
+def find_exe_in_path(exe, bypass_permissions_check=None, add_exe_to_path=None):
     """
     Check that an executable exists in $PATH
     """
@@ -413,7 +413,19 @@ def find_exe_in_path(exe, bypass_permissions_check=None):
         if os.path.exists(fullexe):
             if not bypass_permissions_check:
                 check_file_executable(fullexe)
+            if add_exe_to_path:
+                path=fullexe
             return path
+        elif os.path.isdir(path):
+            # allow for filename filter matching
+            exematch = fnmatch.filter(os.listdir(path),exe)
+            if exematch and os.path.exists(os.path.join(path,exematch[0])):
+                if not bypass_permissions_check:
+                    check_file_executable(os.path.join(path,exematch[0]))
+                if add_exe_to_path:
+                    path=os.path.join(path,exematch[0])
+                return path
+
     return None
         
 def add_exe_to_path(exe_dir):
@@ -461,16 +473,17 @@ def find_dependency(path_provided,exe,name,path_option,bypass_permissions_check)
             # check permissions
             if not bypass_permissions_check:
                 check_file_executable(os.path.abspath(os.path.join(found_path,exe)))
+
+        dependency_path=os.path.abspath(os.path.join(found_path,exe))
+
     else:
         # search for the exe
-        exe_path=find_exe_in_path(exe, bypass_permissions_check)
-        if not exe_path:
+        dependency_path=find_exe_in_path(exe, bypass_permissions_check, add_exe_to_path=True)
+        if not dependency_path:
             sys.exit("ERROR: Unable to find "+name+". Please provide the "+
                 "full path to "+name+" with "+path_option+".")
-        else:
-            found_path=exe_path  
         
-    return os.path.abspath(os.path.join(found_path,exe))
+    return dependency_path
 
 def find_database_index(directory, database_type):
     """
