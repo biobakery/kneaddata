@@ -692,13 +692,13 @@ def fastq_to_fasta(file, new_file):
     """
     
     try:
-        file_handle_read = open(file, "r")
+        file_handle_read = open(file, "rt")
         line = file_handle_read.readline()
     except EnvironmentError:
         sys.exit("ERROR: Unable to read file: " + file)
     
     try:
-        file_out=open(new_file,"w")
+        file_out=open(new_file,"wt")
     except EnvironmentError:
         sys.exit("ERROR: Unable to write file: " + file)
 
