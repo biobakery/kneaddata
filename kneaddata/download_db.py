@@ -18,8 +18,13 @@ except ImportError:
     
 import os
 import tarfile
-import urllib
 import time
+
+# try to import urllib.request.urlretrieve for python3
+try:
+    from urllib.request import urlretrieve
+except ImportError:
+    from urllib import urlretrieve
 
 # the locations of the current databases to download
 current_downloads={
@@ -71,7 +76,7 @@ def download_tar_and_extract_with_progress_messages(url, filename, folder):
     print("Download URL: " + url) 
 
     try:
-        url_handle = urllib.urlretrieve(url, filename, reporthook=ReportHook().report)
+        url_handle = urlretrieve(url, filename, reporthook=ReportHook().report)
             
         print("\nExtracting: " + filename)
         tarfile_handle=tarfile.open(filename)
