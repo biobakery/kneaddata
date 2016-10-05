@@ -50,6 +50,8 @@ VERSION="0.5.1"
 AUTHOR = "KneadData Development Team"
 AUTHOR_EMAIL = "kneaddata-users@googlegroups.com"
 
+COUNTER_URL="http://bitbucket.org/biobakery/kneaddata/downloads/counter.txt"
+
 setup_directory = os.path.abspath(os.path.dirname(__file__))
 
 def byte_to_megabyte(byte):
@@ -298,6 +300,15 @@ class Install(_install):
         _install.finalize_options(self)
     
     def run(self):
+        # try to download the bitbucket counter file to count downloads
+        # this has been added since PyPI has turned off the download stats
+        # this will be removed when PyPI Warehouse is production as it
+        # will have download stats
+        counter_file="counter.txt"
+        if not os.path.isfile(counter_file):
+            print("Downloading counter file to track kneadddata downloads"+
+                  " since the global PyPI download stats are currently turned off.")
+            download(COUNTER_URL,counter_file)
         _install.run(self)
                     
         # find out the platform
