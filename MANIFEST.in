@@ -10,5 +10,4 @@ include examples/demo_db.4.bt2
 include examples/demo_db.rev.1.bt2
 include examples/demo_db.rev.2.bt2
 
-include doc/UserManual.md
 
