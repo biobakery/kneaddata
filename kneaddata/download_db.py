@@ -2,7 +2,6 @@
 
 """
 download_db.py
-Author: Lauren McIver
 
 Helper script to download databases for the knead_data.py pipeline
 Requires an internet connection and Python v2.7+.
@@ -29,10 +28,13 @@ except ImportError:
 # the locations of the current databases to download
 current_downloads={
     # genome/database
-    "human" : {
+    "human_genome" : {
         # database build type
         "bowtie2" : "http://huttenhower.sph.harvard.edu/kneadData_databases/Homo_sapiens_Bowtie2_v0.1.tar.gz",
         "bmtagger" : "http://huttenhower.sph.harvard.edu/kneadData_databases/Homo_sapiens_BMTagger_v0.1.tar.gz"
+    },
+    "human_transcriptome" : {
+        "bowtie2" : "http://huttenhower.sph.harvard.edu/kneadData_databases/Homo_sapiens_hg38_transcriptome_Bowtie2_v0.1.tar.gz"
     }
 }
 
