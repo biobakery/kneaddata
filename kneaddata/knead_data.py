@@ -165,6 +165,10 @@ def parse_arguments(args):
         action="store_true",
         help="store temp output files\n[ DEFAULT : temp output files are removed ]")
     group1.add_argument(
+        "--cat-final-output",
+        action="store_true",
+        help="concatenate all final output files\n[ DEFAULT : final output is not concatenated ]")
+    group1.add_argument(
         "--log-level",
         default=config.log_level,
         choices=config.log_level_choices,
@@ -455,6 +459,12 @@ def main():
     # Run fastqc if set to run at end of workflow
     if args.fastqc_end:
         run.fastqc(args.fastqc_path, args.output_dir, final_output_files, args.threads, args.verbose)
+
+    # If set, concat the final output files if there is more than one
+    if args.cat_final_output and len(final_output_files) > 1:
+        cat_output_file=full_path_output_prefix+config.fastq_file_extension
+        utilities.cat_files(final_output_files,cat_output_file)
+        final_output_files.append(cat_output_file)
 
     if len(final_output_files) > 1:
         message="\nFinal output files created: \n"

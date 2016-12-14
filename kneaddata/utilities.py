@@ -676,6 +676,22 @@ def get_default_trimmomatic_options(read_length=None):
     
     return [config.trimmomatic_slidingwindow_option,
             config.trimmomatic_minlen_option_tag+config.trimmomatic_option_delimiter+str(minlen)]
+    
+def cat_files(files,output_file):
+    """ Cat the files to a single file """
+    
+    # check that the files exist
+    file_list=list(filter(os.path.isfile,files))
+    
+    try:
+        stdout=open(output_file,"w")
+    except EnvironmentError:
+        sys.exit("ERROR: Unable to open file: " + output_file)
+    
+    try:
+        subprocess.check_call(["cat"]+file_list,stdout=stdout)
+    except (subprocess.CalledProcessError,EnvironmentError):
+        sys.exit("ERROR: Unable to cat files.")
 
 def fastq_to_fasta(file, new_file):
     """
