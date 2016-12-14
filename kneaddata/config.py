@@ -99,5 +99,15 @@ trimomatic_pe_endings = [
     ".trimmed.1.fastq", ".trimmed.2.fastq", 
     ".trimmed.single.1.fastq", ".trimmed.single.2.fastq"]
 
+trimmomatic_pe_names = {
+    trimomatic_pe_endings[0]:"pair1", trimomatic_pe_endings[1]:"pair2",
+    trimomatic_pe_endings[2]:"orphan1", trimomatic_pe_endings[3]:"orphan2"}
+
+# Set the names of the file types for alignment files
+final_file_types = { "paired_1.fastq": "pair1", "paired_2.fastq": "pair2",
+    "unmatched_1.fastq":"orphan1", "unmatched_2.fastq":"orphan2"}
+
+
+
 fastqc_exe="fastqc"
 

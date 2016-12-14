@@ -390,17 +390,59 @@ def resolve_sublists(lists):
             
     return lists
 
-def log_read_count_for_files(files,message_base,verbose=None):
+def get_file_types(files,type,database_names):
+    """ Get the types for each of the files based on the names and database"""
+    
+    # get the file types for raw files
+    file_types=[]
+    if type == "raw" and len(files) == 2:
+        file_types=["pair1","pair2"]
+    elif type == "trimmed":
+        for file in files:
+            for ending, name in config.trimmomatic_pe_names.items():
+                if file.endswith(ending):
+                    file_types.append(name)
+                    break
+    elif type == "decontaminated":
+        for file, db_name in zip(files,database_names):
+            basename=os.path.basename(file)
+            if file.endswith("clean_1.fastq"):
+                file_types.append("pair1_"+db_name)
+            elif file.endswith("clean_2.fastq"):
+                file_types.append("pair2_"+db_name)
+            elif "_unmatched_1" in basename:
+                file_types.append("orphan1_"+db_name)
+            elif "_unmatched_2" in basename:
+                file_types.append("orphan2_"+db_name)
+    elif type == "final":
+        for file in files:
+            for ending, name in config.final_file_types.items():
+                if file.endswith(ending):
+                    file_types.append(name)
+                    break
+    
+    if not file_types:
+        file_types=["single"]  
+        
+    return file_types
+
+def log_read_count_for_files(files,type,message_base,database_names=None,verbose=None):
     """ Log the number of reads in the files """
         
     # convert possible list of lists to list
     files=resolve_sublists(files)
+    
+    # sort the files
+    files=sorted(files,key=os.path.basename)
+
+    # get the types for the files for the log message
+    file_types=get_file_types(files,type,database_names)
 
     # count reads in each file
-    for file in files:
+    for file, file_type in zip(files,file_types):
         total_reads=count_reads_in_fastq_file(file,verbose)
         message=message_base+" ( "+file+" ): " + str(total_reads)
-        logger.info(message)
+        logger.info("READ COUNT: "+type+" "+file_type+" : "+message)
         print(message)
         
 def find_exe_in_path(exe, bypass_permissions_check=None, add_exe_to_path=None):

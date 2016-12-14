@@ -68,6 +68,7 @@ def align(infile_list, db_prefix_list, output_prefix, remove_temp_output,
     all_contaminated_outputs = []
     bowtie2_command = [bowtie2_path, "--threads", str(threads)] + bowtie2_opts
     
+    database_names=[]
     for basename, fullpath in _prefix_bases(db_prefix_list):
         output_str = output_prefix + "_" + basename + "_bowtie2"
         cmd = bowtie2_command + ["-x", fullpath]
@@ -79,12 +80,14 @@ def align(infile_list, db_prefix_list, output_prefix, remove_temp_output,
             all_contaminated_outputs.append(output_str + "_contam_2" + config.fastq_file_extension)
             outputs_to_combine = [output_str + "_clean_1" + config.fastq_file_extension, 
                                   output_str + "_clean_2" + config.fastq_file_extension]
+            database_names+=[basename,basename]
 
         else:
             cmd += ["-U", infile_list[0],"--un", output_str + "_clean" + config.fastq_file_extension]
             cmd+=["--al", output_str + "_contam" + config.fastq_file_extension]
             all_contaminated_outputs.append(output_str + "_contam" + config.fastq_file_extension)
             outputs_to_combine = [output_str + "_clean" + config.fastq_file_extension]
+            database_names+=[basename]
 
         if remove_temp_output:
             # if we are removing the temp output, then write the sam output to dev null to save space
@@ -110,7 +113,7 @@ def align(infile_list, db_prefix_list, output_prefix, remove_temp_output,
     # if bowtie2 produced output, merge the files from multiple databases
     combined_outs = []
     if all_outputs_to_combine:
-        combined_outs = combine_fastq_output_files(all_outputs_to_combine, output_prefix, remove_temp_output)
+        combined_outs = combine_fastq_output_files(all_outputs_to_combine, output_prefix, remove_temp_output,database_names)
 
     return combined_outs
 
@@ -159,6 +162,7 @@ def tag(infile_list, db_prefix_list, remove_temp_output, output_prefix,
                         "-T", tempdir,"--extract"]
 
     # build arguments
+    database_names=[]
     for (basename, fullpath) in _prefix_bases(db_prefix_list):
         prefix = output_prefix + "_" + basename + "_bmtagger"
         cmd = bmtagger_command + ["-b", str(fullpath + ".bitmask"),
@@ -171,10 +175,12 @@ def tag(infile_list, db_prefix_list, remove_temp_output, output_prefix,
             # name the corresponding contaminated output files
             contaminated_outputs.append([prefix + "_contam_1" + config.fastq_file_extension,
                                          prefix + "_contam_2" + config.fastq_file_extension])
+            database_names+=[basename,basename]
         else:
             outputs_to_combine = [prefix + config.fastq_file_extension]
             # name the corresponding contaminated output files
             contaminated_outputs.append([prefix + "_contam" + config.fastq_file_extension])
+            database_names+=[basename]
 
         commands.append([cmd,"bmtagger",infile_list,outputs_to_combine,None])
         all_outputs_to_combine.append(outputs_to_combine)
@@ -196,7 +202,7 @@ def tag(infile_list, db_prefix_list, remove_temp_output, output_prefix,
     # merge the output files from multiple databases
     combined_outs = []
     if all_outputs_to_combine:
-        combined_outs = combine_fastq_output_files(all_outputs_to_combine, output_prefix, remove_temp_output)
+        combined_outs = combine_fastq_output_files(all_outputs_to_combine, output_prefix, remove_temp_output,database_names)
                     
     return combined_outs
 
@@ -227,14 +233,15 @@ def intersect_fastq(fastq_files, out_file, remove_temp_output=None):
                 if sequence_count.get(lines[0],0) >= num_files:
                     file_handle.write("".join(lines))
 
-def combine_fastq_output_files(files_to_combine, out_prefix, remove_temp_output):
+def combine_fastq_output_files(files_to_combine, out_prefix, remove_temp_output, database_names):
     """ Combines fastq output created by BMTagger/bowtie2 on multiple databases and 
     returns a list of output files. Also updates the log file with read counts for the 
     input and output files.
     """
     
     # print out the reads for all files
-    utilities.log_read_count_for_files(files_to_combine,"Total reads after removing those found in reference database")
+    utilities.log_read_count_for_files(files_to_combine,"decontaminated",
+        "Total reads after removing those found in reference database", database_names)
 
     # create lists of all of the output files for pair 1 and for pair 2
     files_for_pair1 = [f[0] for f in files_to_combine]
@@ -259,7 +266,7 @@ def combine_fastq_output_files(files_to_combine, out_prefix, remove_temp_output)
         output_files.append(output_file)
 
     # Get the read counts for the newly merged files
-    utilities.log_read_count_for_files(output_files,"Total reads after merging results from multiple databases")
+    utilities.log_read_count_for_files(output_files,"final","Total reads after merging results from multiple databases")
 
     # remove temp files if set
     if remove_temp_output:
