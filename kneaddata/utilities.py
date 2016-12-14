@@ -407,13 +407,13 @@ def get_file_types(files,type,database_names):
         for file, db_name in zip(files,database_names):
             basename=os.path.basename(file)
             if file.endswith("clean_1.fastq"):
-                file_types.append("pair1_"+db_name)
+                file_types.append(db_name+" pair1")
             elif file.endswith("clean_2.fastq"):
-                file_types.append("pair2_"+db_name)
+                file_types.append(db_name+" pair2")
             elif "_unmatched_1" in basename:
-                file_types.append("orphan1_"+db_name)
+                file_types.append(db_name+" orphan1")
             elif "_unmatched_2" in basename:
-                file_types.append("orphan2_"+db_name)
+                file_types.append(db_name+" orphan2")
     elif type == "final":
         for file in files:
             for ending, name in config.final_file_types.items():
