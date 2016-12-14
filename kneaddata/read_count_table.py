@@ -63,7 +63,16 @@ def write_table(output, reads):
         # order the headers
         header_order=[]
         for column in OUTPUT_ORDER:
-            header_order+=sorted(list(filter(lambda x: x.startswith(column),headers)))
+            order=sorted(list(filter(lambda x: x.startswith(column),headers)))
+            
+            # sort by paired then orphan, if present
+            paired=list(filter(lambda x: "pair" in x, order))
+            if paired:
+                header_order+=paired
+                orphan=list(filter(lambda x: "orphan" in x, order))
+                header_order+=orphan
+            else:
+                header_order+=order
         
         file_handle.write("\t".join(["Sample"]+header_order)+"\n")
         for sample in sorted(reads.keys()):
