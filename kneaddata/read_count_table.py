@@ -4,33 +4,8 @@ import argparse
 import sys
 import os
 
-INITIAL_DESC="Initial number of reads"
-TRIMMED_DESC="Total reads after trimming"
-FILTERED_DESC="Total reads after merging results from multiple databases"
-
-FILE_EXTENSIONS={
-    "raw pair1":"_R1_001.fastq",
-    "raw pair2":"_R2_001.fastq",
-    "trimmed pair1":"trimmed.1.fastq",
-    "trimmed pair2":"trimmed.2.fastq",
-    "trimmed orphan1":"trimmed.single.1.fastq",
-    "trimmed orphan2":"trimmed.single.2.fastq",
-    "decontaminated pair1":"paired_1.fastq",
-    "decontaminated pair2":"paired_2.fastq",
-    "decontaminated orphan1":"unmatched_1.fastq",
-    "decontaminated orphan2":"unmatched_2.fastq"}
-
-TABLE_COLUMNS=[
-    "raw pair1",
-    "raw pair2",
-    "trimmed pair1",
-    "trimmed pair2",
-    "trimmed orphan1",
-    "trimmed orphan2",
-    "decontaminated pair1",
-    "decontaminated pair2",
-    "decontaminated orphan1",
-    "decontaminated orphan2"]
+READ_COUNT_IDENTIFIER="READ COUNT"
+OUTPUT_ORDER=["raw","trimmed","decontaminated","final"]
 
 def parse_arguments(args):
     """ 
@@ -38,32 +13,22 @@ def parse_arguments(args):
     """
 
     parser = argparse.ArgumentParser(description='Create a table of read counts for all samples')
-    parser.add_argument('logs',nargs='+',help='kneaddata log files')
+    parser.add_argument('--input',required=True,help='the input folder with kneaddata log files')
     parser.add_argument('--output',required=True,help='the output file to write')
 
     return parser.parse_args()
 
-def get_count(line):
+def get_read_count_type(line):
     """
-    Return the count number from the log line
-    """
-
-    return line.rstrip().split(":")[-1].strip()
-
-def get_file_type(line):
-    """
-    Return the file name from the log line
+    Return the count number and read type from the log line
     """
 
-    file_name=line.split("(")[-1].split(")")[0].strip()
-
-    file_type=None
-    for type, ext in FILE_EXTENSIONS.iteritems():
-        if file_name.endswith(ext):
-            file_type=type
-            break
-
-    return file_type
+    data = line.rstrip().split(":")
+    
+    count = data[-1].strip()
+    type = data[-3].lstrip().rstrip()
+    
+    return count, type
 
 def get_reads(file, reads=None):
     """
@@ -79,12 +44,10 @@ def get_reads(file, reads=None):
     reads[sample]={}
     with open(file) as file_handle:
         for line in file_handle:
-            if INITIAL_DESC in line:
-                reads[sample][get_file_type(line)]=get_count(line)
-            elif TRIMMED_DESC in line:
-                reads[sample][get_file_type(line)]=get_count(line)
-            elif FILTERED_DESC in line:
-                reads[sample][get_file_type(line)]=get_count(line)
+            if READ_COUNT_IDENTIFIER in line:
+                count, type = get_read_count_type(line)
+                reads[sample][type]=count
+
     return reads
 
 def write_table(output, reads):
@@ -93,24 +56,43 @@ def write_table(output, reads):
     """
 
     with open(output, "w") as file_handle:
-        file_handle.write("\t".join(["Sample"]+TABLE_COLUMNS)+"\n")
+        # get the headers from all of the samples
+        headers=set()
+        for sample, counts in reads.items():
+            headers.update(counts.keys())
+        # order the headers
+        header_order=[]
+        for column in OUTPUT_ORDER:
+            header_order+=sorted(list(filter(lambda x: x.startswith(column),headers)))
+        
+        file_handle.write("\t".join(["Sample"]+header_order)+"\n")
         for sample in sorted(reads.keys()):
             new_line=[sample]
-            for column in TABLE_COLUMNS:
-                new_line.append(reads[sample][column])
+            for column in header_order:
+                try:
+                    counts=reads[sample][column]
+                except KeyError:
+                    counts="NA"
+                new_line.append(counts)
             file_handle.write("\t".join(new_line)+"\n")
 
 def main():
     # Parse arguments from command line
     args=parse_arguments(sys.argv)
 
+    # Find the log files
+    files=[os.path.join(args.input,file) for file in os.listdir(args.input)]
+    logs=filter(lambda file: file.endswith(".log") and os.path.isfile(file), files)
+
     # Get the reads counts for all logs for all samples
     reads={}
-    for file in args.logs:
+    for file in logs:
+        print("Reading log: " + file)
         reads=get_reads(file,reads)
 
     # Write the output table
     write_table(args.output, reads)
+    print("Read count table written: " + args.output)
 
 if __name__ == "__main__":
     main()

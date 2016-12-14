@@ -363,6 +363,7 @@ setuptools.setup(
             "kneaddata = kneaddata.knead_data:main",
             "kneaddata_database = kneaddata.download_db:main",
             "kneaddata_build_database = kneaddata.generate_db:main",
+            "kneaddata_read_count_table = kneaddata.read_count_table:main",
             "kneaddata_test = kneaddata.tests.kneaddata_test:main"
         ]
     }
