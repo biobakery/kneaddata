@@ -35,6 +35,9 @@ current_downloads={
     },
     "human_transcriptome" : {
         "bowtie2" : "http://huttenhower.sph.harvard.edu/kneadData_databases/Homo_sapiens_hg38_transcriptome_Bowtie2_v0.1.tar.gz"
+    },
+    "ribosomal_RNA" : {
+        "bowtie2" : "http://huttenhower.sph.harvard.edu/kneadData_databases/SILVA_128_LSUParc_SSUParc_ribosomal_RNA_v0.1.tar.gz"
     }
 }
 
