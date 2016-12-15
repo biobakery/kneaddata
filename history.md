@@ -1,6 +1,21 @@
 
 # KneadData History #
 
+## v0.5.4 12-15-2016 ##
+
+### New Features ###
+
+* A human metatranscriptome bowtie2 database is now available for download.
+* A ribosomal RNA bowtie2 database is now available for download.
+* A new option "--cat-final-output" will create a single output file from all final output files for paired-end inputs.
+* A new script kneaddata_read_count_table will create a table of read counts (raw, trimmed, decontaminated, final) for all logs provided.
+
+## v0.5.3 12-09-2016 ##
+
+### Bug Fixes ###
+
+* If the output prefix selected is the same as the basename of the input file and the input file is gzipped, the final output file for single-end reads would be deleted as the name was the same as the temp gunzipped input file. A temp file is now used to store the gunzipped input file to prevent overlap.
+
 ## v0.5.2 10-05-2016 ##
 
 ### New Features ###
