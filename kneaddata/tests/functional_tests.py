@@ -471,15 +471,14 @@ class TestFunctionalKneadData(unittest.TestCase):
         basename=utils.file_basename(cfg.fastq_file)
         filtered_file_basename=utils.get_filtered_file_basename(basename,cfg.bowtie2_db_folder,"bowtie2")
         
-        expected_output_files=[fastq_file_basename,
-                               basename+cfg.log_extension,
+        expected_output_files=[basename+cfg.log_extension,
                                basename+cfg.single_trim_extension,
                                filtered_file_basename+cfg.clean_extension,
                                filtered_file_basename+cfg.contaminated_extension,
                                filtered_file_basename+cfg.sam_extension,
                                basename+cfg.final_extension,
                                basename+cfg.repeats_removed_extension]
-        
+	
         # check the output files are as expected
         for expression, message in utils.check_output(expected_output_files, tempdir):
             self.assertTrue(expression,message)
@@ -662,4 +661,4 @@ class TestFunctionalKneadData(unittest.TestCase):
 
         # remove the temp directory
         utils.remove_temp_folder(tempdir)
-        
+	
