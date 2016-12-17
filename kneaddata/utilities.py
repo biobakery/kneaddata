@@ -208,7 +208,8 @@ def get_decompressed_file(file, output_folder, temp_file_list):
     """ Check if a file is compressed, if so decompress """
     
     if file.endswith(".gz"):
-        file_out, new_file=tempfile.mkstemp(prefix=file_without_extension(file),dir=output_folder)
+        file_out, new_file=tempfile.mkstemp(prefix="decompressed_", 
+            suffix="_"+file_without_extension(file), dir=output_folder)
         os.close(file_out)
         gunzip_file(file,new_file)
         temp_file_list.append(new_file)
