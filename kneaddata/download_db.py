@@ -38,6 +38,9 @@ current_downloads={
     },
     "ribosomal_RNA" : {
         "bowtie2" : "http://huttenhower.sph.harvard.edu/kneadData_databases/SILVA_128_LSUParc_SSUParc_ribosomal_RNA_v0.1.tar.gz"
+    },
+    "mouse_C57BL" : {
+        "bowtie2" : "http://huttenhower.sph.harvard.edu/kneadData_databases/mouse_C57BL_6NJ_Bowtie2_v0.1.tar.gz"
     }
 }
 
