@@ -786,3 +786,38 @@ def fastq_to_fasta(file, new_file):
     file_handle_read.close()
 
     return new_file    
+
+def write_read_count_table(output, reads):
+    """
+    Write the table of read counts for all samples
+    """
+
+    with open(output, "w") as file_handle:
+        # get the headers from all of the samples
+        headers=set()
+        for sample, counts in reads.items():
+            headers.update(counts.keys())
+        # order the headers
+        header_order=[]
+        for column in ["raw","trimmed","decontaminated","final"]:
+            order=sorted(list(filter(lambda x: x.startswith(column),headers)))
+            
+            # sort by paired then orphan, if present
+            paired=list(filter(lambda x: "pair" in x, order))
+            if paired:
+                header_order+=paired
+                orphan=list(filter(lambda x: "orphan" in x, order))
+                header_order+=orphan
+            else:
+                header_order+=order
+        
+        file_handle.write("\t".join(["Sample"]+header_order)+"\n")
+        for sample in sorted(reads.keys()):
+            new_line=[sample]
+            for column in header_order:
+                try:
+                    counts=reads[sample][column]
+                except KeyError:
+                    counts="NA"
+                new_line.append(counts)
+            file_handle.write("\t".join(new_line)+"\n")
