@@ -126,8 +126,8 @@ def main():
                 sample_name=os.path.basename(line.rstrip().split()[-3]).split(".")[0]
                 if not sample_name in reads:
                     reads[sample_name]={}
-                reads[sample_name]["raw pair1"]=int(read_count)/2.0
-                reads[sample_name]["raw pair2"]=int(read_count)/2.0
+                reads[sample_name]["raw pair1"]=int(read_count)/2
+                reads[sample_name]["raw pair2"]=int(read_count)/2
     
     # get the counts for the trimmed files
     for file in trimmed_fastq:
