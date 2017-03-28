@@ -820,4 +820,4 @@ def write_read_count_table(output, reads):
                 except KeyError:
                     counts="NA"
                 new_line.append(counts)
-            file_handle.write("\t".join(new_line)+"\n")
+            file_handle.write("\t".join([str(i) for i in new_line])+"\n")
