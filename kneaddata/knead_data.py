@@ -397,6 +397,10 @@ def main():
         message="Your input file is of type: "+file_format+". Please provide an input file of fastq format."
         logger.critical(message)
         sys.exit(message)
+    
+    # if this is the new illumina identifier format, create temp files after reformatting the headers
+    for index in range(len(args.input)):
+        args.input[index]=utilities.get_reformatted_identifiers(args.input[index],args.output_dir, temp_output_files)
         
     # set trimmomatic options
     # this is done after the decompression and conversions from sam/bam
