@@ -414,7 +414,7 @@ def main():
         args.trimmomatic_options = utilities.get_default_trimmomatic_options(utilities.get_read_length_fastq(args.input[0]))
 
     # Get the number of reads initially
-    utilities.log_read_count_for_files(args.input,"raw"," Initial number of reads",args.verbose)
+    utilities.log_read_count_for_files(args.input,"raw","Initial number of reads",args.verbose)
     
     # Run fastqc if set to run at end of workflow
     if args.fastqc_start:
