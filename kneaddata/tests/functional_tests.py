@@ -112,7 +112,7 @@ class TestFunctionalKneadData(unittest.TestCase):
         
         # run kneaddata test
         command = ["kneaddata","--input",cfg.fastq_file,"--input",cfg.fastq_file,
-                   "--output",tempdir,"--reference-db",cfg.bowtie2_db_folder]
+                   "--output",tempdir,"--reference-db",cfg.bowtie2_db_folder,"--no-discordant"]
         utils.run_kneaddata(command)
         
         # get the basename of the input file
@@ -154,7 +154,7 @@ class TestFunctionalKneadData(unittest.TestCase):
         # run kneaddata test
         command = ["kneaddata","--input",cfg.fastq_file,"--input",cfg.fastq_file,
                    "--output",tempdir,"--reference-db",cfg.bowtie2_db_folder,
-                   "--reference-db",cfg.bowtie2_db_folder]
+                   "--reference-db",cfg.bowtie2_db_folder,"--no-discordant"]
         utils.run_kneaddata(command)
         
         # get the basename of the input file
@@ -179,6 +179,85 @@ class TestFunctionalKneadData(unittest.TestCase):
         # check there are only three files in the output folder
         actual_output_files=os.listdir(tempdir)
         self.assertEqual(len(actual_output_files), len(expected_output_files))
+
+        # remove the temp directory
+        utils.remove_temp_folder(tempdir)
+        
+    def test_trimmomatic_bowtie2_paired_end_remove_intermedite_temp_output_discordant(self):
+        """
+        Test running the default flow of trimmomatic on paired end input with one
+        bowtie2 database provided
+        Test running with remove intermediate temp output files
+        Test with discordant alignments
+        """
+        
+        # create a temp directory for output
+        tempdir = tempfile.mkdtemp(suffix="test_kneaddata_")
+        
+        # run kneaddata test
+        command = ["kneaddata","--input",cfg.fastq_file,"--input",cfg.fastq_pair_file,
+                   "--output",tempdir,"--reference-db",cfg.bowtie2_db_folder,
+                   "--reference-db",cfg.bowtie2_db_folder]
+        utils.run_kneaddata(command)
+        
+        # get the basename of the input file
+        basename=basename=utils.file_basename(cfg.fastq_file)
+        filtered_file_basename=utils.get_filtered_file_basename(basename,cfg.bowtie2_db_folder,"bowtie2")
+        
+        expected_non_empty_output_files=[basename+cfg.log_extension,
+                               basename+cfg.paired_trim_extensions[0],
+                               basename+cfg.paired_trim_extensions[1],
+                               basename+cfg.final_extensions_paired[0],
+                               basename+cfg.final_extensions_paired[1]]
+        
+        # check the output files are as expected
+        for expression, message in utils.check_output(expected_non_empty_output_files, tempdir):
+            self.assertTrue(expression,message)
+          
+        # check there are the expected number of files in the output folder
+        actual_output_files=list(filter(os.path.getsize,[os.path.join(tempdir,file) for file in os.listdir(tempdir)]))
+        self.assertEqual(len(actual_output_files), len(expected_non_empty_output_files))
+
+        # remove the temp directory
+        utils.remove_temp_folder(tempdir)
+        
+    def test_trimmomatic_bowtie2_paired_end_remove_intermedite_temp_output_discordant_trf(self):
+        """
+        Test running the default flow of trimmomatic on paired end input with one
+        bowtie2 database provided
+        Test running with remove intermediate temp output files
+        Test with discordant alignments
+        Test with TRF
+        """
+        
+        # create a temp directory for output
+        tempdir = tempfile.mkdtemp(suffix="test_kneaddata_")
+        
+        # run kneaddata test
+        command = ["kneaddata","--input",cfg.fastq_file,"--input",cfg.fastq_pair_file,
+                   "--output",tempdir,"--reference-db",cfg.bowtie2_db_folder,
+                   "--reference-db",cfg.bowtie2_db_folder, "--run-trf"]
+        utils.run_kneaddata(command)
+        
+        # get the basename of the input file
+        basename=basename=utils.file_basename(cfg.fastq_file)
+        filtered_file_basename=utils.get_filtered_file_basename(basename,cfg.bowtie2_db_folder,"bowtie2")
+        
+        expected_non_empty_output_files=[basename+cfg.log_extension,
+                               basename+cfg.paired_trim_extensions[0],
+                               basename+cfg.paired_trim_extensions[1],
+                               basename+cfg.final_extensions_paired[0],
+                               basename+cfg.final_extensions_paired[1],
+                               basename+cfg.paired_repeats_removed_extensions[0],
+                               basename+cfg.paired_repeats_removed_extensions[1]]
+        
+        # check the output files are as expected
+        for expression, message in utils.check_output(expected_non_empty_output_files, tempdir):
+            self.assertTrue(expression,message)
+          
+        # check there are the expected number of files in the output folder
+        actual_output_files=list(filter(os.path.getsize,[os.path.join(tempdir,file) for file in os.listdir(tempdir)]))
+        self.assertEqual(len(actual_output_files), len(expected_non_empty_output_files))
 
         # remove the temp directory
         utils.remove_temp_folder(tempdir)
@@ -232,7 +311,7 @@ class TestFunctionalKneadData(unittest.TestCase):
         
         # run kneaddata test
         command = ["kneaddata","--input",cfg.fastq_file,"--input",cfg.fastq_file,
-                   "--output",tempdir,"--reference-db",cfg.bowtie2_db_folder,"--run-trf"]
+                   "--output",tempdir,"--reference-db",cfg.bowtie2_db_folder,"--run-trf","--no-discordant"]
         utils.run_kneaddata(command)
         
         # get the basename of the input file
@@ -368,7 +447,7 @@ class TestFunctionalKneadData(unittest.TestCase):
         
         # run kneaddata test
         command = ["kneaddata","--input",cfg.fastq_file,"--input",cfg.fastq_file,
-                   "--output",tempdir,"--reference-db",cfg.bowtie2_db_folder,"--bypass-trim"]
+                   "--output",tempdir,"--reference-db",cfg.bowtie2_db_folder,"--bypass-trim","--no-discordant"]
         utils.run_kneaddata(command)
         
         # get the basename of the input file

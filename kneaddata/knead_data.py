@@ -201,6 +201,14 @@ def parse_arguments(args):
         "--bowtie2-options",
         action="append",
         help="options for bowtie2\n[ DEFAULT : "+ " ".join(config.bowtie2_options)+" ]")
+    group3.add_argument(
+        "--no-discordant",
+        action="store_true",
+        help="do not include discordant alignments for pairs (ie one of the two pairs aligns)\n[ DEFAULT : Discordant alignments are included ]")
+    group3.add_argument(
+        "--reorder",
+        action="store_true",
+        help="order the sequences in the same order as the input\n[ DEFAULT : With discordant paired alignments sequences are not ordered ]")
         
     group4 = parser.add_argument_group("bmtagger arguments")
     group4.add_argument(
