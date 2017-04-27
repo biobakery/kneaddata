@@ -225,7 +225,7 @@ def check_sequence_identifier_format(file):
     new_format=False
     all_lines=read_file_n_lines(file,4)
     first_lines=next(all_lines)
-    if " 1:" in first_lines[0] or " 2:" in first_lines[0]:
+    if (" 1:" in first_lines[0] or " 2:" in first_lines[0]) and len(first_lines[0].split(":")) == 10:
         new_format=True
             
     return new_format
@@ -250,9 +250,9 @@ def get_reformatted_identifiers(file, output_folder, temp_file_list):
     for lines in read_file_n_lines(file,4):
         # reformat the identifier and write to temp file
         if " 1:" in lines[0]:
-            lines[0]=lines[0].replace(" 1","").rstrip()+"/1\n"
+            lines[0]=lines[0].replace(" 1","").rstrip()+"#0/1\n"
         elif " 2:" in lines[0]:
-            lines[0]=lines[0].replace(" 2","").rstrip()+"/2\n"
+            lines[0]=lines[0].replace(" 2","").rstrip()+"#0/2\n"
         else:
             lines[0]=lines[0].replace(" ","")
         os.write(file_out, "".join(lines))
