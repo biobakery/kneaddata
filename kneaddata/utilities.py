@@ -469,7 +469,7 @@ def get_file_types(files,type,database_names):
                     break
     
     if not file_types:
-        file_types=["single"]  
+        file_types=["single"]*len(files)  
         
     return file_types
 
