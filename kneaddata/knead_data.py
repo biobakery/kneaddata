@@ -206,6 +206,10 @@ def parse_arguments(args):
         action="store_true",
         help="do not include discordant alignments for pairs (ie one of the two pairs aligns)\n[ DEFAULT : Discordant alignments are included ]")
     group3.add_argument(
+        "--cat-pairs",
+        action="store_true",
+        help="concatenate pair files before aligning so reads are aligned as single end\n[ DEFAULT : paired reads are aligned as pairs ]")
+    group3.add_argument(
         "--reorder",
         action="store_true",
         help="order the sequences in the same order as the input\n[ DEFAULT : With discordant paired alignments sequences are not ordered ]")
