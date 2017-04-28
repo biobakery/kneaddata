@@ -523,7 +523,7 @@ def decontaminate(args, output_prefix, files_to_align):
     
     # if running bowtie2 with discordant and pairs, run all reads at once
     if not args.bmtagger and not args.no_discordant and isinstance(files_to_align[0], list) and len(files_to_align[0]) == 2:
-        alignment_output_files = align([files_to_align[0][0],files_to_align[0][1]]+files_to_align[2:], args.reference_db, output_prefix, 
+        alignment_output_files = align([files_to_align[0][0],files_to_align[0][1]]+files_to_align[1:], args.reference_db, output_prefix, 
             args.remove_temp_output, args.bowtie2_path, args.threads,
             args.processes, args.bowtie2_options, args.verbose, no_discordant=True, cat_pairs=args.cat_pairs, reorder=args.reorder)
         output_files=alignment_output_files
