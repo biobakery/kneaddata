@@ -46,7 +46,7 @@ try:
 except ImportError:
     from urllib import urlretrieve
 
-VERSION="0.5.4"
+VERSION="0.5.5"
 AUTHOR = "KneadData Development Team"
 AUTHOR_EMAIL = "kneaddata-users@googlegroups.com"
 
