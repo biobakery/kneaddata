@@ -159,13 +159,15 @@ def organize_alignments_as_paired(sam,open_files,counts):
             flag=int(data[1])
             
             # check for the pair information
-            pair1=True
-            if flag & 128:
-                pair1=False
-            elif data[0].endswith("2"):
-                # the orphan reads do not have pair information
-                # so need to check the read identifier for pair information
-                pair1=False
+            pair1=False
+            if flag & 1:
+                if flag & 64:
+                    pair1=True
+            else:
+                if data[0].endswith("1"):
+                    # the orphan reads do not have pair information
+                    # so need to check the read identifier for pair information
+                    pair1=True
 
             # check if the read aligned
             aligned=True
