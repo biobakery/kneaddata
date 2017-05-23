@@ -1,6 +1,18 @@
 
 # KneadData History #
 
+## v0.5.6 05-23-2017
+
+* A new option "--serial" allows for alignments to be processed in a sequential manner. The clean reads from aligning to the first reference database will be used as input to the second database. The input/outputs will chain until all databases have been processed. This differs from the default mode which will run the same input files through each database, in parallel if the "--processes N" option is set to more than one.
+
+## v0.5.5 05-01-2017 ##
+
+* By default alignments for paired input files now include discordant alignments. To restrict these alignments and only allow concordant alignments (which was the default in prior versions) add the option "--no-discordant".
+* A new option "--cat-pairs" allows for alignments of paired end reads as single end (ignoring pair identifiers). This differs from the default alignment mode as the default mode will first align as pairs and then as single end if no concordant alignments are identified.
+* A new option "--reorder" which can be used with discordant alignments will reorder the clean fastq files to the same order as the original input files.
+* If new illumina sequence identifiers are found, they are replaced with identifiers similar to the original format to maintain pair identification with alignments.
+* A mouse bowtie2 database is now available for download.
+
 ## v0.5.4 12-15-2016 ##
 
 ### New Features ###
