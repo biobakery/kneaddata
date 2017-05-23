@@ -30,7 +30,6 @@ import shutil
 import logging
 import itertools
 import subprocess
-from functools import partial
 import gzip
 import tempfile
 
@@ -55,7 +54,8 @@ def fastqc(fastqc_path, output_dir, input_files, threads, verbose):
 
 
 def align(infile_list, db_prefix_list, output_prefix, remove_temp_output,
-          bowtie2_path, threads, processors, bowtie2_opts, verbose, no_discordant=None, cat_pairs=None, reorder=None):
+          bowtie2_path, threads, processors, bowtie2_opts, verbose, 
+          no_discordant=None, cat_pairs=None, reorder=None, serial=None):
     """ Runs bowtie2 on a single-end sequence file or a paired-end set of files. 
     For each input file set and database provided, a bowtie2 command is generated and run."""
 
@@ -76,6 +76,18 @@ def align(infile_list, db_prefix_list, output_prefix, remove_temp_output,
         output_str = output_prefix + "_" + basename + "_bowtie2"
         cmd = bowtie2_command + ["-x", fullpath]
         if no_discordant:
+            # if running in serial mode, use the last set of outputs as input
+            if serial and all_outputs_to_combine[0]:
+                current_infile_list=[all_outputs_to_combine[0][-1][-2],all_outputs_to_combine[0][-1][-1]]
+                # check for orphans from the prior filter run
+                if all_outputs_to_combine[1]:
+                    current_infile_list.append(all_outputs_to_combine[1][-1][0])
+                    
+                if all_outputs_to_combine[2]:
+                    current_infile_list.append(all_outputs_to_combine[2][-1][0])
+            else:
+                current_infile_list=infile_list
+            
             # run the pairs allowing for all alignments (including those generating orphans)
             cmd=["kneaddata_bowtie2_discordant_pairs","--bowtie2",bowtie2_path,"--threads", str(threads),"-x",fullpath]
             
@@ -88,7 +100,7 @@ def align(infile_list, db_prefix_list, output_prefix, remove_temp_output,
             
             # add the input and output files for the pairs
             pair_output_str = output_str + "_paired"
-            cmd += ["-1", infile_list[0], "-2", infile_list[1],
+            cmd += ["-1", current_infile_list[0], "-2", current_infile_list[1],
                     "--un-pair", pair_output_str + "_clean_%" + config.fastq_file_extension]
             cmd+=["--al-pair", pair_output_str + "_contam_%" + config.fastq_file_extension]
             
@@ -101,8 +113,8 @@ def align(infile_list, db_prefix_list, output_prefix, remove_temp_output,
             
             # add the orphan input and output files
             single_output_str = output_str + "_unmatched_%"
-            if len(infile_list) > 2:
-                cmd+=["-U", ",".join(infile_list[2:])]
+            if len(current_infile_list) > 2:
+                cmd+=["-U", ",".join(current_infile_list[2:])]
             cmd+=["--un-single", single_output_str + "_clean" + config.fastq_file_extension]
             cmd+=["--al-single", single_output_str + "_contam" + config.fastq_file_extension]
             
@@ -119,8 +131,12 @@ def align(infile_list, db_prefix_list, output_prefix, remove_temp_output,
             database_names[2]+=[basename]
                             
         elif is_paired:
-            cmd += ["-1", infile_list[0], "-2", infile_list[1],
-                    "--un-conc", output_str + "_clean_%" + config.fastq_file_extension]
+            if serial and all_outputs_to_combine:
+            # if running in serial mode, take the last set of output files as inputs
+                cmd += ["-1", all_outputs_to_combine[-1][-2], "-2", all_outputs_to_combine[-1][-1]]
+            else:
+                cmd += ["-1", infile_list[0], "-2", infile_list[1]]
+            cmd+= ["--un-conc", output_str + "_clean_%" + config.fastq_file_extension]
             cmd+=["--al-conc", output_str + "_contam_%" + config.fastq_file_extension]
             all_contaminated_outputs.append(output_str + "_contam_1" + config.fastq_file_extension)
             all_contaminated_outputs.append(output_str + "_contam_2" + config.fastq_file_extension)
@@ -130,7 +146,12 @@ def align(infile_list, db_prefix_list, output_prefix, remove_temp_output,
             database_names+=[basename,basename]
 
         else:
-            cmd += ["-U", infile_list[0],"--un", output_str + "_clean" + config.fastq_file_extension]
+            # if running in serial mode, take the last output file as input
+            if serial and all_outputs_to_combine:
+                cmd += ["-U", all_outputs_to_combine[-1][0]]
+            else:
+                cmd += ["-U", infile_list[0]]
+            cmd += ["--un", output_str + "_clean" + config.fastq_file_extension]
             cmd+=["--al", output_str + "_contam" + config.fastq_file_extension]
             all_contaminated_outputs.append(output_str + "_contam" + config.fastq_file_extension)
             outputs_to_combine = [output_str + "_clean" + config.fastq_file_extension]
@@ -523,9 +544,10 @@ def decontaminate(args, output_prefix, files_to_align):
     
     # if running bowtie2 with discordant and pairs, run all reads at once
     if not args.bmtagger and not args.no_discordant and isinstance(files_to_align[0], list) and len(files_to_align[0]) == 2:
-        alignment_output_files = align([files_to_align[0][0],files_to_align[0][1]]+utilities.resolve_sublists(files_to_align[1:]), args.reference_db, output_prefix, 
-            args.remove_temp_output, args.bowtie2_path, args.threads,
-            args.processes, args.bowtie2_options, args.verbose, no_discordant=True, cat_pairs=args.cat_pairs, reorder=args.reorder)
+        alignment_output_files = align([files_to_align[0][0],files_to_align[0][1]]+utilities.resolve_sublists(files_to_align[1:]), 
+            args.reference_db, output_prefix, args.remove_temp_output, args.bowtie2_path, args.threads,
+            args.processes, args.bowtie2_options, args.verbose, no_discordant=True, 
+            cat_pairs=args.cat_pairs, reorder=args.reorder, serial=args.serial)
         output_files=alignment_output_files
     else:
         for files_list in files_to_align:
@@ -543,7 +565,7 @@ def decontaminate(args, output_prefix, files_to_align):
             else:
                 alignment_output_files = align(files_list, args.reference_db, prefix, 
                                args.remove_temp_output, args.bowtie2_path, args.threads,
-                               args.processes, args.bowtie2_options, args.verbose)
+                               args.processes, args.bowtie2_options, args.verbose, serial=args.serial)
                     
             output_files.append(alignment_output_files)
     

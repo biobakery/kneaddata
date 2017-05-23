@@ -213,6 +213,10 @@ def parse_arguments(args):
         "--reorder",
         action="store_true",
         help="order the sequences in the same order as the input\n[ DEFAULT : With discordant paired alignments sequences are not ordered ]")
+    group3.add_argument(
+        "--serial",
+        action="store_true",
+        help="filter the input in serial for multiple databases so a subset of reads are processed in each database search")
         
     group4 = parser.add_argument_group("bmtagger arguments")
     group4.add_argument(
