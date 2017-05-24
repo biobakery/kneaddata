@@ -360,14 +360,21 @@ def _prefix_bases(db_prefix_list):
     """
     # sort by basename, but keep full path
     bases = sorted([ (os.path.basename(p), p) for p in db_prefix_list ], 
-            key = lambda x: x[0])
+        key = lambda x: x[0])
+    
+    processed=set()
+    # check for databases with the same basename
     for name, group in itertools.groupby(bases, key=lambda x: x[0]):
         group = list(group)
         if len(group) > 1:
             for i, item in enumerate(group):
                 yield ("%s_%i"%(item[0], i), item[1])
-        else:
-            yield (group[0][0], group[0][1])
+                processed.add(item[1])
+    
+    # return all databases with unique basenames in the original order
+    for file in db_prefix_list:
+        if not file in processed:
+            yield os.path.basename(file), file
 
 def trim(infiles, outfiles_prefix, trimmomatic_path, quality_scores, 
          java_memory, additional_options, threads, verbose):

@@ -176,9 +176,9 @@ class TestFunctionalKneadData(unittest.TestCase):
         expected_output_files+=[filtered_file_basename+cfg.paired_contaminated_extension[0],
                                filtered_file_basename+cfg.paired_contaminated_extension[1]]
           
-        # check there are only three files in the output folder
+        # check there are at least the main expected files in the output folder
         actual_output_files=os.listdir(tempdir)
-        self.assertEqual(len(actual_output_files), len(expected_output_files))
+        self.assertGreater(len(actual_output_files), len(expected_output_files))
 
         # remove the temp directory
         utils.remove_temp_folder(tempdir)
@@ -218,9 +218,9 @@ class TestFunctionalKneadData(unittest.TestCase):
         expected_output_files+=[filtered_file_basename+cfg.paired_contaminated_extension[0],
                                filtered_file_basename+cfg.paired_contaminated_extension[1]]
           
-        # check there are only three files in the output folder
+        # check there are at least the main expected files in the output folder
         actual_output_files=os.listdir(tempdir)
-        self.assertEqual(len(actual_output_files), len(expected_output_files))
+        self.assertGreater(len(actual_output_files), len(expected_output_files))
 
         # remove the temp directory
         utils.remove_temp_folder(tempdir)

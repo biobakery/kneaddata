@@ -347,14 +347,14 @@ def update_configuration(args):
     # find the bowtie2 indexes for each of the reference databases
     # reference database inputs can be directories, indexes, or index files
     if args.reference_db:
-        reference_indexes=set()
+        reference_indexes=[]
         database_type="bowtie2"
         if args.bmtagger:
             database_type="bmtagger"
         for directory in args.reference_db:
-            reference_indexes.add(utilities.find_database_index(os.path.abspath(directory),database_type))
+            reference_indexes.append(utilities.find_database_index(os.path.abspath(directory),database_type))
     
-        args.reference_db=list(reference_indexes)
+        args.reference_db=reference_indexes
     
     return args
 
