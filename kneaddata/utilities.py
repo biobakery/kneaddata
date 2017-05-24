@@ -461,6 +461,8 @@ def get_file_types(files,type,database_names):
                 file_types.append(db_name+" orphan1")
             elif "_unmatched_2" in basename:
                 file_types.append(db_name+" orphan2")
+            else:
+                file_types.append(db_name+" single")
     elif type == "final":
         for file in files:
             for ending, name in config.final_file_types.items():
