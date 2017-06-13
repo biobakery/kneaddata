@@ -165,6 +165,10 @@ def parse_arguments(args):
         action="store_true",
         help="store temp output files\n[ DEFAULT : temp output files are removed ]")
     group1.add_argument(
+        "--remove-intermediate-output",
+        action="store_true",
+        help="remove intermediate output files\n[ DEFAULT : intermediate output files are stored ]")
+    group1.add_argument(
         "--cat-final-output",
         action="store_true",
         help="concatenate all final output files\n[ DEFAULT : final output is not concatenated ]")
@@ -280,6 +284,10 @@ def update_configuration(args):
     
     # set if temp output should be removed
     args.remove_temp_output = not args.store_temp_output
+    
+    # if intermediate output should be removed, then also remove temp output
+    if args.remove_intermediate_output:
+        args.remove_temp_output = True
     
     # check the input files are non-empty and readable
     args.input[0] = os.path.abspath(args.input[0])
@@ -461,6 +469,10 @@ def main():
     else:
         alignment_output_files=run.decontaminate(args, full_path_output_prefix, trimmomatic_output_files)
         
+        # remove trimmed output files, if set to remove intermediate output
+        if not args.bypass_trim and args.remove_intermediate_output:
+            temp_output_files+=utilities.resolve_sublists(trimmomatic_output_files)
+        
     # run TRF, if set
     if args.trf:
         # run trf on all output files
@@ -468,8 +480,23 @@ def main():
                                       args.mismatch,args.delta,args.pm,args.pi,
                                       args.minscore,args.maxperiod,args.trf_path,
                                       args.processes,args.verbose,args.remove_temp_output)
+        # remove the aligment files, if intermediate output files should be removed
+        if args.reference_db and args.remove_intermediate_output:
+            temp_output_files+=utilities.resolve_sublists(alignment_output_files)
     else:
         final_output_files = utilities.resolve_sublists(alignment_output_files)
+        
+    # If set, concat the final output files if there is more than one
+    if args.cat_final_output and len(final_output_files) > 1:
+        cat_output_file=full_path_output_prefix+config.fastq_file_extension
+        utilities.cat_files(final_output_files,cat_output_file)
+        
+        # if removing intermediate output, then remove the files that were merged
+        if args.remove_intermediate_output:
+            temp_output_files+=final_output_files
+            final_output_files=[cat_output_file]
+        else:
+            final_output_files.append(cat_output_file)
         
     # Remove any temp output files, if set
     if not args.store_temp_output:
@@ -479,12 +506,6 @@ def main():
     # Run fastqc if set to run at end of workflow
     if args.fastqc_end:
         run.fastqc(args.fastqc_path, args.output_dir, final_output_files, args.threads, args.verbose)
-
-    # If set, concat the final output files if there is more than one
-    if args.cat_final_output and len(final_output_files) > 1:
-        cat_output_file=full_path_output_prefix+config.fastq_file_extension
-        utilities.cat_files(final_output_files,cat_output_file)
-        final_output_files.append(cat_output_file)
 
     if len(final_output_files) > 1:
         message="\nFinal output files created: \n"

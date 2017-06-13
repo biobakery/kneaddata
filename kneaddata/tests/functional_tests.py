@@ -411,6 +411,41 @@ class TestFunctionalKneadData(unittest.TestCase):
         # remove the temp directory
         utils.remove_temp_folder(tempdir)
         
+    def test_trimmomatic_bowtie2_paired_end_remove_intermediate_output_discordant_cat_pairs(self):
+        """
+        Test running the default flow of trimmomatic on paired end input with one
+        bowtie2 database provided
+        Test running with remove intermediate output files
+        Test with discordant alignments
+        Test with pairs run as single end
+        Test with cat pairs
+        Test with cat final output
+        """
+        
+        # create a temp directory for output
+        tempdir = tempfile.mkdtemp(suffix="test_kneaddata_")
+        
+        # run kneaddata test
+        command = ["kneaddata","--input",cfg.fastq_file,"--input",cfg.fastq_pair_file,
+                   "--output",tempdir,"--reference-db",cfg.bowtie2_db_folder,
+                   "--reference-db",cfg.bowtie2_db_folder,"--cat-pairs",
+                   "--remove-intermediate-output","--cat-final-output"]
+
+        utils.run_kneaddata(command)
+        
+        # get the basename of the input file
+        basename=basename=utils.file_basename(cfg.fastq_file)
+        filtered_file_basename=utils.get_filtered_file_basename(basename,cfg.bowtie2_db_folder,"bowtie2")
+        
+        expected_non_empty_output_files=[basename+cfg.log_extension, basename+cfg.final_extension]
+        
+        # check the output files are as expected
+        for expression, message in utils.check_output(expected_non_empty_output_files, tempdir):
+            self.assertTrue(expression,message)
+
+        # remove the temp directory
+        utils.remove_temp_folder(tempdir)
+        
     def test_trimmomatic_bowtie2_paired_end_remove_intermedite_temp_output_discordant_cat_pairs_trf(self):
         """
         Test running the default flow of trimmomatic on paired end input with one
