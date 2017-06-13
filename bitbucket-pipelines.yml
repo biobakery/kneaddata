@@ -1,0 +1,16 @@
+# This configuration creates two custom test pipelines.
+
+pipelines:
+  custom:
+    test-py2:
+      - step:
+          image: python:2.7
+          script:
+            - python setup.py install
+            - kneaddata_test
+    test-py3:
+      - step:
+          image: python:3.5
+          script:
+            - python setup.py install
+            - kneaddata_test
