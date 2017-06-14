@@ -6,6 +6,7 @@ pipelines:
       - step:
           image: continuumio/anaconda
           script:
+            - apt-get install -y openjdk-7-jre
             - conda config --add channels conda-forge
             - conda config --add channels defaults
             - conda config --add channels r
@@ -19,6 +20,7 @@ pipelines:
       - step:
           image: continuumio/anaconda
           script:
+            - apt-get install -y openjdk-7-jre
             - conda config --add channels conda-forge
             - conda config --add channels defaults
             - conda config --add channels r
