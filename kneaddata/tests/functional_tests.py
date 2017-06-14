@@ -10,7 +10,7 @@ import utils
 
 
 def skipIfExeNotFound(exe):
-    if isinstance(exe,basestring):
+    if isinstance(exe,str):
         exe=[exe]
     if all([utilities.find_exe_in_path(requires, bypass_permissions_check=True) for requires in exe]):
         return lambda func: func
