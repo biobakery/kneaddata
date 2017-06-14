@@ -4,13 +4,27 @@ pipelines:
   custom:
     test-py2:
       - step:
-          image: python:2.7
+          image: continuumio/anaconda
           script:
+            - conda config --add channels conda-forge
+            - conda config --add channels defaults
+            - conda config --add channels r
+            - conda config --add channels bioconda
+            - conda create --name test -y
+            - source activate test
+            - conda install trf samtools -y
             - python setup.py install
             - kneaddata_test
     test-py3:
       - step:
-          image: python:3.5
+          image: continuumio/anaconda
           script:
+            - conda config --add channels conda-forge
+            - conda config --add channels defaults
+            - conda config --add channels r
+            - conda config --add channels bioconda
+            - conda create --name test -y python=3
+            - source activate test
+            - conda install trf samtools -y
             - python setup.py install
             - kneaddata_test
