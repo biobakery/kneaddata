@@ -2,15 +2,26 @@ import unittest
 import tempfile
 import os
 
+from kneaddata import utilities
+from kneaddata import config
+
 import cfg
 import utils
 
+
+def skipIfExeNotFound(exe):
+    if isinstance(exe,basestring):
+        exe=[exe]
+    if all([utilities.find_exe_in_path(requires, bypass_permissions_check=True) for requires in exe]):
+        return lambda func: func
+    return unittest.skip("{} is not installed so test is skipped".format(",".join(exe)))
 
 class TestFunctionalKneadData(unittest.TestCase):
     """
     Test KneadData workflows
     """
     
+    @skipIfExeNotFound(config.trimmomatic_jar)
     def test_trimmomatic_only_no_reference_database_single_end(self):
         """
         Test running the default flow of trimmomatic on single end input as no
@@ -38,6 +49,7 @@ class TestFunctionalKneadData(unittest.TestCase):
         # remove the temp directory
         utils.remove_temp_folder(tempdir)
         
+    @skipIfExeNotFound(config.trimmomatic_jar)
     def test_trimmomatic_only_no_reference_database_paired_end(self):
         """
         Test running the default flow of trimmomatic on paired end input as no
@@ -66,6 +78,7 @@ class TestFunctionalKneadData(unittest.TestCase):
         # remove the temp directory
         utils.remove_temp_folder(tempdir)
         
+    @skipIfExeNotFound([config.trimmomatic_jar, config.bowtie2_exe])
     def test_trimmomatic_bowtie2_database_single_end(self):
         """
         Test running the default flow of trimmomatic on single end input with
@@ -100,6 +113,7 @@ class TestFunctionalKneadData(unittest.TestCase):
         # remove the temp directory
         utils.remove_temp_folder(tempdir)
         
+    @skipIfExeNotFound([config.trimmomatic_jar, config.bowtie2_exe])
     def test_trimmomatic_bowtie2_database_paired_end_remove_intermedite_temp_output(self):
         """
         Test running the default flow of trimmomatic on paired end input with a
@@ -141,6 +155,7 @@ class TestFunctionalKneadData(unittest.TestCase):
         # remove the temp directory
         utils.remove_temp_folder(tempdir)
 
+    @skipIfExeNotFound([config.trimmomatic_jar, config.bowtie2_exe])
     def test_trimmomatic_bowtie2_two_databases_paired_end_remove_intermedite_temp_output(self):
         """
         Test running the default flow of trimmomatic on paired end input with two
@@ -183,6 +198,7 @@ class TestFunctionalKneadData(unittest.TestCase):
         # remove the temp directory
         utils.remove_temp_folder(tempdir)
 
+    @skipIfExeNotFound([config.trimmomatic_jar, config.bowtie2_exe])
     def test_trimmomatic_bowtie2_two_databases_paired_end_serial(self):
         """
         Test running the default flow of trimmomatic on paired end input with two
@@ -225,6 +241,7 @@ class TestFunctionalKneadData(unittest.TestCase):
         # remove the temp directory
         utils.remove_temp_folder(tempdir)
 
+    @skipIfExeNotFound([config.trimmomatic_jar, config.bowtie2_exe])
     def test_trimmomatic_bowtie2_two_databases_paired_end_serial_discordant(self):
         """
         Test running the default flow of trimmomatic on paired end input with two
@@ -259,6 +276,7 @@ class TestFunctionalKneadData(unittest.TestCase):
         # remove the temp directory
         utils.remove_temp_folder(tempdir)
         
+    @skipIfExeNotFound([config.trimmomatic_jar, config.bowtie2_exe])
     def test_trimmomatic_bowtie2_two_databases_paired_end_serial_discordant_concat(self):
         """
         Test running the default flow of trimmomatic on paired end input with two
@@ -293,6 +311,7 @@ class TestFunctionalKneadData(unittest.TestCase):
         # remove the temp directory
         utils.remove_temp_folder(tempdir)
         
+    @skipIfExeNotFound([config.trimmomatic_jar, config.bowtie2_exe])
     def test_trimmomatic_bowtie2_paired_end_remove_intermedite_temp_output_discordant(self):
         """
         Test running the default flow of trimmomatic on paired end input with one
@@ -331,6 +350,7 @@ class TestFunctionalKneadData(unittest.TestCase):
         # remove the temp directory
         utils.remove_temp_folder(tempdir)
         
+    @skipIfExeNotFound([config.trimmomatic_jar, config.bowtie2_exe, config.trf_exe])
     def test_trimmomatic_bowtie2_paired_end_remove_intermedite_temp_output_discordant_trf(self):
         """
         Test running the default flow of trimmomatic on paired end input with one
@@ -372,6 +392,7 @@ class TestFunctionalKneadData(unittest.TestCase):
         # remove the temp directory
         utils.remove_temp_folder(tempdir)
         
+    @skipIfExeNotFound([config.trimmomatic_jar, config.bowtie2_exe])
     def test_trimmomatic_bowtie2_paired_end_remove_intermedite_temp_output_discordant_cat_pairs(self):
         """
         Test running the default flow of trimmomatic on paired end input with one
@@ -411,6 +432,7 @@ class TestFunctionalKneadData(unittest.TestCase):
         # remove the temp directory
         utils.remove_temp_folder(tempdir)
         
+    @skipIfExeNotFound([config.trimmomatic_jar, config.bowtie2_exe])
     def test_trimmomatic_bowtie2_paired_end_remove_intermediate_output_discordant_cat_pairs(self):
         """
         Test running the default flow of trimmomatic on paired end input with one
@@ -446,6 +468,7 @@ class TestFunctionalKneadData(unittest.TestCase):
         # remove the temp directory
         utils.remove_temp_folder(tempdir)
         
+    @skipIfExeNotFound([config.trimmomatic_jar, config.bowtie2_exe])
     def test_trimmomatic_bowtie2_paired_end_remove_intermedite_temp_output_discordant_cat_pairs_trf(self):
         """
         Test running the default flow of trimmomatic on paired end input with one
@@ -488,6 +511,7 @@ class TestFunctionalKneadData(unittest.TestCase):
         # remove the temp directory
         utils.remove_temp_folder(tempdir)
 
+    @skipIfExeNotFound([config.trimmomatic_jar, config.bowtie2_exe, config.trf_exe])
     def test_trimmomatic_bowtie2_database_and_trf_single_end(self):
         """
         Test running the default flow of trimmomatic on single end input with
@@ -524,6 +548,7 @@ class TestFunctionalKneadData(unittest.TestCase):
         # remove the temp directory
         utils.remove_temp_folder(tempdir)
         
+    @skipIfExeNotFound([config.trimmomatic_jar, config.bowtie2_exe, config.trf_exe])
     def test_trimmomatic_bowtie2_database_and_trf_paired_end_remove_intermedite_temp_output(self):
         """
         Test running the default flow of trimmomatic on paired end input with a
@@ -568,6 +593,7 @@ class TestFunctionalKneadData(unittest.TestCase):
         # remove the temp directory
         utils.remove_temp_folder(tempdir)
         
+    @skipIfExeNotFound([config.trimmomatic_jar, config.trf_exe])
     def test_trimmomatic_and_trf_no_reference_database_single_end(self):
         """
         Test running the default flow of trimmomatic on single end input as no
@@ -597,6 +623,7 @@ class TestFunctionalKneadData(unittest.TestCase):
         # remove the temp directory
         utils.remove_temp_folder(tempdir)
         
+    @skipIfExeNotFound([config.trimmomatic_jar, config.trf_exe])
     def test_trimmomatic_and_trf_no_reference_database_paired_end(self):
         """
         Test running the default flow of trimmomatic on paired end input as no
@@ -628,6 +655,7 @@ class TestFunctionalKneadData(unittest.TestCase):
         # remove the temp directory
         utils.remove_temp_folder(tempdir)
 
+    @skipIfExeNotFound(config.bowtie2_exe)
     def test_bowtie2_only_single_end(self):
         """
         Test on single end input with bowtie2 database provided
@@ -661,6 +689,7 @@ class TestFunctionalKneadData(unittest.TestCase):
         # remove the temp directory
         utils.remove_temp_folder(tempdir)
         
+    @skipIfExeNotFound(config.bowtie2_exe)
     def test_bowtie2_only_paired_end_remove_intermedite_temp_output(self):
         """
         Test running the default flow of trimmomatic on paired end input with a
@@ -700,6 +729,7 @@ class TestFunctionalKneadData(unittest.TestCase):
         # remove the temp directory
         utils.remove_temp_folder(tempdir)
 
+    @skipIfExeNotFound(config.trf_exe)
     def test_trf_only_single_end(self):
         """
         Test running trf only on single end input
@@ -726,6 +756,7 @@ class TestFunctionalKneadData(unittest.TestCase):
         # remove the temp directory
         utils.remove_temp_folder(tempdir)
         
+    @skipIfExeNotFound(config.trf_exe)
     def test_trf_only_paired_end(self):
         """
         Test running only trf on paired end input
@@ -753,6 +784,7 @@ class TestFunctionalKneadData(unittest.TestCase):
         # remove the temp directory
         utils.remove_temp_folder(tempdir)
         
+    @skipIfExeNotFound([config.trimmomatic_jar, config.bowtie2_exe, config.trf_exe])
     def test_trimmomatic_bowtie2_database_and_trf_single_end_gzipped_input(self):
         """
         Test running the default flow of trimmomatic on single end input with
@@ -791,6 +823,7 @@ class TestFunctionalKneadData(unittest.TestCase):
         # remove the temp directory
         utils.remove_temp_folder(tempdir)
         
+    @skipIfExeNotFound([config.trimmomatic_jar, config.bowtie2_exe, config.trf_exe, config.samtools_exe])
     def test_trimmomatic_bowtie2_database_and_trf_single_end_bam_input(self):
         """
         Test running the default flow of trimmomatic on single end input with
@@ -830,6 +863,7 @@ class TestFunctionalKneadData(unittest.TestCase):
         # remove the temp directory
         utils.remove_temp_folder(tempdir)
         
+    @skipIfExeNotFound([config.trimmomatic_jar, config.bowtie2_exe, config.trf_exe])
     def test_trimmomatic_bowtie2_database_and_trf_single_end_sam_input(self):
         """
         Test running the default flow of trimmomatic on single end input with
@@ -868,6 +902,7 @@ class TestFunctionalKneadData(unittest.TestCase):
         # remove the temp directory
         utils.remove_temp_folder(tempdir)
         
+    @skipIfExeNotFound([config.trimmomatic_jar, config.fastqc_exe])
     def test_trimmomatic_fastqc_start_no_reference_database_single_end(self):
         """
         Test running the default flow of trimmomatic on single end input as no
@@ -898,6 +933,7 @@ class TestFunctionalKneadData(unittest.TestCase):
         # remove the temp directory
         utils.remove_temp_folder(tempdir)
         
+    @skipIfExeNotFound([config.trimmomatic_jar, config.fastqc_exe])
     def test_trimmomatic_fastqc_start_no_reference_database_paired_end(self):
         """
         Test running the default flow of trimmomatic on paired end input as no
@@ -929,6 +965,7 @@ class TestFunctionalKneadData(unittest.TestCase):
         # remove the temp directory
         utils.remove_temp_folder(tempdir)
         
+    @skipIfExeNotFound([config.trimmomatic_jar, config.bowtie2_exe, config.fastqc_exe])
     def test_trimmomatic_bowtie2_database_fastqc_end_single_end(self):
         """
         Test running the default flow of trimmomatic on single end input with

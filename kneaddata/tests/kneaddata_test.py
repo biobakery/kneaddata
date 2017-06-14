@@ -43,7 +43,7 @@ if not pass_check:
 def check_dependency(exe,bypass_permissions_check=None):
     """ Check the dependency can be found """
     if not utilities.find_exe_in_path(exe, bypass_permissions_check):
-        sys.exit("ERROR: Unable to find "+exe+". Please install.")
+        print("Warning: Unable to find "+exe+". Tests requiring this tool will be skipped.")
 
 import argparse
 
@@ -76,7 +76,6 @@ def main():
     if not args.bypass_functional_tests:
         check_dependency(config.trimmomatic_jar,bypass_permissions_check=True)
         check_dependency(config.bowtie2_exe)
-        check_dependency(config.bmtagger_exe)
         check_dependency(config.trf_exe)
         check_dependency(config.samtools_exe)
         check_dependency(config.fastqc_exe)
