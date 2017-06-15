@@ -1,6 +1,10 @@
 
 # KneadData History #
 
+## v0.6.1 06-14-2017
+
+* A new option "--remove-intermediate-output" allows for the removal of output files that were generated during the workflow. This option is helpful in reducing the total size of products generated which can be large for many samples.
+
 ## v0.6.0 05-24-2017
 
 * A new option "--serial" allows for alignments to be processed in a sequential manner. The clean reads from aligning to the first reference database will be used as input to the second database. The input/outputs will chain until all databases have been processed. Databases will be run in the same order as they are provided on the command line. This differs from the default mode which will run the same input files through each database, in parallel if the "--processes N" option is set to more than one.
