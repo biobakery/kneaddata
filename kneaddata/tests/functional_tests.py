@@ -846,8 +846,8 @@ class TestFunctionalKneadData(unittest.TestCase):
         basename=utils.file_basename(cfg.file_bam)
         filtered_file_basename=utils.get_filtered_file_basename(basename,cfg.bowtie2_db_folder,"bowtie2")
         
-        expected_output_files=[basename+".fastq",
-                               basename+".sam",
+        expected_output_files=[basename+"_decompressed.fastq",
+                               basename+"_decompressed.sam",
                                basename+cfg.log_extension,
                                basename+cfg.single_trim_extension,
                                filtered_file_basename+cfg.clean_extension,
@@ -886,7 +886,7 @@ class TestFunctionalKneadData(unittest.TestCase):
         basename=utils.file_basename(cfg.file_sam)
         filtered_file_basename=utils.get_filtered_file_basename(basename,cfg.bowtie2_db_folder,"bowtie2")
         
-        expected_output_files=[basename+".fastq",
+        expected_output_files=[basename+"_decompressed.fastq",
                                basename+cfg.log_extension,
                                basename+cfg.single_trim_extension,
                                filtered_file_basename+cfg.clean_extension,

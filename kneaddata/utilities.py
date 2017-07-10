@@ -288,7 +288,7 @@ def get_sam_from_bam_file(file, output_folder, temp_file_list):
         if not find_exe_in_path(config.samtools_exe):
             sys.exit("CRITICAL ERROR: The samtools executable can not be found. "
             "Please check the install or select another input format.")
-        new_file=os.path.join(output_folder,file_without_extension(file)+".sam")
+        new_file=os.path.join(output_folder,file_without_extension(file)+"_decompressed"+".sam")
         bam_to_sam(file,new_file)
         temp_file_list.append(new_file)
     else:
@@ -332,7 +332,10 @@ def get_fastq_from_sam_file(file, output_folder, temp_file_list):
     """ Check if a file is sam, if so create a fastq file """
     
     if file.endswith(".sam"):
-        new_file=os.path.join(output_folder,file_without_extension(file)+config.fastq_file_extension)
+        new_basename=file_without_extension(file)
+        if not "decompressed" in new_basename:
+            new_basename+="_decompressed"
+        new_file=os.path.join(output_folder,new_basename+config.fastq_file_extension)
         sam_to_fastq(file,new_file)
         temp_file_list.append(new_file)
     else:
