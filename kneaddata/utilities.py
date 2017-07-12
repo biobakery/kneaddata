@@ -148,7 +148,7 @@ def run_command(command,command_name,infiles,outfiles,stdout_file,verbose,exit_o
     except (EnvironmentError, subprocess.CalledProcessError) as e:
         message="Error executing: " + " ".join(command) + "\n"
         if hasattr(e, 'output') and e.output:
-            message+="\nError message returned from " + command_name + " :\n" + e.output
+            message+="\nError message returned from " + command_name + " :\n" + e.output.decode("utf-8")
         logger.critical(message)
         log_system_status()
         if exit_on_error:
@@ -246,18 +246,18 @@ def get_reformatted_identifiers(file, output_folder, temp_file_list):
     
     file_out, new_file=tempfile.mkstemp(prefix="reformatted_identifiers",
         suffix="_"+file_without_extension(file), dir=output_folder)
-    
-    for lines in read_file_n_lines(file,4):
-        # reformat the identifier and write to temp file
-        if " 1:" in lines[0]:
-            lines[0]=lines[0].replace(" 1","").rstrip()+"#0/1\n"
-        elif " 2:" in lines[0]:
-            lines[0]=lines[0].replace(" 2","").rstrip()+"#0/2\n"
-        else:
-            lines[0]=lines[0].replace(" ","")
-        os.write(file_out, "".join(lines))
-        
     os.close(file_out)
+    
+    with open(new_file, "wt") as file_handle:
+        for lines in read_file_n_lines(file,4):
+            # reformat the identifier and write to temp file
+            if " 1:" in lines[0]:
+                lines[0]=lines[0].replace(" 1","").rstrip()+"#0/1\n"
+            elif " 2:" in lines[0]:
+                lines[0]=lines[0].replace(" 2","").rstrip()+"#0/2\n"
+            else:
+                lines[0]=lines[0].replace(" ","")
+            file_handle.write("".join(lines))
     
     # add the new file to the list of temp files
     temp_file_list.append(new_file)

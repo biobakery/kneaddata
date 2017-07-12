@@ -46,7 +46,11 @@ except ImportError:
     sys.exit("Please install kneaddata")
     
 def reverse_complement(sequence):
-    table=string.maketrans("ATCG","TAGC")
+    try:
+        table=string.maketrans("ATCG","TAGC")
+    except AttributeError:
+        # allow for python3 in which maketrans is from str class
+        table=str.maketrans("ATCG","TAGC")
     return sequence.translate(table)[::-1]
 
 def parse_arguments(args):
