@@ -435,7 +435,8 @@ def main():
     else:
         # if not set by user, then set to default options
         # use read length of input file for minlen
-        args.trimmomatic_options = utilities.get_default_trimmomatic_options(utilities.get_read_length_fastq(args.input[0]))
+        args.trimmomatic_options = utilities.get_default_trimmomatic_options(utilities.get_read_length_fastq(args.input[0]),
+            path=config.trimmomatic_adapter_folder,type="PE" if len(args.input) == 2 else "SE")
 
     # Get the number of reads initially
     utilities.log_read_count_for_files(args.input,"raw","Initial number of reads",args.verbose)

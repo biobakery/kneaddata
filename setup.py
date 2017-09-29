@@ -284,6 +284,24 @@ def install_trimmomatic(final_install_folder, mac_os, replace_install=None):
     else:
         print("Found Trimmomatic install at "+trimmomatic_installed)
 
+def install_trimmomatic_adapters():
+    """ Download and install the files required for trimming adapters """
+
+    pe_url = "https://github.com/timflutre/trimmomatic/blob/master/adapters/TruSeq3-PE.fa"
+    se_url = "https://github.com/timflutre/trimmomatic/blob/master/adapters/TruSeq3-SE.fa"
+
+    install_dir=os.path.join(os.path.dirname(os.path.realpath(__file__)),"kneaddata","adapters")
+    if not os.path.isdir(install_dir):
+        os.makedirs(install_dir)
+
+    for url in [pe_url, se_url]:
+        url_file = os.path.join(install_dir,os.path.basename(url))
+        if not os.path.isfile(url_file):
+            download(url, url_file)
+
+# needs to run prior to install so data is copied 
+install_trimmomatic_adapters()
+
 class Install(_install):
     """
     Custom setuptools install command
@@ -310,7 +328,7 @@ class Install(_install):
                   " since the global PyPI download stats are currently turned off.")
             download(COUNTER_URL,counter_file)
         _install.run(self)
-                    
+
         # find out the platform
         mac_os=False
         if sys.platform in ["darwin","os2","os2emx"]:
@@ -344,7 +362,8 @@ setuptools.setup(
     package_data={
         'kneaddata' : [
             'tests/data/*.*',
-            'tests/data/demo_bowtie2_db/*'
+            'tests/data/demo_bowtie2_db/*',
+            'adapters/*'
         ]},
     zip_safe=False,
     classifiers=[

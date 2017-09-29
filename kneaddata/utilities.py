@@ -759,7 +759,7 @@ def get_read_length_fastq(file):
     
     return len(sequence.rstrip())
 
-def get_default_trimmomatic_options(read_length=None):
+def get_default_trimmomatic_options(read_length=None, path="", type="SE"):
     """ Get the default trimmomatic options """
     
     if not read_length:
@@ -768,7 +768,8 @@ def get_default_trimmomatic_options(read_length=None):
     # have the minlen equal to a percent of the read length
     minlen=int(read_length*(config.trimmomatic_min_len_percent/100.0))
     
-    return [config.trimmomatic_slidingwindow_option,
+    return [config.trimmomatic_trim_adapters_option.replace("$PATH",path).replace("$TYPE",type),
+            config.trimmomatic_slidingwindow_option,
             config.trimmomatic_minlen_option_tag+config.trimmomatic_option_delimiter+str(minlen)]
     
 def cat_files(files,output_file):
