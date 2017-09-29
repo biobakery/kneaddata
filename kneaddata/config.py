@@ -22,6 +22,8 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
+import os
+
 # Default settings for command line arguments
 threads=1
 processes=1
@@ -31,9 +33,11 @@ log_level=log_level_choices[0]
 
 bmtagger_exe="bmtagger.sh"
 
+trimmomatic_adapter_folder=os.path.join(os.path.dirname(os.path.abspath(__file__)),"adapters")
 trimmomatic_jar="trimmomatic*.jar"
 trimmomatic_memory="500m"
 trimmomatic_flag_start="-"
+trimmomatic_trim_adapters_option="ILLUMINACLIP:$PATH/TruSeq3-$TYPE.fa:2:30:10"
 trimmomatic_slidingwindow_option="SLIDINGWINDOW:4:20"
 trimmomatic_minlen_option_tag="MINLEN"
 trimmomatic_option_delimiter=":"
