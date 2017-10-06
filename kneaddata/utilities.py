@@ -767,8 +767,14 @@ def get_default_trimmomatic_options(read_length=None, path="", type="SE"):
         
     # have the minlen equal to a percent of the read length
     minlen=int(read_length*(config.trimmomatic_min_len_percent/100.0))
-    
-    return [config.trimmomatic_trim_adapters_option.replace("$PATH",path).replace("$TYPE",type),
+   
+    # determine adapters based on type
+    if type == "PE":
+        adapter_settings = config.trimmomatic_trim_adapters_option_pe.replace("$PATH",path)
+    else:
+        adapter_settings = config.trimmomatic_trim_adapters_option_se.replace("$PATH",path)
+ 
+    return [adapter_settings,
             config.trimmomatic_slidingwindow_option,
             config.trimmomatic_minlen_option_tag+config.trimmomatic_option_delimiter+str(minlen)]
     
