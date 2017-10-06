@@ -287,8 +287,8 @@ def install_trimmomatic(final_install_folder, mac_os, replace_install=None):
 def install_trimmomatic_adapters():
     """ Download and install the files required for trimming adapters """
 
-    pe_url = "https://github.com/timflutre/trimmomatic/blob/master/adapters/NexteraPE-PE.fa"
-    se_url = "https://github.com/timflutre/trimmomatic/blob/master/adapters/TruSeq3-SE.fa"
+    pe_url = "https://raw.githubusercontent.com/timflutre/trimmomatic/master/adapters/NexteraPE-PE.fa"
+    se_url = "https://raw.githubusercontent.com/timflutre/trimmomatic/master/adapters/TruSeq3-SE.fa"
 
     install_dir=os.path.join(os.path.dirname(os.path.realpath(__file__)),"kneaddata","adapters")
     if not os.path.isdir(install_dir):
