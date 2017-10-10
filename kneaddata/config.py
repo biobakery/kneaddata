@@ -42,7 +42,7 @@ trimmomatic_trim_adapters_option_pe="ILLUMINACLIP:$PATH/NexteraPE-PE.fa:2:30:10"
 trimmomatic_slidingwindow_option="SLIDINGWINDOW:4:20"
 trimmomatic_minlen_option_tag="MINLEN"
 trimmomatic_option_delimiter=":"
-trimmomatic_min_len_percent=70
+trimmomatic_min_len_percent=50
 default_read_length=100
 
 # quality score flags for trimmomatic and bowtie2
