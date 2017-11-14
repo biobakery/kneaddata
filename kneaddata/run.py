@@ -55,7 +55,7 @@ def fastqc(fastqc_path, output_dir, input_files, threads, verbose):
 
 def align(infile_list, db_prefix_list, output_prefix, remove_temp_output,
           bowtie2_path, threads, processors, bowtie2_opts, verbose, 
-          no_discordant=None, cat_pairs=None, reorder=None, serial=None):
+          no_discordant=None, reorder=None, serial=None):
     """ Runs bowtie2 on a single-end sequence file or a paired-end set of files. 
     For each input file set and database provided, a bowtie2 command is generated and run."""
 
@@ -90,10 +90,6 @@ def align(infile_list, db_prefix_list, output_prefix, remove_temp_output,
             
             # run the pairs allowing for all alignments (including those generating orphans)
             cmd=["kneaddata_bowtie2_discordant_pairs","--bowtie2",bowtie2_path,"--threads", str(threads),"-x",fullpath]
-            
-            # if pairs are to be run as single end, add the option to the command
-            if cat_pairs:
-                cmd+=["--cat-pairs"]
             
             if bowtie2_opts:
                 cmd+=["--bowtie2-options","\""+" ".join(bowtie2_opts)+"\""]
@@ -554,7 +550,7 @@ def decontaminate(args, output_prefix, files_to_align):
         alignment_output_files = align([files_to_align[0][0],files_to_align[0][1]]+utilities.resolve_sublists(files_to_align[1:]), 
             args.reference_db, output_prefix, args.remove_temp_output, args.bowtie2_path, args.threads,
             args.processes, args.bowtie2_options, args.verbose, no_discordant=True, 
-            cat_pairs=args.cat_pairs, reorder=args.reorder, serial=args.serial)
+            reorder=args.reorder, serial=args.serial)
         output_files=alignment_output_files
     else:
         for files_list in files_to_align:
