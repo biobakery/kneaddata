@@ -1,6 +1,13 @@
 
 # KneadData History #
 
+## v0.7.0 11-14-2017
+
+* Adapter trimming has been added to the Trimmomatic step by default.
+* The paired default mode of concordant plus discordant alignment has been removed and replaced with discordant alignment. An evaluation of these two modes found they are relatively the same (reads filtered differed by at most 1%) and the concordant plus discordant mode is not supported in newer versions of bowtie2. Concordant only alignments is still an option available for paired end reads.
+* The default min length percent has been reduced from 70% to 50% for the Trimmomatic step.
+* Newer functions (like reformat identifiers and discordant pairs) have been modified to fix error messages when running with python3.
+
 ## v0.6.1 06-14-2017
 
 * A new option "--remove-intermediate-output" allows for the removal of output files that were generated during the workflow. This option is helpful in reducing the total size of products generated which can be large for many samples.
