@@ -225,7 +225,7 @@ def check_sequence_identifier_format(file):
     new_format=False
     all_lines=read_file_n_lines(file,4)
     first_lines=next(all_lines)
-    if (" 1:" in first_lines[0] or " 2:" in first_lines[0]) and len(first_lines[0].split(":")) == 10:
+    if (" 1:" in first_lines[0] or " 2:" in first_lines[0]) and len(first_lines[0].split(":")) >= 7:
         new_format=True
             
     return new_format
