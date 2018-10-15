@@ -1,6 +1,10 @@
 
 # KneadData History #
 
+## v0.7.1 10-15-2018
+
+* Relax criteria for detecting new Illumina sequence identifier to include ids that are truncated to at least 7 tokens of colon-delimited information.
+
 ## v0.7.0 11-14-2017
 
 * Adapter trimming has been added to the Trimmomatic step by default.
