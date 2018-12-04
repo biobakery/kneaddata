@@ -1,6 +1,10 @@
 
 # KneadData History #
 
+## v0.7.2 12-04-2018
+
+* Remove extra java option in trimmomatic call allowing for compatibility with the latest java versions.
+
 ## v0.7.1 10-15-2018
 
 * Relax criteria for detecting new Illumina sequence identifier to include ids that are truncated to at least 7 tokens of colon-delimited information.
