@@ -378,7 +378,7 @@ def trim(infiles, outfiles_prefix, trimmomatic_path, quality_scores,
     Returns a list of the output files.
     """
 
-    command = ["java", "-Xmx" + java_memory, "-d64", "-jar", trimmomatic_path]
+    command = ["java", "-Xmx" + java_memory, "-jar", trimmomatic_path]
 
     # determine if paired end input files
     paired_end=False
