@@ -530,7 +530,7 @@ def tandem(input_files, output_prefix, match, mismatch, delta, pm, pi, minscore,
             
         output_files+=output_fastq_files
         
-    return output_fastq_files
+    return output_files
         
 def decontaminate(args, output_prefix, files_to_align):
     """
