@@ -485,11 +485,17 @@ def tandem(input_files, output_prefix, match, mismatch, delta, pm, pi, minscore,
     trf_args = list(map(str, [match, mismatch, delta, pm, pi, minscore, maxperiod]))
 
     output_files=[]
+    pairs=False
+    unmatched=1
     output_prefix+=".repeats.removed"
     for input_fastq_files in input_files:
         # Get the names for the output files
         if len(input_fastq_files) > 1:
+            pairs=True
             output_fastq_files = [output_prefix + "." + str(i) + config.fastq_file_extension for i in range(1,len(input_fastq_files)+1)]
+        elif pairs:
+            output_fastq_files = [output_prefix + ".unmatched." + str(unmatched) + config.fastq_file_extension]
+            unmatched+=1
         else:
             output_fastq_files = [output_prefix + config.fastq_file_extension]
         
