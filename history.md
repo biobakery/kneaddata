@@ -1,6 +1,11 @@
 
 # KneadData History #
 
+## v0.7.3 10-16-2019
+
+* Fix merge final file with run trf and concat pairs as prior just included orphans (used with workflow).
+* Update to download new human database (hg37).
+
 ## v0.7.2 12-04-2018
 
 * Remove extra java option in trimmomatic call allowing for compatibility with the latest java versions.
