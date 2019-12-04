@@ -29,6 +29,7 @@ import shlex
 import logging
 import tempfile
 import gzip
+import bz2
 import re
 import subprocess
 import itertools
@@ -218,6 +219,28 @@ def format_options_to_list(input_options):
         
     return formatted_options_list
 
+def bunzip2_file(bz2_file, new_file):
+    """ Return a new copy of the decompressed file """
+
+    
+    try:
+        decompress_function=bz2.open
+    except AttributeError:
+        decompress_function=bz2.BZ2File
+
+    message="Decompressing bzipped2 file ..."
+    print(message+"\n")
+    logger.info(message)    
+
+    with open(new_file,"w") as file_write:
+        with decompress_function(bz2_file) as file_read:
+            for line in file_read:
+                file_write.write(line)
+
+    logger.info("Decompressed file created: " + new_file)
+
+    return new_file
+
 def gunzip_file(gzip_file, new_file):
     """
     Return a new copy of the file that is not gzipped
@@ -252,11 +275,14 @@ def file_without_extension(file):
 def get_decompressed_file(file, output_folder, temp_file_list):
     """ Check if a file is compressed, if so decompress """
     
-    if file.endswith(".gz"):
+    if file.endswith(".gz") or file.endswith(".bz2"):
         file_out, new_file=tempfile.mkstemp(prefix="decompressed_", 
             suffix="_"+file_without_extension(file), dir=output_folder)
         os.close(file_out)
-        gunzip_file(file,new_file)
+        if file.endswith(".gz"):
+            gunzip_file(file,new_file)
+        else:
+            bunzip2_file(file,new_file)
         temp_file_list.append(new_file)
     else:
         new_file=file

@@ -341,7 +341,7 @@ def update_configuration(args):
 
     # set the default output prefix 
     if args.output_prefix == None:
-        if args.input[0].endswith(".gz"):
+        if args.input[0].endswith(".gz") or args.input[0].endswith(".bz2"):
             # remove compression extension if present
             infile_base = os.path.splitext(os.path.splitext(os.path.basename(args.input[0]))[0])[0]
         else:
