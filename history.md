@@ -1,6 +1,11 @@
 
 # KneadData History #
 
+## v0.7.4 12-04-2019
+
+* Check for order of pairs if trimmomatic is run and reorder if needed (trimmomatic requires ordered pairs).
+* Allow for bz2 input files.
+
 ## v0.7.3 10-16-2019
 
 * Fix merge final file with run trf and concat pairs as prior just included orphans (used with workflow).
