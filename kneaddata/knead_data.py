@@ -421,7 +421,11 @@ def main():
     # if this is the new illumina identifier format, create temp files after reformatting the headers
     for index in range(len(args.input)):
         args.input[index]=utilities.get_reformatted_identifiers(args.input[index],args.output_dir, temp_output_files)
-        
+    
+    # check for reads that are not ordered and order if needed (if trimmomatic is run)
+    if not args.bypass_trim and len(args.input)==2:
+        args.input=utilities.check_and_reorder_reads(args.input, args.output_dir, temp_output_files)
+    
     # set trimmomatic options
     # this is done after the decompression and conversions from sam/bam
     # as the default requires the read length from the input sequences

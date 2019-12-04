@@ -42,6 +42,51 @@ from kneaddata import config
 # name global logging instance
 logger=logging.getLogger(__name__)
 
+def get_read_id_minus_pair(sequence_id_line):
+    return sequence_id_line.rstrip()[:-1]
+
+def check_and_reorder_reads(input_files, output_folder, temp_output_files):
+    """ Check if reads are ordered and if not reorder """
+
+    # read in the ids from the first pair
+    ids = []
+    for lines in read_file_n_lines(input_files[0],4):
+        ids.append(get_read_id_minus_pair(lines[0]))
+
+    mismatch=False
+    for lines, pair_id in zip(read_file_n_lines(input_files[1],4), ids):
+        if not get_read_id_minus_pair(lines[0]) == pair_id:
+            mismatch=True
+            break
+
+    # reorder the pairs to match
+    if mismatch:
+        message="Reordering read identifiers ..."
+        print(message+"\n")
+        logger.info(message)
+
+        for index, infile in enumerate(input_files):
+            file_out, new_file=tempfile.mkstemp(prefix="reordered_",
+                suffix="_"+file_without_extension(infile), dir=output_folder)
+            os.close(file_out)
+
+            # read in all of the sequences then sort and write out
+            ids={}
+            for lines in read_file_n_lines(infile,4):
+                id=get_read_id_minus_pair(lines[0])
+                ids[id]=lines
+
+            with open(new_file,"w") as file_handle:
+                for id in sorted(ids.keys()):
+                    file_handle.write("".join(ids[id]))
+
+            # set the input file to the reordered temp file
+            input_files[index]=new_file
+            # add the temp file to the list to be removed at the end of the run
+            temp_output_files.append(new_file)
+
+    return input_files
+
 def create_directory(directory):
     """ Try to create a directory if it does not exist """
     if not os.path.exists(directory):
