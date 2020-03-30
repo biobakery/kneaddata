@@ -80,20 +80,37 @@ def download_tar_and_extract_with_progress_messages(url, filename, folder):
     """
     Download the file at the url
     """
-    
-    print("Download URL: " + url) 
+    # check for local file
+    local_file = False
+    if os.path.isfile(url):
+        local_file = True   
+ 
+    if not local_file:
+        print("Download URL: " + url) 
 
     try:
-        url_handle = urlretrieve(url, filename, reporthook=ReportHook().report)
-            
+        if not local_file:
+            url_handle = urlretrieve(url, filename, reporthook=ReportHook().report)
+        else:
+            filename = url    
         print("\nExtracting: " + filename)
         tarfile_handle=tarfile.open(filename)
         tarfile_handle.extractall(path=folder)
     except (EnvironmentError, tarfile.ReadError):
-        sys.exit("CRITICAL ERROR: Unable to download and extract from URL: " + url)
+        if local_file:
+            sys.exit("CRITICAL ERROR: Unable to extract from local file: " + url)
+        else:
+            sys.exit("CRITICAL ERROR: Unable to download and extract from URL: " + url)
 
+def check_user_database(original, user):
+    """ Check that the user database is of the expected version """
 
-def download_database(database, build, location):
+    if original.split("/")[-1] == user.split("/")[-1]:
+        return True
+    else:
+        sys.exit("The user database selected does not match that expected: "+original.split("/")[-1])
+
+def download_database(database, build, location, database_location):
     """
     Download and decompress the selected database
     """
@@ -102,14 +119,20 @@ def download_database(database, build, location):
         if build in current_downloads[database]:
             # download the database
             downloaded_file=os.path.join(location,current_downloads[database][build].split('/')[-1])
-            download_tar_and_extract_with_progress_messages(current_downloads[database][build], 
-                downloaded_file, location)
+            if database_location:
+                check_user_database(current_downloads[database][build],database_location)
+                download_tar_and_extract_with_progress_messages(database_location,
+                    downloaded_file, location)
+            else:
+                download_tar_and_extract_with_progress_messages(current_downloads[database][build], 
+                    downloaded_file, location)
             
-            # remove the download
-            try:
-                os.unlink(downloaded_file)
-            except EnvironmentError:
-                print("Unable to remove file: " + downloaded_file)
+            # remove the download (if not a local file provided by the user)
+            if not database_location or (database_location and not os.path.isfile(database_location)):
+                try:
+                    os.unlink(downloaded_file)
+                except EnvironmentError:
+                    print("Unable to remove file: " + downloaded_file)
             
             print("Database installed: " + location + "\n")
         else:
@@ -135,6 +158,9 @@ def parse_arguments(args):
         nargs=3,
         metavar=("<database>","<build>","<install_location>"),
         help="download the selected database to the install location\n")
+    parser.add_argument(
+        "--database-location",
+        help="location (local or remote) to pull the database")
     
     return parser.parse_args()
 
@@ -156,7 +182,7 @@ def main():
             except EnvironmentError:
                 sys.exit("CRITICAL ERROR: Unable to create directory: " + location)
         
-        install_location=download_database(database,build,location)
+        install_location=download_database(database,build,location,args.database_location)
     
     if args.available or not args.download:
         # print the available databases
