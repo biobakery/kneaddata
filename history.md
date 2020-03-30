@@ -1,6 +1,10 @@
 
 # KneadData History #
 
+## v0.7.5 03-30-2020
+
+* Add option for user to provide the database location (local or remote) with version check.
+
 ## v0.7.4 12-04-2019
 
 * Check for order of pairs if trimmomatic is run and reorder if needed (trimmomatic requires ordered pairs).
