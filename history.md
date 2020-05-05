@@ -1,6 +1,10 @@
 
 # KneadData History #
 
+## v0.7.6 05-05-2020
+
+* Add trf install to setup.
+
 ## v0.7.5 03-30-2020
 
 * Add option for user to provide the database location (local or remote) with version check.
