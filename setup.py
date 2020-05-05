@@ -50,8 +50,6 @@ VERSION="0.7.5"
 AUTHOR = "KneadData Development Team"
 AUTHOR_EMAIL = "kneaddata-users@googlegroups.com"
 
-COUNTER_URL="http://bitbucket.org/biobakery/kneaddata/downloads/counter.txt"
-
 setup_directory = os.path.abspath(os.path.dirname(__file__))
 
 def byte_to_megabyte(byte):
@@ -238,6 +236,29 @@ def install_bowtie2(final_install_folder, mac_os, replace_install=None):
             print("Installed bowtie2 at "+final_install_folder)
     else:
         print("Found bowtie2 install at "+bowtie2_installed)
+
+def install_trf(final_install_folder, mac_os):
+    """ Download and install trf """
+
+    trf_exe = "trf"
+
+    if mac_os:
+        url = "http://tandem.bu.edu/trf/downloads/trf409.macosx"
+    else:
+        url = "http://tandem.bu.edu/trf/downloads/trf409.linux64"
+
+    download_file = os.path.join(final_install_folder, trf_exe)
+    download(url, download_file)
+    error = False
+    try:
+        os.chmod(download_file, 0o755)
+    except EnvironmentError:
+        error = True
+
+    if error:        
+        print("ERROR: Unable to install TRF")
+    else:
+        print("TRF installed at "+download_file)
         
 def install_trimmomatic(final_install_folder, mac_os, replace_install=None):
     """ Download and install Trimmomatic if not already installed
@@ -318,15 +339,6 @@ class Install(_install):
         _install.finalize_options(self)
     
     def run(self):
-        # try to download the bitbucket counter file to count downloads
-        # this has been added since PyPI has turned off the download stats
-        # this will be removed when PyPI Warehouse is production as it
-        # will have download stats
-        counter_file="counter.txt"
-        if not os.path.isfile(counter_file):
-            print("Downloading counter file to track kneadddata downloads"+
-                  " since the global PyPI download stats are currently turned off.")
-            download(COUNTER_URL,counter_file)
         _install.run(self)
 
         # find out the platform
@@ -338,6 +350,7 @@ class Install(_install):
         if not self.bypass_dependencies_install:
             install_trimmomatic(self.install_scripts,mac_os,replace_install=False)
             install_bowtie2(self.install_scripts,mac_os,replace_install=False)
+            install_trf(self.install_scripts,mac_os)
         else:
             print("Bypass install of dependencies.")
 
