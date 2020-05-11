@@ -57,9 +57,9 @@ Option 2: Development Version
 
 * Create a clone of the repository:
 
-    `` $ hg clone https://bitbucket.org/biobakery/kneaddata ``
+    `` $ git clone https://github.com/biobakery/kneaddata.git ``
 
-    Note: Creating a clone of the repository requires [Mercurial](http://mercurial.selenic.com/) to be installed. Once the clone is created you can always update to the latest version of the repository with `` $ hg pull --update ``.
+    Note: Creating a clone of the repository requires [Git](https://git-scm.com/) to be installed.
 
 ### Install KneadData ###
 
