@@ -1,4 +1,6 @@
-syntax: glob
+.vscode
+.pyc
+.*\.egg-info.*
 *.out
 *.swp*
 *.fastq
@@ -18,6 +20,3 @@ syntax: glob
 tags
 env
 Trimmomatic*
-
-syntax: regexp
-.*\.egg-info.*

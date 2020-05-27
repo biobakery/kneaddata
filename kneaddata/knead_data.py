@@ -195,6 +195,13 @@ def parse_arguments(args):
         action="append",
         help="options for trimmomatic\n[ DEFAULT : "+" ".join(utilities.get_default_trimmomatic_options())+" ]\n"+\
              "MINLEN is set to "+str(config.trimmomatic_min_len_percent)+" percent of total input read length")
+    group2.add_argument(
+        "-ca",
+        "--cut-adapters",
+        dest='cut_adapters',
+        default=False,
+        action="store_true",
+        help="options to cut the adapters (if found) after running trimmomatic")
 
     group3 = parser.add_argument_group("bowtie2 arguments")
     group3.add_argument(
@@ -335,7 +342,7 @@ def update_configuration(args):
             "--trf", bypass_permissions_check=False)
         
     # if fastqc is set to be run, check if the executable can be found
-    if args.fastqc_start or args.fastqc_end:
+    if args.fastqc_start or args.fastqc_end or args.cut_adapters:
         args.fastqc_path=utilities.find_dependency(args.fastqc_path,config.fastqc_exe,"fastqc",
                                                    "--fastqc",bypass_permissions_check=False)
 
@@ -442,11 +449,27 @@ def main():
     utilities.log_read_count_for_files(args.input,"raw","Initial number of reads",args.verbose)
     
     # Run fastqc if set to run at end of workflow
-    if args.fastqc_start:
+    if args.fastqc_start or args.cut_adapters:
         run.fastqc(args.fastqc_path, args.output_dir, args.input, args.threads, args.verbose)
-
+        #Setting fastqc output zip and txt file path
+        output_zip = args.output_dir+"/fastqc/"+'_'.join(args.output_prefix.split('_')[:-1])+"_fastqc.zip"
+        output_txt = args.output_dir+"/fastqc/"+'_'.join(args.output_prefix.split('_')[:-1])+"_fastqc/fastqc_data.txt"
+        #Getting all the overrepresented sequences from fastqc .txt file
+        if args.cut_adapters:
+            utilities.unzip_fastqc_directory(output_zip,args.output_dir+'/fastqc')
+            overreq_seq_length = utilities.extract_fastqc_output(output_txt)
+                
     # Run trimmomatic
     if not args.bypass_trim:
+        if args.cut_adapters: 
+            #Calculating the value of trimmomatic option based on overrepresented sequences
+            trimmomatic_parameter = args.trimmomatic_options[0].split('.')
+            adapter_trimming =(int) (overreq_seq_length*0.6)
+            updated_parameter =  ':'.join(trimmomatic_parameter[1].split(':')[:-1])+":"+str(adapter_trimming)
+            
+            #Updating the Global trimmomation_options value
+            args.trimmomatic_options[0]="ILLUMINACLIP:"+config.trimmomatic_adapter_folder+"/custom."+updated_parameter
+            
         trimmomatic_output_files = run.trim(
             args.input, full_path_output_prefix, args.trimmomatic_path, 
             args.trimmomatic_quality_scores, args.max_memory, args.trimmomatic_options, 
