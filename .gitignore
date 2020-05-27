@@ -1,5 +1,10 @@
-.vscode
+.vscode/launch.json
+.vscode/settings.json
+kneaddata.egg-info/PKG-INFO
+kneaddata/__init__.pyc
+kneaddata/config.pyc
 .pyc
+kneaddata/*.pyc
 .*\.egg-info.*
 *.out
 *.swp*
