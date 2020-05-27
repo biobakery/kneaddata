@@ -1,5 +1,10 @@
-.vscode/launch.json
-.vscode/settings.json
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+*.code-workspace
+
 kneaddata.egg-info/PKG-INFO
 kneaddata/__init__.pyc
 kneaddata/config.pyc
