@@ -196,12 +196,12 @@ def parse_arguments(args):
         help="options for trimmomatic\n[ DEFAULT : "+" ".join(utilities.get_default_trimmomatic_options())+" ]\n"+\
              "MINLEN is set to "+str(config.trimmomatic_min_len_percent)+" percent of total input read length")
     group2.add_argument(
-        "-ca",
+        "--cut-adapters",
         "--cut-adapters",
         dest='cut_adapters',
         default=False,
         action="store_true",
-        help="options to cut the adapters (if found) after running trimmomatic")
+        help="options to cut the adapters and overrepresented sequences using automated extraction from FASTQC ")
 
     group3 = parser.add_argument_group("bowtie2 arguments")
     group3.add_argument(
