@@ -991,4 +991,4 @@ def extract_fastqc_output(input):
             print(message)
         line = f.readline()
     f.close()
-    return counter
+    return overreq_seq_length

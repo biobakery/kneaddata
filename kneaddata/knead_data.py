@@ -461,12 +461,11 @@ def main():
                 
     # Run trimmomatic
     if not args.bypass_trim:
-        if args.cut_adapters: 
+        if args.cut_adapters and overreq_seq_length!=0: 
             #Calculating the value of trimmomatic option based on overrepresented sequences
             trimmomatic_parameter = args.trimmomatic_options[0].split('.')
             adapter_trimming =(int) (overreq_seq_length*0.6)
-            updated_parameter =  ':'.join(trimmomatic_parameter[1].split(':')[:-1])+":"+str(adapter_trimming)
-            
+            updated_parameter =  ':'.join(trimmomatic_parameter[-1].split(':')[:-1])+":"+str(adapter_trimming)
             #Updating the Global trimmomation_options value
             args.trimmomatic_options[0]="ILLUMINACLIP:"+config.trimmomatic_adapter_folder+"/custom."+updated_parameter
             
