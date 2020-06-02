@@ -457,18 +457,23 @@ def main():
         #Getting all the overrepresented sequences from fastqc .txt file
         if args.cut_adapters:
             utilities.unzip_fastqc_directory(output_zip,args.output_dir+'/fastqc')
-            overreq_seq_length = utilities.extract_fastqc_output(output_txt)
+            # Get the Max Overrepresented Seq Length
+            overreq_seq_length = utilities.extract_fastqc_output(output_txt, args.output_dir)
                 
     # Run trimmomatic
     if not args.bypass_trim:
         if args.cut_adapters and overreq_seq_length!=0: 
             #Calculating the value of trimmomatic option based on overrepresented sequences
-            trimmomatic_parameter = args.trimmomatic_options[0].split('.')
-            adapter_trimming =(int) (overreq_seq_length*0.6)
-            updated_parameter =  ':'.join(trimmomatic_parameter[-1].split(':')[:-1])+":"+str(adapter_trimming)
-            #Updating the Global trimmomation_options value
-            args.trimmomatic_options[0]="ILLUMINACLIP:"+config.trimmomatic_adapter_folder+"/custom."+updated_parameter
-            
+            i=0
+            for trimmomatic_option in args.trimmomatic_options:
+                if trimmomatic_option.count("ILLUMINACLIP")>0: 
+                    trimmomatic_parameter = trimmomatic_option.split('.')
+                    # Multiplying Max Overrepresented Seq Length with log function(0.6)
+                    adapter_trimming =str(int(overreq_seq_length*0.6))
+                    updated_parameter =  ':'.join(trimmomatic_parameter[-1].split(':')[:-1])+":"+adapter_trimming
+                    #Updating the Global trimmomation_options value
+                    args.trimmomatic_options[i]="ILLUMINACLIP:"+args.output_dir+"/adapters."+updated_parameter
+                i+=1
         trimmomatic_output_files = run.trim(
             args.input, full_path_output_prefix, args.trimmomatic_path, 
             args.trimmomatic_quality_scores, args.max_memory, args.trimmomatic_options, 

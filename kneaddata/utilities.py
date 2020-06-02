@@ -956,7 +956,7 @@ def unzip_fastqc_directory(input,output):
     with ZipFile(input, 'r') as zipObj:
         zipObj.extractall(output)
 
-def extract_fastqc_output(input):
+def extract_fastqc_output(input,output_dir):
     counter=0 
     f = open(input)
     line = f.readline()
@@ -976,7 +976,8 @@ def extract_fastqc_output(input):
                                 
             seq_list= overreq_seq_list[1:-1]
                 
-            fout = open(config.trimmomatic_adapter_folder+"/custom.fa", "w")
+            fout = open(output_dir+"/adapters.fa", "w")
+            overreq_seq_length=0
             for seq in seq_list: 
                 fout.write (">customAdapter"+str(counter)+"\n")
                 fout.write  (seq.split('\t')[0]+"\n")
