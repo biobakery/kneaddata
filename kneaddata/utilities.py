@@ -958,6 +958,7 @@ def unzip_fastqc_directory(input,output):
 
 def extract_fastqc_output(input,output_dir):
     max_overreq_seq_length=0
+    adapter_dir_path=output_dir+"/adapters."
     counter=0 
     f = open(input)
     line = f.readline()
@@ -977,7 +978,7 @@ def extract_fastqc_output(input,output_dir):
                                 
             seq_list= overreq_seq_list[1:-1]
                 
-            fout = open(output_dir+"/adapters.fa", "w")
+            fout = open(adapter_dir_path+"fa", "w")
             overreq_seq_length=0
             for seq in seq_list: 
                 fout.write (">customAdapter"+str(counter)+"\n")
@@ -995,4 +996,4 @@ def extract_fastqc_output(input,output_dir):
             print(message)
         line = f.readline()
     f.close()
-    return max_overreq_seq_length
+    return max_overreq_seq_length,adapter_dir_path
