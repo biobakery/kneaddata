@@ -957,6 +957,7 @@ def unzip_fastqc_directory(input,output):
         zipObj.extractall(output)
 
 def extract_fastqc_output(input,output_dir):
+    max_overreq_seq_length=0
     counter=0 
     f = open(input)
     line = f.readline()
@@ -983,6 +984,8 @@ def extract_fastqc_output(input,output_dir):
                 fout.write  (seq.split('\t')[0]+"\n")
                 #Calculating length of the overrepresentted sequence
                 overreq_seq_length = len(seq.split('\t')[0])
+                if overreq_seq_length>max_overreq_seq_length:
+                    max_overreq_seq_length=overreq_seq_length
                 counter+=1
             fout.close()
         #Logging Adapter Content status
@@ -992,4 +995,4 @@ def extract_fastqc_output(input,output_dir):
             print(message)
         line = f.readline()
     f.close()
-    return overreq_seq_length
+    return max_overreq_seq_length
