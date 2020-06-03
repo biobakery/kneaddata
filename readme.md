@@ -27,6 +27,7 @@ separate the human and the non-human reads.
     - [Single End Run](#markdown-header-single-end-run)
     - [Paired End Run](#markdown-header-paired-end-run)
     - [Demo Run](#markdown-header-demo-run)
+    - [Cutting adapters and Overrepresented sequences](#cutting-adapters-and-overrepresented-sequences)
     - [Additional Arguments](#markdown-header-additional-arguments)
 - [Complete Option List](#markdown-header-complete-option-list)
 
@@ -357,6 +358,16 @@ This will create four output files:
 3. `` kneaddata_demo_output/demo_kneaddata.log ``
 3. `` kneaddata_demo_output/demo_kneaddata.trimmed.fastq ``
 
+#### Cutting adapters and Overrepresented sequences ####
+If you want to specify additional arguments for cutting the adapters and overrepresented sequences, use the `--cut-adapters` flag. This runs the FASTQC report on the raw sequence and generates a `adapters.fa` adapter file using the FASTQC report on overrepresented sequences. Finally, the `adapters.fa` file is used by trimmomatic to cut the adapters and overrepresented sequences.
+
+Usage: 
+```
+kneaddata --input demo.fastq -db demo_db -o kneaddata_output --cut-adapters --fastqc FastQC
+```
+
+
+
 #### Additional Arguments ####
 
 If you want to specify additional arguments for Bowtie2 using the
@@ -451,7 +462,7 @@ trimmomatic arguments:
                         options for trimmomatic
                         [ DEFAULT : SLIDINGWINDOW:4:20 MINLEN:50 ]
                         MINLEN is set to 50 percent of total input read length
-
+    --cut-adapters      Runs the FASTQC to extract the adapters from the raw reads and pass the adapters to trimmomatic of trimming
 bowtie2 arguments:
   --bowtie2 BOWTIE2_PATH
                         path to bowtie2
