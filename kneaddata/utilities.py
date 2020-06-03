@@ -37,6 +37,7 @@ import multiprocessing
 import datetime
 import errno
 import shutil
+from zipfile import ZipFile
 
 from kneaddata import config
 
@@ -950,3 +951,49 @@ def write_read_count_table(output, reads):
                     counts="NA"
                 new_line.append(counts)
             file_handle.write("\t".join([str(i) for i in new_line])+"\n")
+
+def unzip_fastqc_directory(input,output):
+    with ZipFile(input, 'r') as zipObj:
+        zipObj.extractall(output)
+
+def extract_fastqc_output(input,output_dir):
+    max_overreq_seq_length=0
+    adapter_dir_path=output_dir+"/adapters.fa"
+    counter=0 
+    f = open(input)
+    line = f.readline()
+    while line: 
+        if ">>Overrepresented sequences" in line: 
+            overrepresented_seq_status=line
+            #Logging Overrepresented sequences status
+            message = "\n>>Overrepresented sequences\n"
+            logger.info(message)
+            print(message)
+            overreq_seq_list=[]
+            while not (">>END_MODULE" in line):
+                line = f.readline()
+                logger.info(line)
+                print(line)
+                overreq_seq_list.append(line)
+                                
+            seq_list= overreq_seq_list[1:-1]
+                
+            fout = open(adapter_dir_path, "w")
+            overreq_seq_length=0
+            for seq in seq_list: 
+                fout.write (">customAdapter"+str(counter)+"\n")
+                fout.write  (seq.split('\t')[0]+"\n")
+                #Calculating length of the overrepresentted sequence
+                overreq_seq_length = len(seq.split('\t')[0])
+                if overreq_seq_length>max_overreq_seq_length:
+                    max_overreq_seq_length=overreq_seq_length
+                counter+=1
+            fout.close()
+        #Logging Adapter Content status
+        if ">>Adapter Content" in line:
+            message=line
+            logger.info(message)
+            print(message)
+        line = f.readline()
+    f.close()
+    return max_overreq_seq_length,adapter_dir_path

@@ -74,7 +74,7 @@ except ImportError:
 from kneaddata import run
 from kneaddata import config
 
-VERSION="0.7.6"
+VERSION="0.7.7-alpha"
 
 # name global logging instance
 logger=logging.getLogger(__name__)
@@ -195,6 +195,13 @@ def parse_arguments(args):
         action="append",
         help="options for trimmomatic\n[ DEFAULT : "+" ".join(utilities.get_default_trimmomatic_options())+" ]\n"+\
              "MINLEN is set to "+str(config.trimmomatic_min_len_percent)+" percent of total input read length")
+    group2.add_argument(
+        "--cut-adapters",
+        "--cut-adapters",
+        dest='cut_adapters',
+        default=False,
+        action="store_true",
+        help="options to cut the adapters and overrepresented sequences using automated extraction from FASTQC ")
 
     group3 = parser.add_argument_group("bowtie2 arguments")
     group3.add_argument(
@@ -335,7 +342,7 @@ def update_configuration(args):
             "--trf", bypass_permissions_check=False)
         
     # if fastqc is set to be run, check if the executable can be found
-    if args.fastqc_start or args.fastqc_end:
+    if args.fastqc_start or args.fastqc_end or args.cut_adapters:
         args.fastqc_path=utilities.find_dependency(args.fastqc_path,config.fastqc_exe,"fastqc",
                                                    "--fastqc",bypass_permissions_check=False)
 
@@ -442,11 +449,36 @@ def main():
     utilities.log_read_count_for_files(args.input,"raw","Initial number of reads",args.verbose)
     
     # Run fastqc if set to run at end of workflow
-    if args.fastqc_start:
+    if args.fastqc_start or args.cut_adapters:
         run.fastqc(args.fastqc_path, args.output_dir, args.input, args.threads, args.verbose)
-
+        #Setting fastqc output zip and txt file path
+        if (args.input[0].count("reformatted_identifier"))>0:
+            zip_path =  args.output_dir+"/fastqc/"+'/'.join(args.input[0].split('/')[-1:])
+        else: 
+            zip_path =  args.output_dir+"/fastqc/"+'_'.join(args.output_prefix.split('_')[:-1])
+        output_zip = zip_path+"_fastqc.zip"
+        output_txt = zip_path+"_fastqc/fastqc_data.txt"
+        #Getting all the overrepresented sequences from fastqc .txt file
+        if args.cut_adapters:
+            utilities.unzip_fastqc_directory(output_zip,args.output_dir+'/fastqc')
+            # Get the Max Overrepresented Seq Length
+            overreq_seq_length,adapter_dir_path = utilities.extract_fastqc_output(output_txt, args.output_dir)
+                
     # Run trimmomatic
     if not args.bypass_trim:
+        if args.cut_adapters and overreq_seq_length!=0: 
+            #Calculating the value of trimmomatic option based on overrepresented sequences
+            i=0
+            for trimmomatic_option in args.trimmomatic_options:
+                if trimmomatic_option.count("ILLUMINACLIP")>0: 
+                    trimmomatic_parameter = trimmomatic_option.split('.')
+                    # Multiplying Max Overrepresented Seq Length with log function(0.6)
+                    adapter_trimming =str(int(overreq_seq_length*0.6))
+                    temp_updated_parameter =  ':'.join(trimmomatic_parameter[-1].split(':')[:-1])+":"+adapter_trimming
+                    updated_parameter = ':'.join(temp_updated_parameter.split(':')[1:])
+                    #Updating the Global trimmomation_options value
+                    args.trimmomatic_options[i]="ILLUMINACLIP:"+adapter_dir_path+":"+updated_parameter
+                i+=1
         trimmomatic_output_files = run.trim(
             args.input, full_path_output_prefix, args.trimmomatic_path, 
             args.trimmomatic_quality_scores, args.max_memory, args.trimmomatic_options, 
