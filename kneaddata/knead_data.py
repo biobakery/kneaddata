@@ -452,8 +452,12 @@ def main():
     if args.fastqc_start or args.cut_adapters:
         run.fastqc(args.fastqc_path, args.output_dir, args.input, args.threads, args.verbose)
         #Setting fastqc output zip and txt file path
-        output_zip = args.output_dir+"/fastqc/"+'_'.join(args.output_prefix.split('_')[:-1])+"_fastqc.zip"
-        output_txt = args.output_dir+"/fastqc/"+'_'.join(args.output_prefix.split('_')[:-1])+"_fastqc/fastqc_data.txt"
+        if (args.input[0].count("reformatted_identifier"))>0:
+            zip_path =  args.output_dir+"/fastqc/"+'/'.join(args.input[0].split('/')[-1:])
+        else: 
+            zip_path =  args.output_dir+"/fastqc/"+'_'.join(args.output_prefix.split('_')[:-1])
+        output_zip = zip_path+"_fastqc.zip"
+        output_txt = zip_path+"_fastqc/fastqc_data.txt"
         #Getting all the overrepresented sequences from fastqc .txt file
         if args.cut_adapters:
             utilities.unzip_fastqc_directory(output_zip,args.output_dir+'/fastqc')
@@ -470,9 +474,10 @@ def main():
                     trimmomatic_parameter = trimmomatic_option.split('.')
                     # Multiplying Max Overrepresented Seq Length with log function(0.6)
                     adapter_trimming =str(int(overreq_seq_length*0.6))
-                    updated_parameter =  ':'.join(trimmomatic_parameter[-1].split(':')[:-1])+":"+adapter_trimming
+                    temp_updated_parameter =  ':'.join(trimmomatic_parameter[-1].split(':')[:-1])+":"+adapter_trimming
+                    updated_parameter = ':'.join(temp_updated_parameter.split(':')[1:])
                     #Updating the Global trimmomation_options value
-                    args.trimmomatic_options[i]="ILLUMINACLIP:"+adapter_dir_path+updated_parameter
+                    args.trimmomatic_options[i]="ILLUMINACLIP:"+adapter_dir_path+":"+updated_parameter
                 i+=1
         trimmomatic_output_files = run.trim(
             args.input, full_path_output_prefix, args.trimmomatic_path, 
