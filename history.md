@@ -1,6 +1,10 @@
 
 # KneadData History #
 
+## v0.7.8 TBD
+
+* Remove temp files from decompression and reformatting after they are no longer needed to save space.
+
 ## v0.7.7-alpha 05-27-2020
 
 * Add cut-adapter option flag to remove adapters and overrepresented sequences.
