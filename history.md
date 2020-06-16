@@ -3,7 +3,7 @@
 
 ## v0.7.7-alpha 05-27-2020
 
-* Add cut-adapter option flag to remove adapters and overrepresented sequences.
+* Add trim-repetitive option flag to remove adapters and overrepresented sequences.
 
 ## v0.7.6 05-05-2020
 

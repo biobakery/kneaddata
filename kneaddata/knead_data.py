@@ -143,11 +143,9 @@ def parse_arguments(args):
         dest='bmtagger',
         help="run BMTagger instead of Bowtie2 to identify contaminant reads")
     group1.add_argument(
-        "--run-trf",
-        default=False,
-        dest='trf',
+        "--bypass-trf",
         action="store_true",
-        help="run TRF to remove tandem repeats")
+        help="option to bypass the removal of tandem repeats")
     group1.add_argument(
         "--run-fastqc-start",
         default=False,
@@ -196,12 +194,9 @@ def parse_arguments(args):
         help="options for trimmomatic\n[ DEFAULT : "+" ".join(utilities.get_default_trimmomatic_options())+" ]\n"+\
              "MINLEN is set to "+str(config.trimmomatic_min_len_percent)+" percent of total input read length")
     group2.add_argument(
-        "--cut-adapters",
-        "--cut-adapters",
-        dest='cut_adapters',
-        default=False,
+        "--bypass-trim-repetitive",
         action="store_true",
-        help="options to cut the adapters and overrepresented sequences using automated extraction from FASTQC ")
+        help="option to bypass trimming repetitive sequences")
 
     group3 = parser.add_argument_group("bowtie2 arguments")
     group3.add_argument(
@@ -337,12 +332,12 @@ def update_configuration(args):
                 "--bowtie2", bypass_permissions_check=False)        
     
     # find the location of trf, if set to run
-    if args.trf:
+    if not args.bypass_trf:
         args.trf_path=utilities.find_dependency(args.trf_path,config.trf_exe,"trf",
             "--trf", bypass_permissions_check=False)
         
     # if fastqc is set to be run, check if the executable can be found
-    if args.fastqc_start or args.fastqc_end or args.cut_adapters:
+    if args.fastqc_start or args.fastqc_end or not args.bypass_trim_repetitive:
         args.fastqc_path=utilities.find_dependency(args.fastqc_path,config.fastqc_exe,"fastqc",
                                                    "--fastqc",bypass_permissions_check=False)
 
@@ -448,8 +443,8 @@ def main():
     # Get the number of reads initially
     utilities.log_read_count_for_files(args.input,"raw","Initial number of reads",args.verbose)
     
-    # Run fastqc if set to run at end of workflow
-    if args.fastqc_start or args.cut_adapters:
+    # Run fastqc if set to run at start of workflow
+    if args.fastqc_start or not args.bypass_trim_repetitive:
         run.fastqc(args.fastqc_path, args.output_dir, args.input, args.threads, args.verbose)
         #Setting fastqc output zip and txt file path
         if (args.input[0].count("reformatted_identifier"))>0:
@@ -459,14 +454,18 @@ def main():
         output_zip = zip_path+"_fastqc.zip"
         output_txt = zip_path+"_fastqc/fastqc_data.txt"
         #Getting all the overrepresented sequences from fastqc .txt file
-        if args.cut_adapters:
+        if not args.bypass_trim_repetitive:
             utilities.unzip_fastqc_directory(output_zip,args.output_dir+'/fastqc')
             # Get the Max Overrepresented Seq Length
             overreq_seq_length,adapter_dir_path = utilities.extract_fastqc_output(output_txt, args.output_dir)
+        else:
+            message="Bypass trimming repetitive"
+            logger.info(message)
+            print(message)
                 
     # Run trimmomatic
     if not args.bypass_trim:
-        if args.cut_adapters and overreq_seq_length!=0: 
+        if not args.bypass_trim_repetitive and overreq_seq_length!=0:
             #Calculating the value of trimmomatic option based on overrepresented sequences
             i=0
             for trimmomatic_option in args.trimmomatic_options:
@@ -491,6 +490,20 @@ def main():
         logger.info(message)
         print(message)
         trimmomatic_output_files=[args.input]
+    
+    # run TRF, if set
+    if not args.bypass_trf:
+        # run trf on all output files
+        trf_output_files=run.tandem(trimmomatic_output_files, full_path_output_prefix, args.match,
+                                      args.mismatch,args.delta,args.pm,args.pi,
+                                      args.minscore,args.maxperiod,args.trf_path,
+                                      args.processes,args.verbose,args.remove_temp_output)
+        # remove the aligment files, if intermediate output files should be removed
+        if args.reference_db and args.remove_intermediate_output:
+            temp_output_files+=utilities.resolve_sublists(trimmomatic_output_files)
+    else:
+        trf_output_files = utilities.resolve_sublists(trimmomatic_output_files)
+        
 
     # If a reference database is not provided, then bypass decontamination step
     if not args.reference_db:
@@ -498,26 +511,12 @@ def main():
         logger.info(message)
         print(message)
         # resolve sub-lists if present
-        alignment_output_files=trimmomatic_output_files
+        final_output_files=trf_output_files
     else:
-        alignment_output_files=run.decontaminate(args, full_path_output_prefix, trimmomatic_output_files)
-        
-        # remove trimmed output files, if set to remove intermediate output
+        final_output_files=run.decontaminate(args, full_path_output_prefix, trf_output_files)
+        # remove trimmed output files, if set to remove intermediate outputx
         if not args.bypass_trim and args.remove_intermediate_output:
-            temp_output_files+=utilities.resolve_sublists(trimmomatic_output_files)
-        
-    # run TRF, if set
-    if args.trf:
-        # run trf on all output files
-        final_output_files=run.tandem(alignment_output_files, full_path_output_prefix, args.match,
-                                      args.mismatch,args.delta,args.pm,args.pi,
-                                      args.minscore,args.maxperiod,args.trf_path,
-                                      args.processes,args.verbose,args.remove_temp_output)
-        # remove the aligment files, if intermediate output files should be removed
-        if args.reference_db and args.remove_intermediate_output:
-            temp_output_files+=utilities.resolve_sublists(alignment_output_files)
-    else:
-        final_output_files = utilities.resolve_sublists(alignment_output_files)
+            temp_output_files+=utilities.resolve_sublists(trf_output_files)
         
     # If set, concat the final output files if there is more than one
     if args.cat_final_output and len(final_output_files) > 1:
@@ -540,12 +539,14 @@ def main():
     if args.fastqc_end:
         run.fastqc(args.fastqc_path, args.output_dir, final_output_files, args.threads, args.verbose)
 
-    if len(final_output_files) > 1:
+    if len(final_output_files[0]) > 1:
         message="\nFinal output files created: \n"
+        message=message+ "\n".join(final_output_files[0]) + "\n"
     else:
         message="\nFinal output file created: \n"
+        for fileList in final_output_files:
+            message=message+ "\n".join(fileList) + "\n"
     
-    message=message+ "\n".join(final_output_files) + "\n"
     logger.info(message)
     print(message)
 
