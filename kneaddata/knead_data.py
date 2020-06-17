@@ -447,8 +447,10 @@ def main():
     if args.fastqc_start or not args.bypass_trim_repetitive:
         run.fastqc(args.fastqc_path, args.output_dir, args.input, args.threads, args.verbose)
         #Setting fastqc output zip and txt file path
-        if (args.input[0].count("reformatted_identifier"))>0:
+        if (args.input[0].count("reformatted_identifier"))>0 or (args.input[0].count("decompressed"))>0:
             zip_path =  args.output_dir+"/fastqc/"+'/'.join(args.input[0].split('/')[-1:])
+            if (args.input[0].count("decompressed"))>0:
+                zip_path= '.'.join(zip_path.split('.')[:-1])
         else: 
             zip_path =  args.output_dir+"/fastqc/"+'_'.join(args.output_prefix.split('_')[:-1])
         output_zip = zip_path+"_fastqc.zip"
