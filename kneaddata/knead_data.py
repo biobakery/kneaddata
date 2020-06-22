@@ -531,6 +531,7 @@ def main():
             final_output_files=[cat_output_file]
         else:
             final_output_files.append(cat_output_file)
+    final_output_files = utilities.resolve_sublists(final_output_files)
         
     # Remove any temp output files, if set
     if not args.store_temp_output:
@@ -541,14 +542,12 @@ def main():
     if args.fastqc_end:
         run.fastqc(args.fastqc_path, args.output_dir, final_output_files, args.threads, args.verbose)
 
-    if len(final_output_files[0]) > 1:
+    if len(final_output_files) > 1:
         message="\nFinal output files created: \n"
-        message=message+ "\n".join(final_output_files[0]) + "\n"
     else:
         message="\nFinal output file created: \n"
-        for fileList in final_output_files:
-            message=message+ "\n".join(fileList) + "\n"
     
+    message=message+ "\n".join(final_output_files) + "\n"
     logger.info(message)
     print(message)
 

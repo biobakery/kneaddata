@@ -530,18 +530,14 @@ def tandem(input_files, output_prefix, match, mismatch, delta, pm, pi, minscore,
         if remove_temp_output:
             for file in trf_output_files:
                 utilities.remove_file(file)
-            
+        
+        # sets for running the alignment steps    
         temp=[]
-        for file in output_fastq_files:
-            if not "unmatched" in file: 
-                temp.append(file)
-        output_files.append(temp)
         if len(output_fastq_files)>1:
             for file in output_fastq_files:
-                temp=[]
                 temp.append(file)
             output_files.append(temp)  
-        
+            
     return output_files
         
 def decontaminate(args, output_prefix, files_to_align):
