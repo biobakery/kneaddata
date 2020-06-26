@@ -525,20 +525,59 @@ def tandem(input_files, output_prefix, match, mismatch, delta, pm, pi, minscore,
         # use the trf output to print the final fastq output files
         for i in range(len(input_fastq_files)):
             remove_repeats_from_fastq(input_fastq_files[i], trf_output_files[i], output_fastq_files[i])
-        
+            
         # remove trf output if remove temp output is set
         if remove_temp_output:
             for file in trf_output_files:
                 utilities.remove_file(file)
         
-        # sets for running the alignment steps    
-        temp=[]
-        if len(output_fastq_files)>1:
-            for file in output_fastq_files:
-                temp.append(file)
-            output_files.append(temp)  
+    # now check all of the output files to find which are non-empty and return as 
+    # sets for running the alignment steps
+        if (len(input_fastq_files)==2):
+            output_files.append(output_fastq_files[0])
+            output_files.append(output_fastq_files[1])          
+        else: 
+            output_files.append(output_fastq_files[0])
+        
+    nonempty_outfiles=[]
+    outfile_size = [utilities.file_size(file) for file in output_files]
+    if pairs:
+        # if paired fastq files remain after trimming, preserve pairing
+        if outfile_size[0] > 0 and outfile_size[1] > 0:
+            nonempty_outfiles.append([output_files[0],output_files[1]])
+        elif outfile_size[0] > 0:
+            nonempty_outfiles.append([output_files[0]])
+            # remove the second paired file if empty
+            utilities.remove_file(output_files[1])
+        elif outfile_size[1] > 0:
+            nonempty_outfiles.append([output_files[1]])
+            # remove the second paired file if empty
+            utilities.remove_file(output_files[0])
+        
+        # add sequences without pairs, if present
+        if outfile_size[2] > 0:
+            nonempty_outfiles.append([output_files[2]])
+        else:
+            # remove the file if empty
+            utilities.remove_file(output_files[2])
             
-    return output_files
+        if outfile_size[3] > 0:
+            nonempty_outfiles.append([output_files[3]])
+        else:
+            # remove the file if empty
+            utilities.remove_file(output_files[3])
+        
+    else:
+        if outfile_size[0] > 0:
+            nonempty_outfiles=[[output_files[0]]]
+        else:
+            # remove the file if empty
+            utilities.remove_file(output_files[0])
+        
+    if not nonempty_outfiles:
+        sys.exit("ERROR: TRF created empty output files.")
+        
+    return nonempty_outfiles
         
 def decontaminate(args, output_prefix, files_to_align):
     """
