@@ -505,8 +505,6 @@ def main():
             temp_output_files+=utilities.resolve_sublists(trimmomatic_output_files)
     else:
         trf_output_files = trimmomatic_output_files
-        
-
     # If a reference database is not provided, then bypass decontamination step
     if not args.reference_db:
         message="Bypass decontamination"
