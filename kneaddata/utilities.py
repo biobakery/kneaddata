@@ -47,13 +47,18 @@ logger=logging.getLogger(__name__)
 def get_read_id_minus_pair(sequence_id_line):
     return sequence_id_line.rstrip()[:-1]
 
-def update_temp_output_files(temp_output_files, new_file):
+def update_temp_output_files(temp_output_files, new_file_list, all_input_files):
     """ Remove files on the list that are no longer needed and add the new file """
 
     for filename in temp_output_files:
-        remove_file(filename)
+        if not filename in all_input_files:
+            remove_file(filename)
+            temp_output_files.remove(filename)
 
-    temp_output_files=[new_file]    
+    if not isinstance(new_file_list, list):
+        new_file_list=[new_file_list]
+
+    temp_output_files+=new_file_list
 
 def check_and_reorder_reads(input_files, output_folder, temp_output_files):
     """ Check if reads are ordered and if not reorder """
@@ -70,6 +75,7 @@ def check_and_reorder_reads(input_files, output_folder, temp_output_files):
             break
 
     # reorder the pairs to match
+    new_file_list = []
     if mismatch:
         message="Reordering read identifiers ..."
         print(message+"\n")
@@ -92,9 +98,10 @@ def check_and_reorder_reads(input_files, output_folder, temp_output_files):
 
             # set the input file to the reordered temp file
             input_files[index]=new_file
+            new_file_list.append(new_file)
 
-            # add the temp file to the list and remove extra that are not needed
-            update_temp_output_files(temp_output_files, new_file)
+        # add the temp file to the list and remove extra that are not needed
+        update_temp_output_files(temp_output_files, new_file_list, input_files)
 
     return input_files
 
@@ -282,7 +289,7 @@ def file_without_extension(file):
     
     return os.path.splitext(os.path.basename(file))[0]
 
-def get_decompressed_file(file, output_folder, temp_file_list):
+def get_decompressed_file(file, output_folder, temp_file_list, all_input_files):
     """ Check if a file is compressed, if so decompress """
     
     if file.endswith(".gz") or file.endswith(".bz2"):
@@ -293,7 +300,7 @@ def get_decompressed_file(file, output_folder, temp_file_list):
             gunzip_file(file,new_file)
         else:
             bunzip2_file(file,new_file)
-        update_temp_output_files(temp_file_list, new_file)
+        update_temp_output_files(temp_file_list, new_file, all_input_files)
     else:
         new_file=file
         
@@ -312,7 +319,7 @@ def check_sequence_identifier_format(file):
     return new_format
         
         
-def get_reformatted_identifiers(file, output_folder, temp_file_list):
+def get_reformatted_identifiers(file, output_folder, temp_file_list, all_input_files):
     """ Reformat the sequence identifiers in the fastq file writing to a temp file """
     
     # check if the file needs to be reformatted
@@ -341,7 +348,7 @@ def get_reformatted_identifiers(file, output_folder, temp_file_list):
             file_handle.write("".join(lines))
     
     # add the new file to the list of temp files
-    update_temp_output_files(temp_file_list, new_file)
+    update_temp_output_files(temp_file_list, new_file, all_input_files)
     
     return new_file
 
@@ -361,7 +368,7 @@ def bam_to_sam(bam_file, new_file):
     
     logger.info("Sam file created at: " + new_file)
     
-def get_sam_from_bam_file(file, output_folder, temp_file_list):
+def get_sam_from_bam_file(file, output_folder, temp_file_list, all_input_files):
     """ Check if a file is bam, if so create a sam file """
     
     if file.endswith(".bam"):
@@ -371,7 +378,7 @@ def get_sam_from_bam_file(file, output_folder, temp_file_list):
             "Please check the install or select another input format.")
         new_file=os.path.join(output_folder,file_without_extension(file)+"_decompressed"+".sam")
         bam_to_sam(file,new_file)
-        update_temp_output_files(temp_file_list, new_file)
+        update_temp_output_files(temp_file_list, new_file, all_input_files)
     else:
         new_file=file
         
@@ -409,7 +416,7 @@ def sam_to_fastq(file, new_file):
                         # remove the id so as to not write it more than once
                         ids.remove(read_id)
 
-def get_fastq_from_sam_file(file, output_folder, temp_file_list):
+def get_fastq_from_sam_file(file, output_folder, temp_file_list, all_input_files):
     """ Check if a file is sam, if so create a fastq file """
     
     if file.endswith(".sam"):
@@ -418,7 +425,7 @@ def get_fastq_from_sam_file(file, output_folder, temp_file_list):
             new_basename+="_decompressed"
         new_file=os.path.join(output_folder,new_basename+config.fastq_file_extension)
         sam_to_fastq(file,new_file)
-        update_temp_output_files(temp_file_list, new_file)
+        update_temp_output_files(temp_file_list, new_file, all_input_files)
     else:
         new_file=file
         

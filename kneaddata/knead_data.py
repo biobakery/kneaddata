@@ -408,9 +408,9 @@ def main():
     temp_output_files=[]
     # Check for compressed files, bam files, or sam files
     for index in range(len(args.input)):
-        args.input[index]=utilities.get_decompressed_file(args.input[index], args.output_dir, temp_output_files)
-        args.input[index]=utilities.get_sam_from_bam_file(args.input[index], args.output_dir, temp_output_files)
-        args.input[index]=utilities.get_fastq_from_sam_file(args.input[index], args.output_dir, temp_output_files)
+        args.input[index]=utilities.get_decompressed_file(args.input[index], args.output_dir, temp_output_files, args.input)
+        args.input[index]=utilities.get_sam_from_bam_file(args.input[index], args.output_dir, temp_output_files, args.input)
+        args.input[index]=utilities.get_fastq_from_sam_file(args.input[index], args.output_dir, temp_output_files, args.input)
         
     # Get the format of the first input file
     file_format=utilities.get_file_format(args.input[0])
@@ -422,12 +422,15 @@ def main():
     
     # if this is the new illumina identifier format, create temp files after reformatting the headers
     for index in range(len(args.input)):
-        args.input[index]=utilities.get_reformatted_identifiers(args.input[index],args.output_dir, temp_output_files)
+        args.input[index]=utilities.get_reformatted_identifiers(args.input[index],args.output_dir, temp_output_files, args.input)
     
     # check for reads that are not ordered and order if needed (if trimmomatic is run)
     if not args.bypass_trim and len(args.input)==2:
         args.input=utilities.check_and_reorder_reads(args.input, args.output_dir, temp_output_files)
-    
+   
+    # remove any temp files from decompress/reformat that are no longer needed
+    utilities.update_temp_output_files(temp_output_files, [], args.input)
+ 
     # set trimmomatic options
     # this is done after the decompression and conversions from sam/bam
     # as the default requires the read length from the input sequences
