@@ -250,7 +250,7 @@ def bunzip2_file(bz2_file, new_file):
     logger.info(message)    
 
     with open(new_file,"w") as file_write:
-        with decompress_function(bz2_file) as file_read:
+        with decompress_function(bz2_file, "rt") as file_read:
             for line in file_read:
                 file_write.write(line)
 
