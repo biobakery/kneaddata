@@ -4,6 +4,7 @@
 ## v0.7.8 TBD
 
 * Remove temp files from decompression and reformatting after they are no longer needed to save space.
+* Change to the read mode for the decompress function for bz2 files for python 3 compatibility.
 
 ## v0.7.7-alpha 05-27-2020
 
