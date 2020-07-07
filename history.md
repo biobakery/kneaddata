@@ -4,6 +4,7 @@
 ## v0.7.8 TBD
 * Remove temp files from decompression and reformatting after they are no longer needed to save space.
 * Update SILVA_128_LSUParc_SSUParc_ribosomal_RNA to Version 0.2 
+* Change to the read mode for the decompress function for bz2 files for python 3 compatibility.
 
 ## v0.7.7-alpha 05-27-2020
 * Changes in the workflow order of TRF and bowtie2
