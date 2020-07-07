@@ -154,7 +154,7 @@ To download the indexed human reference database, run the following command:
 ##### Creating a Bowtie2 Database #####
 
 Please take the fasta sequences and run the following python program to convert the "U"s to "T"s: 
-[Modify_RNA_to_DNA.py](https://github.com/biobakery/kneaddata/tree/master/kneaddata/db_preprocessing/Modify_RNA_to_DNA.py)
+[Modify_RNA_to_DNA.py](https://github.com/biobakery/kneaddata/blob/master/kneaddata/db_preprocessing/Modify_RNA_to_DNA.py)
 Usage: 
 ``python -u Modify_RNA_to_DNA.py input.fasta  output.fa``
 
@@ -190,7 +190,7 @@ for more details.
 Say you want to remove human reads from your metagenomic sequencing data.
 You downloaded the human genome in a file called `Homo_sapiens_initial.fasta`. 
 
-Now run the following program to convert the `Homo_sapiens.fasta` "U"s to "T"s using [Modify_RNA_to_DNA.py](https://github.com/biobakery/kneaddata/tree/master/kneaddata/db_preprocessing/Modify_RNA_to_DNA.py).
+Now run the following program to convert the `Homo_sapiens.fasta` "U"s to "T"s using [Modify_RNA_to_DNA.py](https://github.com/biobakery/kneaddata/blob/master/kneaddata/db_preprocessing/Modify_RNA_to_DNA.py).
 
 ``$ python -u Modify_RNA_to_DNA.py  Homo_sapiens_initial.fasta     Homo_sapiens.fasta``
 
