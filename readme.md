@@ -132,8 +132,7 @@ using the resources below:
 - Human Genome & Transcriptome: Information about the newest assembly of human
   genomic data can be found at the [NCBI project
   page](http://www.ncbi.nlm.nih.gov/projects/genome/assembly/grc/human/). USCS
-  provides a convenient
-  [website](http://hgdownload.cse.ucsc.edu/downloads.html#human) to download
+  provides a convenient [website](http://hgdownload.cse.ucsc.edu/downloads.html#human) to download
   this data.
 
 ### Generating KneadData Databases ###
@@ -154,14 +153,18 @@ To download the indexed human reference database, run the following command:
 
 ##### Creating a Bowtie2 Database #####
 
-Simply run the `bowtie2-build` indexer included with Bowtie2 as follows:
+Please take the fasta sequences and run the following python program to convert the "U"s to "T"s: 
+[Modify_RNA_to_DNA.py](https://github.com/biobakery/kneaddata/releases/download/0.7.7-alpha/Modify_RNA_to_DNA.py)
+Usage: 
+``python -u Modify_RNA_to_DNA.py input.fasta  output.fa``
+
+Then, simply run the `bowtie2-build` indexer included with Bowtie2 as follows:
 
 ``$ bowtie2-build <reference> <db-name>``
 
 Where `<reference>` is the reference FASTA file, and `<db-name>` is the name you
 wish to call your Bowtie2 database. For more details, refer
-to the [bowtie2-build
-documentation](http://bowtie-bio.sourceforge.net/bowtie2/manual.shtml#the-bowtie2-build-indexer)
+to the [bowtie2-build-documentation](http://bowtie-bio.sourceforge.net/bowtie2/manual.shtml#the-bowtie2-build-indexer)
 
 ##### Creating a BMTagger Database #####
 
@@ -185,8 +188,13 @@ for more details.
 ##### Example Custom Database Build #####
 
 Say you want to remove human reads from your metagenomic sequencing data.
-You downloaded the human genome in a file called `Homo_sapiens.fasta`. You
-can generate the KneadData database by executing
+You downloaded the human genome in a file called `Homo_sapiens_initial.fasta`. 
+
+Now run the following program to convert the `Homo_sapiens.fasta` "U"s to "T"s using [Modify_RNA_to_DNA.py](https://github.com/biobakery/kneaddata/releases/download/0.7.7-alpha/Modify_RNA_to_DNA.py).
+
+``$ python -u Modify_RNA_to_DNA.py  Homo_sapiens_initial.fasta     Homo_sapiens.fasta``
+
+Then, you can generate the KneadData database by executing:
 
 ``$ bowtie2-build Homo_sapiens.fasta -o Homo_sapiens_db``
 
