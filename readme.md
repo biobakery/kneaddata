@@ -132,8 +132,7 @@ using the resources below:
 - Human Genome & Transcriptome: Information about the newest assembly of human
   genomic data can be found at the [NCBI project
   page](http://www.ncbi.nlm.nih.gov/projects/genome/assembly/grc/human/). USCS
-  provides a convenient
-  [website](http://hgdownload.cse.ucsc.edu/downloads.html#human) to download
+  provides a convenient [website](http://hgdownload.cse.ucsc.edu/downloads.html#human) to download
   this data.
 
 ### Generating KneadData Databases ###
@@ -160,8 +159,14 @@ Simply run the `bowtie2-build` indexer included with Bowtie2 as follows:
 
 Where `<reference>` is the reference FASTA file, and `<db-name>` is the name you
 wish to call your Bowtie2 database. For more details, refer
-to the [bowtie2-build
-documentation](http://bowtie-bio.sourceforge.net/bowtie2/manual.shtml#the-bowtie2-build-indexer)
+to the [bowtie2-build-documentation](http://bowtie-bio.sourceforge.net/bowtie2/manual.shtml#the-bowtie2-build-indexer)
+ 
+ 
+##### **Note: Creating SILVA ribosomal_RNA Database**
+Creating the **SILVA ribosomal_RNA** database requires one additional step. Run the following python program before `bowtie2-build` command which converts the "U"s to "T"s in the fasta sequences.  
+Script link: [modify_RNA_to_DNA.py](https://github.com/biobakery/kneaddata/blob/master/kneaddata/db_preprocessing/modify_RNA_to_DNA.py)
+``$ python -u modify_RNA_to_DNA.py input.fasta  output.fa``
+
 
 ##### Creating a BMTagger Database #####
 
@@ -185,8 +190,9 @@ for more details.
 ##### Example Custom Database Build #####
 
 Say you want to remove human reads from your metagenomic sequencing data.
-You downloaded the human genome in a file called `Homo_sapiens.fasta`. You
-can generate the KneadData database by executing
+You downloaded the human genome in a file called `Homo_sapiens.fasta`. 
+
+Then, you can generate the KneadData database by executing:
 
 ``$ bowtie2-build Homo_sapiens.fasta -o Homo_sapiens_db``
 
@@ -194,10 +200,13 @@ for Bowtie2, or
 
 ``$ kneaddata_build_database Homo_sapiens.fasta -o Homo_sapiens_db``
 
-for BMTagger.
-
 All of the required KneadData database files will have file names prefixed by
 `Homo_sapiens_db` and have various file extensions.
+
+##### **Note**: For creating SILVA ribosomal_RNA database
+Run the following python program before `bowtie2-build` command which converts the "U"s to "T"s in the fasta sequences for creating SILVA ribosomal_RNA database.  
+Script link: [modify_RNA_to_DNA.py](https://github.com/biobakery/kneaddata/blob/master/kneaddata/db_preprocessing/modify_RNA_to_DNA.py)
+``$ python -u modify_RNA_to_DNA.py input.fasta  output.fa``
 
 ### How to Run ###
 
