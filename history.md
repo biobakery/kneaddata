@@ -1,6 +1,10 @@
 
 # KneadData History #
 
+## v0.7.9 TBD
+
+* Modified check for ordered pairs to only check the first 100 sequence ids to reduce memory usage.
+
 ## v0.7.8 07-08-2020
 
 * Remove temp files from decompression and reformatting after they are no longer needed to save space.

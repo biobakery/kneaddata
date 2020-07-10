@@ -63,9 +63,9 @@ def update_temp_output_files(temp_output_files, new_file_list, all_input_files):
 def check_and_reorder_reads(input_files, output_folder, temp_output_files):
     """ Check if reads are ordered and if not reorder """
 
-    # read in the ids from the first pair
+    # read in the ids from the first pair (only check the first 100)
     ids = []
-    for lines in read_file_n_lines(input_files[0],4):
+    for count, lines in zip(range(100),read_file_n_lines(input_files[0],4)):
         ids.append(get_read_id_minus_pair(lines[0]))
 
     mismatch=False
