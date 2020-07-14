@@ -1,9 +1,10 @@
 
 # KneadData History #
 
-## v0.7.9 TBD
+## v0.7.9 07-14-2020
 
 * Modified check for ordered pairs to only check the first 100 sequence ids to reduce memory usage.
+* Move resolve sublists to allow for multiple lists in final output files (resolves error with running with multiple databases).
 
 ## v0.7.8 07-08-2020
 
