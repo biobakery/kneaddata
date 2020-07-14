@@ -522,6 +522,7 @@ def main():
             temp_output_files+=utilities.resolve_sublists(trf_output_files)
         
     # If set, concat the final output files if there is more than one
+    final_output_files = utilities.resolve_sublists(final_output_files)
     if args.cat_final_output and len(final_output_files) > 1:
         cat_output_file=full_path_output_prefix+config.fastq_file_extension
         utilities.cat_files(final_output_files,cat_output_file)
@@ -532,7 +533,6 @@ def main():
             final_output_files=[cat_output_file]
         else:
             final_output_files.append(cat_output_file)
-    final_output_files = utilities.resolve_sublists(final_output_files)
         
     # Remove any temp output files, if set
     if not args.store_temp_output:
