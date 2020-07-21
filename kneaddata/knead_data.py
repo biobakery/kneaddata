@@ -78,6 +78,8 @@ VERSION="0.7.9"
 
 # name global logging instance
 logger=logging.getLogger(__name__)
+# Global input files path list for FASTQC
+original_input_files=[]
 
 def parse_arguments(args):
     """ 
@@ -197,6 +199,10 @@ def parse_arguments(args):
         "--bypass-trim-repetitive",
         action="store_true",
         help="option to bypass trimming repetitive sequences")
+    group2.add_argument(
+        "--threshold-trim-repetitive",
+        default=config.threshold_trim_repetitive, 
+        help="Threshold percentage for trimming fastqc generated overrepresented sequences\n[ DEFAULT : "+str(config.threshold_trim_repetitive)+" ]")
 
     group3 = parser.add_argument_group("bowtie2 arguments")
     group3.add_argument(
@@ -290,16 +296,19 @@ def update_configuration(args):
     # check the input files are non-empty and readable
     args.input[0] = os.path.abspath(args.input[0])
     utilities.is_file_readable(args.input[0],exit_on_error=True)
-    
     if len(args.input) == 2:
         args.input[1] = os.path.abspath(args.input[1])
         utilities.is_file_readable(args.input[1],exit_on_error=True)
     elif len(args.input) > 2:
         sys.exit("ERROR: Please provide at most 2 input files.")
     
+    #Store original file paths for FASTQC 
+    for input in args.input:
+        original_input_files.append(input)
+    
     # create the output directory if needed
     utilities.create_directory(args.output_dir)
-
+    
     # set bowtie2 options
     if args.bowtie2_options:
         # parse the options from the user into any array of options
@@ -448,19 +457,16 @@ def main():
     
     # Run fastqc if set to run at start of workflow
     if args.fastqc_start or not args.bypass_trim_repetitive:
-        run.fastqc(args.fastqc_path, args.output_dir, args.input, args.threads, args.verbose)
+        run.fastqc(args.fastqc_path, args.output_dir, original_input_files, args.threads, args.verbose)
         #Setting fastqc output zip and txt file path
-        if (args.input[0].count("reformatted_identifier"))>0 or (args.input[0].count("decompressed"))>0:
-            zip_path =  args.output_dir+"/fastqc/"+'/'.join(args.input[0].split('/')[-1:])
-        else: 
-            zip_path =  args.output_dir+"/fastqc/"+'_'.join(args.output_prefix.split('_')[:-1])
-        output_zip = zip_path+"_fastqc.zip"
-        output_txt = zip_path+"_fastqc/fastqc_data.txt"
+        output_txt_files=[]
+        for input_file_name in original_input_files:
+            temp_file=input_file_name.split('.')[0]
+            output_txt_files.append(args.output_dir+"/fastqc/"+temp_file.split('/')[-1]+"_fastqc/fastqc_data.txt")
         #Getting all the overrepresented sequences from fastqc .txt file
         if not args.bypass_trim_repetitive:
-            utilities.unzip_fastqc_directory(output_zip,args.output_dir+'/fastqc')
             # Get the Max Overrepresented Seq Length
-            overreq_seq_length,adapter_dir_path = utilities.extract_fastqc_output(output_txt, args.output_dir)
+            overreq_seq_length,adapter_dir_path = utilities.extract_fastqc_output(output_txt_files, args.output_dir, args.threshold_trim_repetitive)
         else:
             message="Bypass trimming repetitive"
             logger.info(message)

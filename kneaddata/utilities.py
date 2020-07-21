@@ -968,48 +968,55 @@ def write_read_count_table(output, reads):
                 new_line.append(counts)
             file_handle.write("\t".join([str(i) for i in new_line])+"\n")
 
-def unzip_fastqc_directory(input,output):
-    with ZipFile(input, 'r') as zipObj:
-        zipObj.extractall(output)
-
-def extract_fastqc_output(input,output_dir):
+def extract_fastqc_output(input_list,output_dir,threshold_percentage):
     max_overreq_seq_length=0
     adapter_dir_path=output_dir+"/adapters.fa"
+    overreq_seq_length=0
+    seq_list=[]
     counter=0 
-    f = open(input)
-    line = f.readline()
-    while line: 
-        if ">>Overrepresented sequences" in line: 
-            overrepresented_seq_status=line
-            #Logging Overrepresented sequences status
-            message = "\n>>Overrepresented sequences\n"
-            logger.info(message)
-            print(message)
-            overreq_seq_list=[]
-            while not (">>END_MODULE" in line):
-                line = f.readline()
-                logger.info(line)
-                print(line)
-                overreq_seq_list.append(line)
-                                
-            seq_list= overreq_seq_list[1:-1]
-                
-            fout = open(adapter_dir_path, "w")
-            overreq_seq_length=0
-            for seq in seq_list: 
-                fout.write (">customAdapter"+str(counter)+"\n")
-                fout.write  (seq.split('\t')[0]+"\n")
-                #Calculating length of the overrepresentted sequence
-                overreq_seq_length = len(seq.split('\t')[0])
-                if overreq_seq_length>max_overreq_seq_length:
-                    max_overreq_seq_length=overreq_seq_length
-                counter+=1
-            fout.close()
-        #Logging Adapter Content status
-        if ">>Adapter Content" in line:
-            message=line
-            logger.info(message)
-            print(message)
+    fout = open(adapter_dir_path, "w")
+    for input_file in input_list:
+        f = open(input_file,"r")
         line = f.readline()
-    f.close()
+        while line: 
+            if ">>Overrepresented sequences" in line: 
+                overrepresented_seq_status=line
+                #Logging Overrepresented sequences status
+                message = "\n>>Overrepresented sequences in "+input_file+"\n"
+                logger.info(message)
+                print(message)
+                overreq_seq_list=[]
+                while not (">>END_MODULE" in line):
+                    line = f.readline()
+                    logger.info(line)
+                    print(line)
+                    overreq_seq_list.append(line)
+                                    
+                seq_list= overreq_seq_list[1:-1]
+                check_flag=False
+                for seq in seq_list: 
+                    #Percentage of the overrepresented sequences found for each reads
+                    percentage =int(float(seq.split('\t')[2]))
+                    if percentage > int(threshold_percentage):
+                        fout.write (">customAdapter"+str(counter)+"\n")
+                        fout.write  (seq.split('\t')[0]+"\n")
+                        check_flag=True
+                        #Calculating length of the overrepresentted sequence
+                        overreq_seq_length = len(seq.split('\t')[0])
+                        if overreq_seq_length>max_overreq_seq_length:
+                            max_overreq_seq_length=overreq_seq_length
+                        counter+=1
+                if not check_flag:
+                    message = "\n>>No overrepresented sequences found in "+input_file+" above the "+str(threshold_percentage)+"% threshold. Bypassing filtering for these sequences.\n"
+                    logger.info(message)
+                    print(message)
+                        
+            #Logging Adapter Content status
+            if ">>Adapter Content" in line:
+                message=line
+                logger.info(message)
+                print(message)
+            line = f.readline()
+        f.close()
+
     return max_overreq_seq_length,adapter_dir_path
