@@ -373,9 +373,9 @@ Kneaddata will trim the overrepresented sequences and adapters `by default` base
 **NOTE**: Please note that there is a trade off between the `read counts` and the `quality of the sequence` while **Trimmming overrepresented sequences using Kneaddata.** 
 
 
-Optional Usage: 
+Bypassing Trimmming overrepresented sequence in the workflow: 
 ```
-kneaddata --input demo.fastq -db demo_db -o kneaddata_output --threshold-trim-repetitive 3 --fastqc FastQC
+kneaddata --input demo.fastq -db demo_db -o kneaddata_output --bypass-trim-repetitive --fastqc FastQC
 ```
 
 
@@ -475,9 +475,7 @@ trimmomatic arguments:
                         [ DEFAULT : SLIDINGWINDOW:4:20 MINLEN:50 ]
                         MINLEN is set to 50 percent of total input read length
     --bypass-trim-repetitive      Option to bypass trimming repetitive sequences  
-    --threshold-trim-repetitive 
-                        Threshold percentage for trimming fastqc generated overrepresented sequences
-                        [ DEFAULT : 5 ]
+
 bowtie2 arguments:
   --bowtie2 BOWTIE2_PATH
                         path to bowtie2
