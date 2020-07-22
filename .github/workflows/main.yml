@@ -22,8 +22,11 @@ jobs:
     # check out repository under $GITHUB_WORKSPACE
     - uses: actions/checkout@v2
 
-    - name: Run tests
-      run: |
-        cd $GITHUB_WORKSPACE
-        python3 setup.py install
-        kneaddata --help
+    - name: Install
+      run: cd $GITHUB_WORKSPACE && python3 setup.py install
+    
+    - name: Help
+      run: kneaddata --help
+    
+    - name: Run basic test with small demo files
+      run: kneaddata --input examples/demo.fastq --output output_folder -db examples/
