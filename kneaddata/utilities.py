@@ -968,7 +968,7 @@ def write_read_count_table(output, reads):
                 new_line.append(counts)
             file_handle.write("\t".join([str(i) for i in new_line])+"\n")
 
-def extract_fastqc_output(input_list,output_dir,threshold_percentage):
+def extract_fastqc_output(input_list,output_dir):
     max_overreq_seq_length=0
     adapter_dir_path=output_dir+"/adapters.fa"
     overreq_seq_length=0
@@ -994,21 +994,17 @@ def extract_fastqc_output(input_list,output_dir,threshold_percentage):
                     seq_list= overreq_seq_list[1:-1]
                     check_flag=False
                     for seq in seq_list: 
-                        #Percentage of the overrepresented sequences found for each reads
-                        percentage =int(float(seq.split('\t')[2]))
-                        if percentage > int(threshold_percentage):
-                            fout.write (">customAdapter"+str(counter)+"\n")
-                            fout.write  (seq.split('\t')[0]+"\n")
-                            check_flag=True
-                            #Calculating length of the overrepresentted sequence
-                            overreq_seq_length = len(seq.split('\t')[0])
-                            if overreq_seq_length>max_overreq_seq_length:
-                                max_overreq_seq_length=overreq_seq_length
-                            counter+=1
+                        fout.write (">customAdapter"+str(counter)+"\n")
+                        fout.write  (seq.split('\t')[0]+"\n")
+                        check_flag=True
+                        #Calculating length of the overrepresentted sequence
+                        overreq_seq_length = len(seq.split('\t')[0])
+                        if overreq_seq_length>max_overreq_seq_length:
+                            max_overreq_seq_length=overreq_seq_length
+                        counter+=1
                     if not check_flag:
-                        message = "\n>>No overrepresented sequences found in "+input_file+" above the "+str(threshold_percentage)+"% threshold. Bypassing filtering for these sequences.\n"
+                        message = "\n>>No overrepresented sequences found in "+input_file+" Bypassing filtering for these sequences.\n"
                         logger.info(message)
-                        print(message)
                             
                 #Logging Adapter Content status
                 if ">>Adapter Content" in line:
@@ -1019,6 +1015,5 @@ def extract_fastqc_output(input_list,output_dir,threshold_percentage):
         except IOError:
             message = "Could not read FASTQC generated file: "+input_file
             logger.info(message)
-            print(message)
 
     return max_overreq_seq_length,adapter_dir_path

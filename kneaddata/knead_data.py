@@ -199,10 +199,6 @@ def parse_arguments(args):
         "--bypass-trim-repetitive",
         action="store_true",
         help="option to bypass trimming repetitive sequences")
-    group2.add_argument(
-        "--threshold-trim-repetitive",
-        default=config.threshold_trim_repetitive, 
-        help="Threshold percentage for trimming fastqc generated overrepresented sequences\n[ DEFAULT : "+str(config.threshold_trim_repetitive)+" ]")
 
     group3 = parser.add_argument_group("bowtie2 arguments")
     group3.add_argument(
@@ -468,7 +464,7 @@ def main():
         #Getting all the overrepresented sequences from fastqc .txt file
         if not args.bypass_trim_repetitive:
             # Get the Max Overrepresented Seq Length
-            overreq_seq_length,adapter_dir_path = utilities.extract_fastqc_output(output_txt_files, args.output_dir, args.threshold_trim_repetitive)
+            overreq_seq_length,adapter_dir_path = utilities.extract_fastqc_output(output_txt_files, args.output_dir)
         else:
             message="Bypass trimming repetitive"
             logger.info(message)

@@ -44,7 +44,6 @@ trimmomatic_minlen_option_tag="MINLEN"
 trimmomatic_option_delimiter=":"
 trimmomatic_min_len_percent=50
 default_read_length=100
-threshold_trim_repetitive=5
 
 # quality score flags for trimmomatic and bowtie2
 quality_scores_options=["phred33","phred64"]
