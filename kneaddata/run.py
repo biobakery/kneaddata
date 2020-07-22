@@ -45,7 +45,7 @@ def fastqc(fastqc_path, output_dir, input_files, threads, verbose):
     # create the directory if it does not already exist
     utilities.create_directory(fastqc_output_dir)
     
-    command=[fastqc_path]+input_files+["--threads",str(threads)]+["--outdir",fastqc_output_dir]
+    command=[fastqc_path]+input_files+["--threads",str(threads)]+["--outdir",fastqc_output_dir]+["--extract"]
     # run fastqc command
     utilities.run_command(command,"fastqc",input_files,[],None,verbose,exit_on_error=True)
 
