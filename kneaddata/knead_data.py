@@ -461,7 +461,9 @@ def main():
         #Setting fastqc output zip and txt file path
         output_txt_files=[]
         for input_file_name in original_input_files:
-            temp_file=input_file_name.split('.')[0]
+            temp_file = os.path.splitext(input_file_name)[0]
+            if (temp_file.count('fastq')>0 or temp_file.count('fq')>0 ):
+                temp_file = os.path.splitext(temp_file)[0]
             output_txt_files.append(args.output_dir+"/fastqc/"+temp_file.split('/')[-1]+"_fastqc/fastqc_data.txt")
         #Getting all the overrepresented sequences from fastqc .txt file
         if not args.bypass_trim_repetitive:
