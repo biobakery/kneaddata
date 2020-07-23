@@ -196,9 +196,9 @@ def parse_arguments(args):
         help="options for trimmomatic\n[ DEFAULT : "+" ".join(utilities.get_default_trimmomatic_options())+" ]\n"+\
              "MINLEN is set to "+str(config.trimmomatic_min_len_percent)+" percent of total input read length")
     group2.add_argument(
-        "--bypass-trim-repetitive",
+        "--run-trim-repetitive",
         action="store_true",
-        help="option to bypass trimming repetitive sequences")
+        help="option for trimming repetitive sequences")
 
     group3 = parser.add_argument_group("bowtie2 arguments")
     group3.add_argument(
@@ -342,7 +342,7 @@ def update_configuration(args):
             "--trf", bypass_permissions_check=False)
         
     # if fastqc is set to be run, check if the executable can be found
-    if args.fastqc_start or args.fastqc_end or not args.bypass_trim_repetitive:
+    if args.fastqc_start or args.fastqc_end or args.run_trim_repetitive:
         args.fastqc_path=utilities.find_dependency(args.fastqc_path,config.fastqc_exe,"fastqc",
                                                    "--fastqc",bypass_permissions_check=False)
 
@@ -452,7 +452,7 @@ def main():
     utilities.log_read_count_for_files(args.input,"raw","Initial number of reads",args.verbose)
     
     # Run fastqc if set to run at start of workflow
-    if args.fastqc_start or not args.bypass_trim_repetitive:
+    if args.fastqc_start or args.run_trim_repetitive:
         run.fastqc(args.fastqc_path, args.output_dir, original_input_files, args.threads, args.verbose)
         #Setting fastqc output zip and txt file path
         output_txt_files=[]
@@ -462,7 +462,7 @@ def main():
                 temp_file = os.path.splitext(temp_file)[0]
             output_txt_files.append(args.output_dir+"/fastqc/"+temp_file.split('/')[-1]+"_fastqc/fastqc_data.txt")
         #Getting all the overrepresented sequences from fastqc .txt file
-        if not args.bypass_trim_repetitive:
+        if args.run_trim_repetitive:
             # Get the Max Overrepresented Seq Length
             overreq_seq_length,adapter_dir_path = utilities.extract_fastqc_output(output_txt_files, args.output_dir)
         else:
@@ -472,7 +472,7 @@ def main():
                 
     # Run trimmomatic
     if not args.bypass_trim:
-        if not args.bypass_trim_repetitive and overreq_seq_length!=0:
+        if args.run_trim_repetitive and overreq_seq_length!=0:
             #Calculating the value of trimmomatic option based on overrepresented sequences
             i=0
             for trimmomatic_option in args.trimmomatic_options:
