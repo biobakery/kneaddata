@@ -199,7 +199,8 @@ def parse_arguments(args):
         "--sequencer-source",
         dest='sequencer_source',
         default=config.trimmomatic_provided_sequencer_default, 
-        help="options for sequencer-source\n[ DEFAULT : "+config.trimmomatic_provided_sequencer_default+"]"+"\n Available sequencers: ["+",".join(config.trimmomatic_provided_sequencer_source)+"]")
+        choices=config.trimmomatic_provided_sequencer_source,
+        help="options for sequencer-source\n[ DEFAULT : "+config.trimmomatic_provided_sequencer_default+"]")
 
     group3 = parser.add_argument_group("bowtie2 arguments")
     group3.add_argument(
