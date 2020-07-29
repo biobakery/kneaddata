@@ -33,12 +33,14 @@ log_level=log_level_choices[0]
 
 bmtagger_exe="bmtagger.sh"
 
+trimmomatic_provided_sequencer_source=["NexteraPE","TruSeq2","TruSeq3"]
+trimmomatic_provided_sequencer_default="NexteraPE"
 trimmomatic_adapter_folder=os.path.join(os.path.dirname(os.path.abspath(__file__)),"adapters")
 trimmomatic_jar="trimmomatic*.jar"
 trimmomatic_memory="500m"
 trimmomatic_flag_start="-"
-trimmomatic_trim_adapters_option_se="ILLUMINACLIP:$PATH/TruSeq3-SE.fa:2:30:10"
-trimmomatic_trim_adapters_option_pe="ILLUMINACLIP:$PATH/NexteraPE-PE.fa:2:30:10:8:TRUE"
+trimmomatic_trim_adapters_option_se="ILLUMINACLIP:$PATH/"+trimmomatic_provided_sequencer_default+"-PE.fa:2:30:10"
+trimmomatic_trim_adapters_option_pe="ILLUMINACLIP:$PATH/"+trimmomatic_provided_sequencer_default+"-PE.fa:2:30:10:8:TRUE"
 trimmomatic_slidingwindow_option="SLIDINGWINDOW:4:20"
 trimmomatic_minlen_option_tag="MINLEN"
 trimmomatic_option_delimiter=":"

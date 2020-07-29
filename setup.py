@@ -308,14 +308,19 @@ def install_trimmomatic(final_install_folder, mac_os, replace_install=None):
 def install_trimmomatic_adapters():
     """ Download and install the files required for trimming adapters """
 
-    pe_url = "https://raw.githubusercontent.com/timflutre/trimmomatic/master/adapters/NexteraPE-PE.fa"
-    se_url = "https://raw.githubusercontent.com/timflutre/trimmomatic/master/adapters/TruSeq3-SE.fa"
-
+    trimmomatic_adapters=[]
+    truSeq2_PE="https://raw.githubusercontent.com/timflutre/trimmomatic/master/adapters/TruSeq2-PE.fa"
+    truSeq2_SE="https://raw.githubusercontent.com/timflutre/trimmomatic/master/adapters/TruSeq2-SE.fa"
+    truSeq3_PE="https://raw.githubusercontent.com/timflutre/trimmomatic/master/adapters/TruSeq3-PE.fa"
+    truSeq3_SE="https://raw.githubusercontent.com/timflutre/trimmomatic/master/adapters/TruSeq3-SE.fa"
+    nextera_PE="https://raw.githubusercontent.com/timflutre/trimmomatic/master/adapters/NexteraPE-PE.fa"
+    trimmomatic_adapters=[truSeq2_PE,truSeq2_SE,truSeq3_PE,truSeq3_SE,nextera_PE]
+    
     install_dir=os.path.join(os.path.dirname(os.path.realpath(__file__)),"kneaddata","adapters")
     if not os.path.isdir(install_dir):
         os.makedirs(install_dir)
 
-    for url in [pe_url, se_url]:
+    for url in trimmomatic_adapters:
         url_file = os.path.join(install_dir,os.path.basename(url))
         if not os.path.isfile(url_file):
             download(url, url_file)
