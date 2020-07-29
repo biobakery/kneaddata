@@ -1,6 +1,11 @@
 
 # KneadData History #
 
+## v0.7.10 07-29-2020
+
+* Remove trim-repetitive sequences option (prior set as default for filtering to remove adapters and overrepresented sequences).
+* Add more adapters plus option to select adapter type.
+
 ## v0.7.9 07-14-2020
 
 * Modified check for ordered pairs to only check the first 100 sequence ids to reduce memory usage.
