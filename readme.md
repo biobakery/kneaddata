@@ -51,7 +51,7 @@ The executables for the required software packages should be installed in your $
 
 Before installing KneadData, please install the Java Runtime Environment (JRE). First [download](http://www.oracle.com/technetwork/java/javase/downloads/jre7-downloads-1880261.html) the JRE for your platform. Then follow the instructions for your platform: [Linux 64-bit](http://docs.oracle.com/javase/8/docs/technotes/guides/install/linux_jre.html#CFHIEGAA) or [Mac OS](http://docs.oracle.com/javase/8/docs/technotes/guides/install/mac_jre.html#jre_8u40_osx). At the end of the installation, add the location of the java executable to your $PATH.
 
-### Download KneadData ###
+## Download KneadData ###
 
 You can download the latest KneadData release or the development version. The source contains example files. If installing with pip, it is optional to first download the KneadData source.
 
@@ -67,7 +67,7 @@ Option 2: Development Version
 
     Note: Creating a clone of the repository requires [Git](https://git-scm.com/) to be installed.
 
-### Install KneadData ###
+## Install KneadData ###
 
 #### Install with pip ####
 
@@ -151,7 +151,7 @@ To download the indexed human reference database, run the following command:
 * `` $ kneaddata_database --download human bowtie2 $DIR ``
 * When running this command, $DIR should be replaced with the full path to the directory you have selected to store the database.
 
-##### Creating a Bowtie2 Database #####
+### Creating a Bowtie2 Database #####
 
 Simply run the `bowtie2-build` indexer included with Bowtie2 as follows:
 
@@ -168,7 +168,7 @@ Script link: [modify_RNA_to_DNA.py](https://github.com/biobakery/kneaddata/blob/
 ``$ python -u modify_RNA_to_DNA.py input.fasta  output.fa``
 
 
-##### Creating a BMTagger Database #####
+### Creating a BMTagger Database #####
 
 KneadData includes `kneaddata_build_database`, an executable that
 will automatically generate these databases for BMTagger. Simply run
@@ -187,7 +187,7 @@ your PATH. If this is the case, you can specify a path to these tools using the
 
 for more details.
 
-##### Example Custom Database Build #####
+#### Example Custom Database Build #####
 
 Say you want to remove human reads from your metagenomic sequencing data.
 You downloaded the human genome in a file called `Homo_sapiens.fasta`. 
@@ -203,19 +203,19 @@ for Bowtie2, or
 All of the required KneadData database files will have file names prefixed by
 `Homo_sapiens_db` and have various file extensions.
 
-##### **Note**: For creating SILVA ribosomal_RNA database
+### **Note**: For creating SILVA ribosomal_RNA database
 Run the following python program before `bowtie2-build` command which converts the "U"s to "T"s in the fasta sequences for creating SILVA ribosomal_RNA database.  
 Script link: [modify_RNA_to_DNA.py](https://github.com/biobakery/kneaddata/blob/master/kneaddata/db_preprocessing/modify_RNA_to_DNA.py)
 ``$ python -u modify_RNA_to_DNA.py input.fasta  output.fa``
 
-### How to Run ###
+## How to Run ###
 
 After downloading or generating your database file, you can start to remove contaminant reads.
 As input, KneadData requires FASTQ files. It supports both single end and paired
 end reads. KneadData uses either Bowtie2 (default) or BMTagger to identify the
 contaminant reads.
 
-#### Single End Run ####
+## Single End Run ####
 
 To run KneadData in single end mode, run
 
@@ -240,7 +240,7 @@ If you wanted to use BMTagger and the BMTagger executable was located at
 
 If you wanted to select the basenames of the output files, you would add the option "--output-prefix $NAME", replacing $NAME with the name you would like used.
 
-#### Paired End Run ####
+## Paired End Run ####
 
 To run KneadData in paired end mode with Bowtie2, run
 
@@ -354,7 +354,7 @@ Aggregated files:
 + `seq_kneaddata_unmatched_2.fastq`: Reads from the second mate in situation (3) identified as
   NOT belonging to any of the reference databases.
 
-#### Demo Run ####
+## Demo Run ####
 
 The examples folder contains a demo input file. This file is a single read, fastq format.
 
@@ -367,7 +367,7 @@ This will create four output files:
 3. `` kneaddata_demo_output/demo_kneaddata.log ``
 3. `` kneaddata_demo_output/demo_kneaddata.trimmed.fastq ``
 
-#### Sequencer Source for trimming Adapter Contents ####
+## Sequencer Source for trimming Adapter Contents ####
 Kneaddata will use **"NexteraPE"** adapters provided by trimomatic to trim the adapter contents `by default`.
 
 The other available options are: `["NexteraPE", "TruSeq2", "TruSeq3"]`. Based on the source of the sequencer and the FASTQC report, it is **highly reccommended**
@@ -379,7 +379,7 @@ kneaddata --input demo.fastq -db demo_db -o kneaddata_output --sequencer-source 
 ```
 
 
-#### Additional Arguments ####
+## Additional Arguments ####
 
 If you want to specify additional arguments for Bowtie2 using the
 `--bowtie2-options` flag, you will need to use the equals sign along with quotes. Add additional flags for each option.
