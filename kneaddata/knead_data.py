@@ -199,7 +199,7 @@ def parse_arguments(args):
         "--sequencer-source",
         dest='sequencer_source',
         default=config.trimmomatic_provided_sequencer_default, 
-        help="options for sequencer-source\n[ DEFAULT : "+config.trimmomatic_provided_sequencer_default+"]")
+        help="options for sequencer-source\n[ DEFAULT : "+config.trimmomatic_provided_sequencer_default+"]"+"\n Available sequencers: ["+",".join(config.trimmomatic_provided_sequencer_source)+"]")
 
     group3 = parser.add_argument_group("bowtie2 arguments")
     group3.add_argument(
@@ -457,10 +457,16 @@ def main():
     if args.fastqc_start:
         run.fastqc(args.fastqc_path, args.output_dir, original_input_files, args.threads, args.verbose)
 
-    trimmomatic_output_files = run.trim(
-        args.input, full_path_output_prefix, args.trimmomatic_path, 
-        args.trimmomatic_quality_scores, args.max_memory, args.trimmomatic_options, 
-        args.threads, args.verbose)
+    if not args.bypass_trim:
+        trimmomatic_output_files = run.trim(
+            args.input, full_path_output_prefix, args.trimmomatic_path, 
+            args.trimmomatic_quality_scores, args.max_memory, args.trimmomatic_options, 
+            args.threads, args.verbose)
+    else:
+        message="Bypass trimming"	
+        logger.info(message)	
+        print(message)	
+        trimmomatic_output_files=[args.input]
         
     # Get the number of reads after trimming
     utilities.log_read_count_for_files(trimmomatic_output_files,"trimmed","Total reads after trimming",args.verbose)
