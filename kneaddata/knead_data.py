@@ -196,9 +196,10 @@ def parse_arguments(args):
         help="options for trimmomatic\n[ DEFAULT : "+" ".join(utilities.get_default_trimmomatic_options())+" ]\n"+\
              "MINLEN is set to "+str(config.trimmomatic_min_len_percent)+" percent of total input read length")
     group2.add_argument(
-        "--run-trim-repetitive",
-        action="store_true",
-        help="option for trimming repetitive sequences")
+        "--sequencer-source",
+        dest='sequencer_source',
+        default=config.trimmomatic_provided_sequencer_default, 
+        help="options for sequencer-source\n[ DEFAULT : "+config.trimmomatic_provided_sequencer_default+"]"+"\n Available sequencers: ["+",".join(config.trimmomatic_provided_sequencer_source)+"]")
 
     group3 = parser.add_argument_group("bowtie2 arguments")
     group3.add_argument(
@@ -342,7 +343,7 @@ def update_configuration(args):
             "--trf", bypass_permissions_check=False)
         
     # if fastqc is set to be run, check if the executable can be found
-    if args.fastqc_start or args.fastqc_end or args.run_trim_repetitive:
+    if args.fastqc_start or args.fastqc_end:
         args.fastqc_path=utilities.find_dependency(args.fastqc_path,config.fastqc_exe,"fastqc",
                                                    "--fastqc",bypass_permissions_check=False)
 
@@ -443,61 +444,33 @@ def main():
         # parse the options from the user into an array of options
         args.trimmomatic_options = utilities.format_options_to_list(args.trimmomatic_options)
     else:
-        # if not set by user, then set to default options
+        # if trimmomatic options not set by user, then set to default options
         # use read length of input file for minlen
         args.trimmomatic_options = utilities.get_default_trimmomatic_options(utilities.get_read_length_fastq(args.input[0]),
-            path=config.trimmomatic_adapter_folder,type="PE" if len(args.input) == 2 else "SE")
+            path=config.trimmomatic_adapter_folder,type="PE" if len(args.input) == 2 else "SE", sequencer_source=args.sequencer_source)
+            
 
     # Get the number of reads initially
     utilities.log_read_count_for_files(args.input,"raw","Initial number of reads",args.verbose)
     
     # Run fastqc if set to run at start of workflow
-    if args.fastqc_start or args.run_trim_repetitive:
+    if args.fastqc_start:
         run.fastqc(args.fastqc_path, args.output_dir, original_input_files, args.threads, args.verbose)
-        #Setting fastqc output zip and txt file path
-        output_txt_files=[]
-        for input_file_name in original_input_files:
-            temp_file = os.path.splitext(input_file_name)[0]
-            if (temp_file.count('fastq')>0 or temp_file.count('fq')>0 ):
-                temp_file = os.path.splitext(temp_file)[0]
-            output_txt_files.append(args.output_dir+"/fastqc/"+temp_file.split('/')[-1]+"_fastqc/fastqc_data.txt")
-        #Getting all the overrepresented sequences from fastqc .txt file
-        if args.run_trim_repetitive:
-            # Get the Max Overrepresented Seq Length
-            overreq_seq_length,adapter_dir_path = utilities.extract_fastqc_output(output_txt_files, args.output_dir)
-        else:
-            message="Bypass trimming repetitive"
-            logger.info(message)
-            print(message)
-                
-    # Run trimmomatic
+
     if not args.bypass_trim:
-        if args.run_trim_repetitive and overreq_seq_length!=0:
-            #Calculating the value of trimmomatic option based on overrepresented sequences
-            i=0
-            for trimmomatic_option in args.trimmomatic_options:
-                if trimmomatic_option.count("ILLUMINACLIP")>0: 
-                    trimmomatic_parameter = trimmomatic_option.split('.')
-                    # Multiplying Max Overrepresented Seq Length with log function(0.6)
-                    adapter_trimming =str(int(overreq_seq_length*0.6))
-                    temp_updated_parameter =  ':'.join(trimmomatic_parameter[-1].split(':')[:-1])+":"+adapter_trimming
-                    updated_parameter = ':'.join(temp_updated_parameter.split(':')[1:])
-                    #Updating the Global trimmomation_options value
-                    args.trimmomatic_options[i]="ILLUMINACLIP:"+adapter_dir_path+":"+updated_parameter
-                i+=1
         trimmomatic_output_files = run.trim(
             args.input, full_path_output_prefix, args.trimmomatic_path, 
             args.trimmomatic_quality_scores, args.max_memory, args.trimmomatic_options, 
             args.threads, args.verbose)
-        
-        # Get the number of reads after trimming
-        utilities.log_read_count_for_files(trimmomatic_output_files,"trimmed","Total reads after trimming",args.verbose)
     else:
-        message="Bypass trimming"
-        logger.info(message)
-        print(message)
+        message="Bypass trimming"	
+        logger.info(message)	
+        print(message)	
         trimmomatic_output_files=[args.input]
-    
+        
+    # Get the number of reads after trimming
+    utilities.log_read_count_for_files(trimmomatic_output_files,"trimmed","Total reads after trimming",args.verbose)
+   
     # run TRF, if set
     if not args.bypass_trf:
         # run trf on all output files
