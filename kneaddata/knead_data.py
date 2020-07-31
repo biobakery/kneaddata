@@ -212,13 +212,15 @@ def parse_arguments(args):
         action="append",
         help="options for bowtie2\n[ DEFAULT : "+ " ".join(config.bowtie2_options)+" ]")
     group3.add_argument(
-        "--no-discordant",
-        action="store_true",
-        help="do not include discordant alignments for pairs (ie one of the two pairs aligns)\n[ DEFAULT : Discordant alignments are included ]")
+        "--decontaminate-pairs",
+        choices=["strict","lenient","separate"],
+        default="strict",
+        help="options for filtering of paired end reads (strict='remove both R1+R2 if either align', lenient='remove only if both R1+R2 align', separate='ignore pairing and remove as single end')\n"+\
+             "[ DEFAULT : %(default)s ]")
     group3.add_argument(
         "--reorder",
         action="store_true",
-        help="order the sequences in the same order as the input\n[ DEFAULT : With discordant paired alignments sequences are not ordered ]")
+        help="order the sequences in the same order as the input\n[ DEFAULT : Sequences are not ordered ]")
     group3.add_argument(
         "--serial",
         action="store_true",
@@ -317,7 +319,12 @@ def update_configuration(args):
         
     # add the quality scores to the bowtie2 options
     args.bowtie2_options+=[config.bowtie2_flag_start+args.trimmomatic_quality_scores]    
-    
+   
+    # set the bowtie2 mode based on the pairs input
+    args.discordant = False
+    if args.decontaminate_pairs != "lenient" :
+        args.discordant = True
+ 
     # update the quality score option into a flag for trimmomatic
     args.trimmomatic_quality_scores=config.trimmomatic_flag_start+args.trimmomatic_quality_scores
         

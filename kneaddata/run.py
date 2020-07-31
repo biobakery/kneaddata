@@ -52,7 +52,7 @@ def fastqc(fastqc_path, output_dir, input_files, threads, verbose):
 
 def align(infile_list, db_prefix_list, output_prefix, remove_temp_output,
           bowtie2_path, threads, processors, bowtie2_opts, verbose, 
-          no_discordant=None, reorder=None, serial=None):
+          discordant=None, reorder=None, serial=None, decontaminate_pairs=None):
     """ Runs bowtie2 on a single-end sequence file or a paired-end set of files. 
     For each input file set and database provided, a bowtie2 command is generated and run."""
 
@@ -63,7 +63,7 @@ def align(infile_list, db_prefix_list, output_prefix, remove_temp_output,
     commands = []
     all_outputs_to_combine = []
     database_names = []
-    if no_discordant:
+    if discordant:
         all_outputs_to_combine = [[],[],[]]
         database_names = [[],[],[]]
     all_contaminated_outputs = []
@@ -72,7 +72,7 @@ def align(infile_list, db_prefix_list, output_prefix, remove_temp_output,
     for basename, fullpath in _prefix_bases(db_prefix_list):
         output_str = output_prefix + "_" + basename + "_bowtie2"
         cmd = bowtie2_command + ["-x", fullpath]
-        if no_discordant:
+        if discordant:
             # if running in serial mode, use the last set of outputs as input
             if serial and all_outputs_to_combine[0]:
                 current_infile_list=[all_outputs_to_combine[0][-1][-2],all_outputs_to_combine[0][-1][-1]]
@@ -86,7 +86,7 @@ def align(infile_list, db_prefix_list, output_prefix, remove_temp_output,
                 current_infile_list=infile_list
             
             # run the pairs allowing for all alignments (including those generating orphans)
-            cmd=["kneaddata_bowtie2_discordant_pairs","--bowtie2",bowtie2_path,"--threads", str(threads),"-x",fullpath]
+            cmd=["kneaddata_bowtie2_discordant_pairs","--bowtie2",bowtie2_path,"--threads", str(threads),"-x",fullpath,"--mode",decontaminate_pairs]
             
             if bowtie2_opts:
                 cmd+=["--bowtie2-options","\""+" ".join(bowtie2_opts)+"\""]
@@ -174,7 +174,7 @@ def align(infile_list, db_prefix_list, output_prefix, remove_temp_output,
     # if bowtie2 produced output, merge the files from multiple databases
     combined_outs = []
     if all_outputs_to_combine:
-        if no_discordant:
+        if discordant:
             combined_outs1 = combine_fastq_output_files(all_outputs_to_combine[0], output_prefix + "_paired", remove_temp_output, database_names[0])
             combined_outs2 = combine_fastq_output_files(all_outputs_to_combine[1], output_prefix + "_unmatched_1", remove_temp_output, database_names[1])
             combined_outs3 = combine_fastq_output_files(all_outputs_to_combine[2], output_prefix + "_unmatched_2", remove_temp_output, database_names[2])
@@ -556,11 +556,11 @@ def decontaminate(args, output_prefix, files_to_align):
     output_files=[]
     
     # if running bowtie2 with discordant and pairs, run all reads at once
-    if not args.bmtagger and not args.no_discordant and isinstance(files_to_align[0], list) and len(files_to_align[0]) == 2:
+    if not args.bmtagger and args.discordant and isinstance(files_to_align[0], list) and len(files_to_align[0]) == 2:
         alignment_output_files = align([files_to_align[0][0],files_to_align[0][1]]+utilities.resolve_sublists(files_to_align[1:]), 
             args.reference_db, output_prefix, args.remove_temp_output, args.bowtie2_path, args.threads,
-            args.processes, args.bowtie2_options, args.verbose, no_discordant=True, 
-            reorder=args.reorder, serial=args.serial)
+            args.processes, args.bowtie2_options, args.verbose, discordant=args.discordant, 
+            reorder=args.reorder, serial=args.serial, decontaminate_pairs=args.decontaminate_pairs)
         output_files=alignment_output_files
     else:
         for files_list in files_to_align:

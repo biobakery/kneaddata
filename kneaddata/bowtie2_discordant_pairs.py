@@ -113,6 +113,10 @@ def parse_arguments(args):
         "--bowtie2-options",
         help="the bowtie2 options to apply")
     parser.add_argument(
+        "--mode",
+        choices=["strict","separate"],
+        help="the run mode")
+    parser.add_argument(
         "--cat-pairs",
         action="store_true",
         help="concatenate pair files before aligning so reads are aligned as single end")
@@ -150,7 +154,7 @@ def run_bowtie2(bowtie2_path,pair1,pair2,orphans,database,sam,threads,options,re
             message+="\nError message returned from bowtie2:\n" + e.output
         sys.exit(message)
     
-def organize_alignments_single(sam,open_files,counts):
+def organize_alignments_single(sam,open_files,counts,mode):
     """ Organize the alignments that were generated running the pairs as single end reads """
     
     # read through the sam file, organizing reads by those that aligned 
@@ -175,7 +179,15 @@ def organize_alignments_single(sam,open_files,counts):
                 if not query_id in aligned:
                     aligned[query_id]=set()
                 aligned[query_id].add(pair1)
-                
+               
+    # if running in strict mode, for all pairs with a single alignment
+    # also filter out the other pair
+    if mode == "strict":
+        for query_id in aligned:
+            if len(aligned[query_id]) == 1 and len(unaligned.get(query_id,[])) == 1:
+                aligned[query_id].update(unaligned[query_id])
+                unaligned[query_id]=set()
+ 
     # read through the sam file again to write the reads to the output files
     with open(sam) as file_handle:
         for line in file_handle:
@@ -207,7 +219,7 @@ def organize_alignments_single(sam,open_files,counts):
             counts[file_name]=counts[file_name]+1                
     
 
-def process_alignments(sam,aligned_pair,unaligned_pair,aligned_orphan,unaligned_orphan):
+def process_alignments(sam,aligned_pair,unaligned_pair,aligned_orphan,unaligned_orphan,mode):
     """ Read through the sam alignments and organize into the output files """
     
     # open the output files
@@ -229,7 +241,7 @@ def process_alignments(sam,aligned_pair,unaligned_pair,aligned_orphan,unaligned_
                 "orphan1_unaligned":orphan1_unaligned,"orphan2_unaligned":orphan2_unaligned}
     counts={name:0 for name in open_files.keys()}  
     
-    organize_alignments_single(sam,open_files,counts)
+    organize_alignments_single(sam,open_files,counts,mode)
             
     # close all of the files
     for file_name, file_handle in open_files.items():
@@ -256,7 +268,7 @@ def main():
     run_bowtie2(args.bowtie2,args.pair1,args.pair2,args.orphan,args.index,args.sam,args.threads,args.bowtie2_options,args.reorder)
     
     # write output files
-    process_alignments(args.sam,args.al_pair,args.un_pair,args.al_single,args.un_single)
+    process_alignments(args.sam,args.al_pair,args.un_pair,args.al_single,args.un_single,args.mode)
     
     # remove the temp files
     for file in temp_files:
