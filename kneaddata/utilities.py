@@ -973,7 +973,7 @@ def write_read_count_table(output, reads):
             file_handle.write("\t".join([str(i) for i in new_line])+"\n")
 
 def extract_fastqc_output(input_list,output_dir):
-    max_overreq_seq_length=0
+    min_overreq_seq_length=0
     adapter_dir_path=output_dir+"/adapters.fa"
     overreq_seq_length=0
     seq_list=[]
@@ -1003,8 +1003,8 @@ def extract_fastqc_output(input_list,output_dir):
                         check_flag=True
                         #Calculating length of the overrepresentted sequence
                         overreq_seq_length = len(seq.split('\t')[0])
-                        if overreq_seq_length>max_overreq_seq_length:
-                            max_overreq_seq_length=overreq_seq_length
+                        if overreq_seq_length>min_overreq_seq_length:
+                            min_overreq_seq_length=overreq_seq_length
                         counter+=1
                     if not check_flag:
                         message = "\n>>No overrepresented sequences found in "+input_file+" Bypassing filtering for these sequences.\n"

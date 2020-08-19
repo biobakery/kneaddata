@@ -187,6 +187,12 @@ def parse_arguments(args):
         dest='trimmomatic_path',
         help="path to trimmomatic\n[ DEFAULT : $PATH ]")
     group2.add_argument(
+        "--run-trim-repetitive",
+        default=False,
+        dest='run_trim_repetitive',
+        action="store_true",
+        help="Trim fastqc generated overrepresented sequences\n")
+    group2.add_argument(
         "--max-memory",
         default=config.trimmomatic_memory, 
         help="max amount of memory\n[ DEFAULT : "+config.trimmomatic_memory+" ]")
@@ -462,14 +468,39 @@ def main():
     utilities.log_read_count_for_files(args.input,"raw","Initial number of reads",args.verbose)
     
     # Run fastqc if set to run at start of workflow
-    if args.fastqc_start:
+    if args.fastqc_start or args.run_trim_repetitive:
         run.fastqc(args.fastqc_path, args.output_dir, original_input_files, args.threads, args.verbose)
+        #Setting fastqc output zip and txt file path
+        output_txt_files=[]
+        for input_file_name in original_input_files:
+            temp_file = os.path.splitext(input_file_name)[0]
+            if (temp_file.count('fastq')>0 or temp_file.count('fq')>0 ):
+                temp_file = os.path.splitext(temp_file)[0]
+            output_txt_files.append(args.output_dir+"/fastqc/"+temp_file.split('/')[-1]+"_fastqc/fastqc_data.txt")
 
     if not args.bypass_trim:
+        if args.run_trim_repetitive:
+             # Get the Max Overrepresented Seq Length
+            overreq_seq_length,adapter_dir_path = utilities.extract_fastqc_output(output_txt_files, args.output_dir)
+            if overreq_seq_length!=0:
+                #Calculating the value of trimmomatic option based on overrepresented sequences
+                i=0
+                for trimmomatic_option in args.trimmomatic_options:
+                    if trimmomatic_option.count("ILLUMINACLIP")>0: 
+                        trimmomatic_parameter = trimmomatic_option.split('.')
+                        # Multiplying Max Overrepresented Seq Length with log function(0.6)
+                        adapter_trimming =str(int(overreq_seq_length*0.6))
+                        temp_updated_parameter =  ':'.join(trimmomatic_parameter[-1].split(':')[:-1])+":"+adapter_trimming
+                        updated_parameter = ':'.join(temp_updated_parameter.split(':')[1:])
+                        #Updating the Global trimmomation_options value
+                        args.trimmomatic_options[i]="ILLUMINACLIP:"+adapter_dir_path+":"+updated_parameter
+                    i+=1
+                 
         trimmomatic_output_files = run.trim(
-            args.input, full_path_output_prefix, args.trimmomatic_path, 
-            args.trimmomatic_quality_scores, args.max_memory, args.trimmomatic_options, 
-            args.threads, args.verbose)
+        args.input, full_path_output_prefix, args.trimmomatic_path, 
+        args.trimmomatic_quality_scores, args.max_memory, args.trimmomatic_options, 
+        args.threads, args.verbose)
+        
     else:
         message="Bypass trimming"	
         logger.info(message)	
