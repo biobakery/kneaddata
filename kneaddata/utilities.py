@@ -972,10 +972,10 @@ def write_read_count_table(output, reads):
                 new_line.append(counts)
             file_handle.write("\t".join([str(i) for i in new_line])+"\n")
 
-def extract_fastqc_output(input_list,output_dir):
-    min_overreq_seq_length=0
+def get_updated_trimmomatic_parameters(input_list,output_dir,default_trimmomatic_options):
     adapter_dir_path=output_dir+"/adapters.fa"
     overreq_seq_length=0
+    overreq_seq_length_list=[]
     seq_list=[]
     counter=0 
     fout = open(adapter_dir_path, "w")
@@ -1002,9 +1002,7 @@ def extract_fastqc_output(input_list,output_dir):
                         fout.write  (seq.split('\t')[0]+"\n")
                         check_flag=True
                         #Calculating length of the overrepresentted sequence
-                        overreq_seq_length = len(seq.split('\t')[0])
-                        if overreq_seq_length>min_overreq_seq_length:
-                            min_overreq_seq_length=overreq_seq_length
+                        overreq_seq_length_list.append(len(seq.split('\t')[0]))
                         counter+=1
                     if not check_flag:
                         message = "\n>>No overrepresented sequences found in "+input_file+" Bypassing filtering for these sequences.\n"
@@ -1020,4 +1018,31 @@ def extract_fastqc_output(input_list,output_dir):
             message = "Could not read FASTQC generated file: "+input_file
             logger.info(message)
 
-    return max_overreq_seq_length,adapter_dir_path
+    if overreq_seq_length_list:
+        #Calculating the value of trimmomatic option based on overrepresented sequences
+        i=0
+        
+        for trimmomatic_option in default_trimmomatic_options:
+            if trimmomatic_option.count("ILLUMINACLIP")>0: 
+                sequence_adapter_path = trimmomatic_option.split(':')[1]
+                trimmomatic_parameter = trimmomatic_option.split('.')
+                with open(sequence_adapter_path) as sequence_adapter_file:
+                    for loop_index,line in enumerate(sequence_adapter_file):
+                        fout.write(line)
+                        if loop_index%2!=0:
+                            overreq_seq_length_list.append(len(line))
+                            
+                # Multiplying Minimun Overrepresented Seq Length with log function(0.6)
+                min_overreq_seq_length =str(int(min(overreq_seq_length_list)*0.6))
+                splited_trimmomatic_parameter = trimmomatic_parameter[-1].split(':')
+                #Replace trimmomatic parameters with minimum overrepresented sequence length
+                if len(input_list) == 2:
+                    splited_trimmomatic_parameter[2] = min_overreq_seq_length
+                else:
+                    splited_trimmomatic_parameter[3] = min_overreq_seq_length
+                temp_updated_parameter=':'.join(splited_trimmomatic_parameter)
+                updated_parameter = ':'.join(temp_updated_parameter.split(':')[1:])
+                #Updating the Global trimmomation_options value
+                default_trimmomatic_options[i]="ILLUMINACLIP:"+adapter_dir_path+":"+updated_parameter
+            i+=1        
+    return default_trimmomatic_options

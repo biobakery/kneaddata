@@ -28,6 +28,7 @@ separate the human and the non-human reads.
     - [Paired End Run](#markdown-header-paired-end-run)
     - [Demo Run](#markdown-header-demo-run)
     - [Sequencer Source for trimming Adapter Contents](#sequencer-source-for-trimming-adapter-contents)
+    - [Trim Overrepresented/Repetitive sequences](#trim-overrepresented-repetitive-sequences)
     - [Additional Arguments](#markdown-header-additional-arguments)
 - [Complete Option List](#markdown-header-complete-option-list)
 
@@ -373,11 +374,24 @@ Kneaddata will use **"NexteraPE"** adapters provided by trimomatic to trim the a
 The other available options are: `["NexteraPE", "TruSeq2", "TruSeq3"]`. Based on the source of the sequencer and the FASTQC report, it is **highly reccommended**
 to choose the correct sequencer source to ensure the removal of adapter contents by Kneaddata. 
 
-Example: Trimmming adapter sequence using **TruSeq3** sequencer adapters in the workflow: 
+###### Example: Trimmming adapter sequence using **TruSeq3** sequencer adapters in the workflow: 
 ```
 kneaddata --input demo.fastq -db demo_db -o kneaddata_output --sequencer-source TruSeq3 --fastqc FastQC
 ```
 
+## Trim Overrepresented/Repetitive sequences ####
+It is highly recommeded to use **--run-trim-repetitive** flag for **Shotgun sequences (Metatranscriptomics-MTX, Metagenomics-MGX)** to trim the overrepresented sequences if shown in FASTQC reports.
+
+However, Kneaddata will **not** trim the overrepresented sequences **by default** as **Amplicon sequences** usually have a large number of repetitive reads resulting in depletion of the read count.
+
+###### Example: Trimming overrepresented sequences using the Fastqc reports:
+```
+kneaddata --input demo.fastq -db demo_db -o kneaddata_output --run-trim-repetitive --fastqc FastQC
+```
+###### Example: Trimming overrepresented sequences and TruSeq3 adapters:
+```
+kneaddata --input demo.fastq -db demo_db -o kneaddata_output --run-trim-repetitive --sequencer-source TruSeq3 --fastqc FastQC
+```
 
 ## Additional Arguments ####
 
