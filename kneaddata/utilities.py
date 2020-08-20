@@ -1020,9 +1020,7 @@ def get_updated_trimmomatic_parameters(input_list,output_dir,default_trimmomatic
 
     if overreq_seq_length_list:
         #Calculating the value of trimmomatic option based on overrepresented sequences
-        i=0
-        
-        for trimmomatic_option in default_trimmomatic_options:
+        for trimmomatic_options_count,trimmomatic_option in enumerate(default_trimmomatic_options):
             if trimmomatic_option.count("ILLUMINACLIP")>0: 
                 sequence_adapter_path = trimmomatic_option.split(':')[1]
                 trimmomatic_parameter = trimmomatic_option.split('.')
@@ -1043,6 +1041,5 @@ def get_updated_trimmomatic_parameters(input_list,output_dir,default_trimmomatic
                 temp_updated_parameter=':'.join(splited_trimmomatic_parameter)
                 updated_parameter = ':'.join(temp_updated_parameter.split(':')[1:])
                 #Updating the Global trimmomation_options value
-                default_trimmomatic_options[i]="ILLUMINACLIP:"+adapter_dir_path+":"+updated_parameter
-            i+=1        
+                default_trimmomatic_options[trimmomatic_options_count]="ILLUMINACLIP:"+adapter_dir_path+":"+updated_parameter
     return default_trimmomatic_options
