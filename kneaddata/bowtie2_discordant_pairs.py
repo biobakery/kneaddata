@@ -114,7 +114,7 @@ def parse_arguments(args):
         help="the bowtie2 options to apply")
     parser.add_argument(
         "--mode",
-        choices=["strict","separate"],
+        choices=["strict","unpaired"],
         help="the run mode")
     parser.add_argument(
         "--cat-pairs",

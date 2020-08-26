@@ -219,9 +219,9 @@ def parse_arguments(args):
         help="options for bowtie2\n[ DEFAULT : "+ " ".join(config.bowtie2_options)+" ]")
     group3.add_argument(
         "--decontaminate-pairs",
-        choices=["strict","lenient","separate"],
+        choices=["strict","lenient","unpaired"],
         default="strict",
-        help="options for filtering of paired end reads (strict='remove both R1+R2 if either align', lenient='remove only if both R1+R2 align', separate='ignore pairing and remove as single end')\n"+\
+        help="options for filtering of paired end reads (strict='remove both R1+R2 if either align', lenient='remove only if both R1+R2 align', unpaired='ignore pairing and remove as single end')\n"+\
              "[ DEFAULT : %(default)s ]")
     group3.add_argument(
         "--reorder",
@@ -325,7 +325,11 @@ def update_configuration(args):
         
     # add the quality scores to the bowtie2 options
     args.bowtie2_options+=[config.bowtie2_flag_start+args.trimmomatic_quality_scores]    
-   
+  
+    # set the mode for single end input file
+    if len(args.input) == 1:
+        args.decontaminate_pairs = "unpaired"
+ 
     # set the bowtie2 mode based on the pairs input
     args.discordant = False
     if args.decontaminate_pairs != "lenient" :
