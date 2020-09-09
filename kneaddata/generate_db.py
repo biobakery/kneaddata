@@ -51,7 +51,7 @@ class run_proc_thread(threading.Thread):
 
         for (logfile,output) in zip(logfiles, p_outputs):
             with open(logfile, "w") as f:
-                f.write(output)
+                f.write(output.decode("utf-8"))
         
 
 def run_proc(s_cmd, name, logdir):
