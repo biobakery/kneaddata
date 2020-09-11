@@ -507,7 +507,7 @@ def main():
         trf_output_files=run.tandem(trimmomatic_output_files, full_path_output_prefix, args.match,
                                       args.mismatch,args.delta,args.pm,args.pi,
                                       args.minscore,args.maxperiod,args.trf_path,
-                                      args.processes,args.verbose,args.remove_temp_output)
+                                      args.processes,args.verbose,args.remove_temp_output,args.threads)
         # remove the aligment files, if intermediate output files should be removed
         if args.reference_db and args.remove_intermediate_output:
             temp_output_files+=utilities.resolve_sublists(trimmomatic_output_files)

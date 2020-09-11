@@ -475,7 +475,7 @@ def remove_repeats_from_fastq(input_fastq, trf_output, output_fastq):
                 input_fastq + " ): " + str(removed_sequences))
         
 def tandem(input_files, output_prefix, match, mismatch, delta, pm, pi, minscore,
-               maxperiod, trf_path, processors, verbose, remove_temp_output):
+               maxperiod, trf_path, processors, verbose, remove_temp_output, threads):
     """ Run TRF on all input files """
 
     # Convert all arguments to strings    
@@ -509,8 +509,9 @@ def tandem(input_files, output_prefix, match, mismatch, delta, pm, pi, minscore,
             trf_output_files.append(trf_output_file)
             
             # suppress html output and write reduced data file to standard output
-            trf_command=[trf_path, input_fasta] + trf_args + ["-h","-ngs"]
-            
+            trf_command=["kneaddata_trf_parallel","--input",input_fasta,"--output",trf_output_file,"--trf-path",
+                    trf_path,"--trf-options","'"+" ".join(trf_args+["-h","-ngs"])+"'","--nproc",str(threads)]
+
             # only run trf if the fasta file is not empty
             if os.path.getsize(input_fasta) > 0:
                 commands.append([trf_command,"trf",[input_fasta],[trf_output_file],trf_output_file])

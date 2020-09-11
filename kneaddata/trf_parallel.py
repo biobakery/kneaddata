@@ -76,7 +76,7 @@ def parse_arguments(args):
     return parser.parse_args()
 
 
-def run_trf(input,trf_path,trf_options,nproc,output,processors=1,verbose=True):
+def run_trf(input,trf_path,trf_options,nproc,output,verbose=True):
     """ Run trf with the options provided """
 
     tempfile_list=[]
@@ -87,7 +87,7 @@ def run_trf(input,trf_path,trf_options,nproc,output,processors=1,verbose=True):
     if nproc == 1:
         commands.append([[trf_path,input]+trf_options.split(" "),"trf",[input],[output],output])
         
-        utilities.start_processes(commands,processors,verbose)
+        utilities.start_processes(commands,nproc,verbose)
     else:
         # split the input into multiple files and run in parallel
         for i in range(int(nproc)):
@@ -112,7 +112,7 @@ def run_trf(input,trf_path,trf_options,nproc,output,processors=1,verbose=True):
             trf_command=[trf_path,temp_in[1]]+trf_options.split(" ")
             commands.append([trf_command,"trf{}".format(i),[temp_in[1]],[temp_out],temp_out])
 
-        utilities.start_processes(commands,processors,verbose)
+        utilities.start_processes(commands,nproc,verbose)
     
         # merge all of the outputs to the final output file
         with open(output,"w") as file_write:
