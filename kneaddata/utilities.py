@@ -316,13 +316,12 @@ def check_sequence_identifier_format(file):
     if (" 1:" in first_lines[0] or " 2:" in first_lines[0]) and len(first_lines[0].split(":")) >= 7:
         new_format=True
     
-    # Checking 1st 25 seq identifiers for spaces 
-    for line in range(0,25):
+    # Checking seq identifiers for spaces and identifier numbers 
+    for lines in all_lines:
         if (" " in first_lines[0]):
             new_format=True
-        if not first_lines[0].endswith("/1\n") or not first_lines[0].endswith("/2\n"):
+        if not lines[0].endswith("/1\n") and not lines[0].endswith("/2\n"):
             new_format=True
-        first_lines=next(all_lines)
     return new_format
         
         
@@ -353,9 +352,9 @@ def get_reformatted_identifiers(file, output_folder, temp_file_list, all_input_f
                 lines[0]=lines[0].replace(" 2","").rstrip()+"#0/2\n"
             # Check if no sequence identifier number is present
             elif index==0 and not lines[0].endswith("/1\n"):
-                lines[0]=lines[0]+"#0/1\n"
+                lines[0]=lines[0].replace("\n","").rstrip()+"#0/1\n"
             elif index==1 and not lines[0].endswith("/2\n"):
-                lines[0]=lines[0]+"#0/2\n"
+                lines[0]=lines[0].replace("\n","").rstrip()+"#0/2\n"
             lines[0]=lines[0].replace(" ","")
             file_handle.write("".join(lines))
     

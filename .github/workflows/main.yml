@@ -30,3 +30,7 @@ jobs:
     
     - name: Run basic test with small demo files
       run: kneaddata --unpaired examples/demo.fastq --output output_folder -db examples/
+    - name: Run basic test with small paired demo files
+      run: kneaddata --input1 examples/pairedR1.fastq --input2 examples/pairedR2.fastq --output output_folder -db examples/
+    - name: Run basic test with Paired and Single End Reads 
+      run: kneaddata --input1 example/pairedR1.fastq --input2 example/pairedR2.fastq --unpaired examples/demo.fastq --output output_folder -db examples/
