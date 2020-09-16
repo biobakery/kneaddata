@@ -399,6 +399,7 @@ setuptools.setup(
         "console_scripts": [
             "kneaddata = kneaddata.knead_data:main",
             "kneaddata_bowtie2_discordant_pairs = kneaddata.bowtie2_discordant_pairs:main",
+            "kneaddata_trf_parallel = kneaddata.trf_parallel:main",
             "kneaddata_database = kneaddata.download_db:main",
             "kneaddata_build_database = kneaddata.generate_db:main",
             "kneaddata_read_count_table = kneaddata.read_count_table:main",
