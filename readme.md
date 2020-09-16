@@ -509,7 +509,7 @@ trimmomatic arguments:
                         [ DEFAULT : 500m ]
   --trimmomatic-options TRIMMOMATIC_OPTIONS
                         options for trimmomatic
-                        [ DEFAULT : ILLUMINACLIP:/-SE.fa:2:30:10 SLIDINGWINDOW:4:20 MINLEN:50 ]
+                        [ DEFAULT : SLIDINGWINDOW:4:20 MINLEN:50 ]
                         MINLEN is set to 50 percent of total input read length
   --sequencer-source {NexteraPE,TruSeq2,TruSeq3}
                         options for sequencer-source
