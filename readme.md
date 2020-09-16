@@ -1,3 +1,4 @@
+
 # ***ATTENTION***
 
 Before opening a new issue here, please check the appropriate help channel on the bioBakery Support Forum (https://forum.biobakery.org) and consider opening or commenting on a thread there.
@@ -220,7 +221,7 @@ contaminant reads.
 
 To run KneadData in single end mode, run
 
-` $ kneaddata --input seq.fastq --reference-db $DATABASE --output kneaddata_output `
+` $ kneaddata --unpaired seq.fastq --reference-db $DATABASE --output kneaddata_output `
 
 This will create files in the folder `kneaddata_output` named
 
@@ -232,7 +233,7 @@ This will create files in the folder `kneaddata_output` named
 
 To run KneadData in single end mode with BMTagger, run
 
-` $ kneaddata --input seq.fastq --reference-db $DATABASE --run-bmtagger`
+` $ kneaddata --unpaired seq.fastq --reference-db $DATABASE --run-bmtagger`
 
 By default, this will create the same four files as running with bowtie2. The only differences are the contaminants file will have "bmtagger" in the name instead of "bowtie2" and the included $DATABASE name would differ.
 
@@ -245,11 +246,11 @@ If you wanted to select the basenames of the output files, you would add the opt
 
 To run KneadData in paired end mode with Bowtie2, run
 
-` $ kneaddata --input seq1.fastq --input seq2.fastq -db $DATABASE --output kneaddata_output`
+` $ kneaddata --input1 seq1.fastq --input2 seq2.fastq -db $DATABASE --output kneaddata_output`
 
 To run KneadData in paired end mode with BMTagger, run
 
-` $ kneaddata --input seq1.fastq --input seq2.fastq -db $DATABASE --run-bmtagger --output kneaddata_output `
+` $ kneaddata --input1 seq1.fastq --input2 seq2.fastq -db $DATABASE --run-bmtagger --output kneaddata_output `
 
 + `seq1.fastq`: Your input FASTQ file, first mate
 + `seq2.fastq`: Your input FASTQ file, second mate
@@ -277,7 +278,7 @@ You have two databases, one prefixed `bact_rrna_db` and the other prefixed
 `human_rna_db`, and your sequence files are `seq1.fastq` and `seq2.fastq`. To
 run with Bowtie2, execute
 
-`$ kneaddata --input seq1.fastq --input seq2.fastq -db bact_rrna_db -db human_rna_db --output seq_out `
+`$ kneaddata --input1 seq1.fastq --input2 seq2.fastq -db bact_rrna_db -db human_rna_db --output seq_out `
 
 This will output files in the folder `seq_out` named:
 
@@ -354,12 +355,24 @@ Aggregated files:
   NOT belonging to any of the reference databases.
 + `seq_kneaddata_unmatched_2.fastq`: Reads from the second mate in situation (3) identified as
   NOT belonging to any of the reference databases.
+## Trim Overrepresented/Repetitive sequences ####
+It is highly recommeded to use **--run-trim-repetitive** flag for **Shotgun sequences (Metatranscriptomics-MTX, Metagenomics-MGX)** to trim the overrepresented sequences if shown in FASTQC reports.
 
+However, Kneaddata will **not** trim the overrepresented sequences **by default** as **Amplicon sequences** usually have a large number of repetitive reads resulting in depletion of the read count.
+
+###### Example: Trimming overrepresented sequences using the Fastqc reports:
+```
+kneaddata --unpaired demo.fastq -db demo_db -o kneaddata_output --run-trim-repetitive --fastqc FastQC
+```
+###### Example: Trimming overrepresented sequences and TruSeq3 adapters:
+```
+kneaddata --unpaired demo.fastq -db demo_db -o kneaddata_output --run-trim-repetitive --sequencer-source TruSeq3 --fastqc FastQC
+```
 ## Demo Run ####
 
 The examples folder contains a demo input file. This file is a single read, fastq format.
 
-`` $ kneaddata --input examples/demo.fastq --reference-db examples/demo_db --output kneaddata_demo_output ``
+`` $ kneaddata --unpaired examples/demo.fastq --reference-db examples/demo_db --output kneaddata_demo_output ``
 
 This will create four output files:
 
@@ -376,43 +389,43 @@ to choose the correct sequencer source to ensure the removal of adapter contents
 
 ###### Example: Trimmming adapter sequence using **TruSeq3** sequencer adapters in the workflow: 
 ```
-kneaddata --input demo.fastq -db demo_db -o kneaddata_output --sequencer-source TruSeq3 --fastqc FastQC
+kneaddata --unpaired demo.fastq -db demo_db -o kneaddata_output --sequencer-source TruSeq3 --fastqc FastQC
 ```
 
-## Trim Overrepresented/Repetitive sequences ####
-It is highly recommeded to use **--run-trim-repetitive** flag for **Shotgun sequences (Metatranscriptomics-MTX, Metagenomics-MGX)** to trim the overrepresented sequences if shown in FASTQC reports.
-
-However, Kneaddata will **not** trim the overrepresented sequences **by default** as **Amplicon sequences** usually have a large number of repetitive reads resulting in depletion of the read count.
-
-###### Example: Trimming overrepresented sequences using the Fastqc reports:
-```
-kneaddata --input demo.fastq -db demo_db -o kneaddata_output --run-trim-repetitive --fastqc FastQC
-```
-###### Example: Trimming overrepresented sequences and TruSeq3 adapters:
-```
-kneaddata --input demo.fastq -db demo_db -o kneaddata_output --run-trim-repetitive --sequencer-source TruSeq3 --fastqc FastQC
-```
 
 ## Additional Arguments ####
 
+### `--bowtie2-options`
 If you want to specify additional arguments for Bowtie2 using the
 `--bowtie2-options` flag, you will need to use the equals sign along with quotes. Add additional flags for each option.
 
-For example:
+Example:
+`$ kneaddata --unpaired demo.fastq --output kneaddata_output --reference-db database_folder --bowtie2-options="--very-fast" --bowtie2-options="-p 2"`
 
-`$ kneaddata --input demo.fastq --output kneaddata_output --reference-db database_folder --bowtie2-options="--very-fast" --bowtie2-options="-p 2"`
-
+### `--trimmomatic-options`
 A similar approach is used to specify additional arguments for Trimmomatic:
 
-`$ kneaddata --input demo.fastq --output kneaddata_output --reference-db database_folder --trimmomatic-options="LEADING:3" --trimmomatic-options="TRAILING:3"`
+Example:
+`$ kneaddata --unpaired demo.fastq --output kneaddata_output --reference-db database_folder --trimmomatic-options="LEADING:3" --trimmomatic-options="TRAILING:3"`
 
+### --decontaminate-pairs
+Kneaddata will use `strict` mode as default for the `--decontaminate-pairs`.
+- strict: 'remove both R1+R2 if either align'
+- lenient: 'remove only if both R1+R2 align'
+- unpaired: 'ignore pairing and remove as single end'
+
+Example:
+`$ kneaddata --unpaired demo.fastq --output kneaddata_output --reference-db database_folder --decontaminate-pairs="unpaired"`
+
+
+  
 *NOTE*: Manually specifying additional arguments will completely override the defaults.
 
 Also more than one database can be provided for each run. The database argument can contain the folder that includes the database or the prefix of the database files. 
 
 For example:
 
-`$ kneaddata --input demo.fastq --output kneaddata_output --reference-db database_folder --reference-db database_folder2/demo`
+`$ kneaddata --unapired demo.fastq --output kneaddata_output --reference-db database_folder --reference-db database_folder2/demo`
 
 
 ## Complete Option List ##
@@ -420,20 +433,24 @@ For example:
 All options can be accessed with `$ kneaddata --help`.
 
 ```
-usage: kneaddata [-h] [--version] [-v] -i INPUT -o OUTPUT_DIR
-                 [-db REFERENCE_DB] [--bypass-trim] [--run-trim-repetitive]
-                 [--output-prefix OUTPUT_PREFIX] [-t <1>] [-p <1>]
-                 [-q {phred33,phred64}] [--run-bmtagger]
-                 [--run-fastqc-start] [--run-fastqc-end] [--store-temp-output]
+usage: kneaddata [-h] [--version] [-v] [-i1 INPUT1] [-i2 INPUT2]
+                 [--unpaired UNPAIRED] -o OUTPUT_DIR [-db REFERENCE_DB]
+                 [--bypass-trim] [--output-prefix OUTPUT_PREFIX] [-t <1>]
+                 [-p <1>] [-q {-phred33,-phred64}] [--run-bmtagger]
+                 [--bypass-trf] [--run-fastqc-start] [--run-fastqc-end]
+                 [--store-temp-output] [--remove-intermediate-output]
                  [--cat-final-output]
                  [--log-level {DEBUG,INFO,WARNING,ERROR,CRITICAL}] [--log LOG]
-                 [--trimmomatic TRIMMOMATIC_PATH] [--max-memory MAX_MEMORY]
+                 [--trimmomatic TRIMMOMATIC_PATH] [--run-trim-repetitive]
+                 [--max-memory MAX_MEMORY]
                  [--trimmomatic-options TRIMMOMATIC_OPTIONS]
+                 [--sequencer-source {NexteraPE,TruSeq2,TruSeq3}]
                  [--bowtie2 BOWTIE2_PATH] [--bowtie2-options BOWTIE2_OPTIONS]
-                 [--bmtagger BMTAGGER_PATH] [--trf TRF_PATH] [--match MATCH]
-                 [--mismatch MISMATCH] [--delta DELTA] [--pm PM] [--pi PI]
-                 [--minscore MINSCORE] [--maxperiod MAXPERIOD]
-                 [--fastqc FASTQC_PATH]
+                 [--decontaminate-pairs {strict,lenient,unpaired}] [--reorder]
+                 [--serial] [--bmtagger BMTAGGER_PATH] [--trf TRF_PATH]
+                 [--match MATCH] [--mismatch MISMATCH] [--delta DELTA]
+                 [--pm PM] [--pi PI] [--minscore MINSCORE]
+                 [--maxperiod MAXPERIOD] [--fastqc FASTQC_PATH]
 
 KneadData
 
@@ -443,13 +460,15 @@ optional arguments:
 
 global options:
   --version             show program's version number and exit
-  -i INPUT, --input INPUT
-                        input FASTQ file (add a second argument instance to run with paired input files)
+  -i1 INPUT1, --input1 INPUT1
+                        Pair 1 input FASTQ file
+  -i2 INPUT2, --input2 INPUT2
+                        Pair 2 input FASTQ file
+  --unpaired UNPAIRED   unparied input FASTQ file
   -o OUTPUT_DIR, --output OUTPUT_DIR
                         directory to write output files
   -db REFERENCE_DB, --reference-db REFERENCE_DB
                         location of reference database (additional arguments add databases)
-  --run-trim-repetitive Option to trim repetitive/overrepresented sequences generated by FASTQC reports 
   --bypass-trim         bypass the trim step
   --output-prefix OUTPUT_PREFIX
                         prefix for all output files
@@ -460,15 +479,18 @@ global options:
   -p <1>, --processes <1>
                         number of processes
                         [ Default : 1 ]
-  -q {phred33,phred64}, --quality-scores {phred33,phred64}
+  -q {-phred33,-phred64}, --quality-scores {-phred33,-phred64}
                         quality scores
-                        [ DEFAULT : phred33 ]
+                        [ DEFAULT : -phred33 ]
   --run-bmtagger        run BMTagger instead of Bowtie2 to identify contaminant reads
   --bypass-trf          option to bypass the removal of tandem repeats
   --run-fastqc-start    run fastqc at the beginning of the workflow
   --run-fastqc-end      run fastqc at the end of the workflow
   --store-temp-output   store temp output files
                         [ DEFAULT : temp output files are removed ]
+  --remove-intermediate-output
+                        remove intermediate output files
+                        [ DEFAULT : intermediate output files are stored ]
   --cat-final-output    concatenate all final output files
                         [ DEFAULT : final output is not concatenated ]
   --log-level {DEBUG,INFO,WARNING,ERROR,CRITICAL}
@@ -481,16 +503,18 @@ trimmomatic arguments:
   --trimmomatic TRIMMOMATIC_PATH
                         path to trimmomatic
                         [ DEFAULT : $PATH ]
+  --run-trim-repetitive
+                        Trim fastqc generated overrepresented sequences
   --max-memory MAX_MEMORY
                         max amount of memory
                         [ DEFAULT : 500m ]
   --trimmomatic-options TRIMMOMATIC_OPTIONS
                         options for trimmomatic
-                        [ DEFAULT : SLIDINGWINDOW:4:20 MINLEN:50 ]
+                        [ DEFAULT : ILLUMINACLIP:/-SE.fa:2:30:10 SLIDINGWINDOW:4:20 MINLEN:50 ]
                         MINLEN is set to 50 percent of total input read length
-  --sequencer-source    options for sequencer-source
-                        [ DEFAULT: NexteraPE]
-                        Available sequencers: ["NexteraPE","TruSeq2","TruSeq3"]
+  --sequencer-source {NexteraPE,TruSeq2,TruSeq3}
+                        options for sequencer-source
+                        [ DEFAULT : NexteraPE]
 
 bowtie2 arguments:
   --bowtie2 BOWTIE2_PATH
@@ -498,7 +522,13 @@ bowtie2 arguments:
                         [ DEFAULT : $PATH ]
   --bowtie2-options BOWTIE2_OPTIONS
                         options for bowtie2
-                        [ DEFAULT : --very-sensitive ]
+                        [ DEFAULT : --very-sensitive-local ]
+  --decontaminate-pairs {strict,lenient,unpaired}
+                        options for filtering of paired end reads (strict='remove both R1+R2 if either align', lenient='remove only if both R1+R2 align', unpaired='ignore pairing and remove as single end')
+                        [ DEFAULT : strict ]
+  --reorder             order the sequences in the same order as the input
+                        [ DEFAULT : Sequences are not ordered ]
+  --serial              filter the input in serial for multiple databases so a subset of reads are processed in each database search
 
 bmtagger arguments:
   --bmtagger BMTAGGER_PATH
@@ -506,7 +536,6 @@ bmtagger arguments:
                         [ DEFAULT : $PATH ]
 
 trf arguments:
-  --bypass-trf          bypass the TRF step
   --trf TRF_PATH        path to TRF
                         [ DEFAULT : $PATH ]
   --match MATCH         matching weight

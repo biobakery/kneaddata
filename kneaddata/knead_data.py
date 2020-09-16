@@ -100,10 +100,17 @@ def parse_arguments(args):
         action="store_true",
         help="additional output is printed\n")
     group1.add_argument(
-        "-i", "--input",
-        help="input FASTQ file (add a second argument instance to run with paired input files)", 
-        action="append",
-        required=True)
+        "-i1", "--input1",
+        help="Pair 1 input FASTQ file", 
+        dest='input1')
+    group1.add_argument(
+        "-i2", "--input2",
+        help="Pair 2 input FASTQ file", 
+        dest='input2')
+    group1.add_argument(
+        "--unpaired",
+        help="unparied input FASTQ file", 
+        dest='unpaired')
     group1.add_argument(
         "-o", "--output",
         dest='output_dir',
@@ -286,7 +293,7 @@ def parse_arguments(args):
 
     return parser.parse_args()
     
-def update_configuration(args):
+def update_configuration(args, check_dependencies):
     """ Update the run settings based on the arguments provided """
 
     # get the full path for the output directory
@@ -336,15 +343,16 @@ def update_configuration(args):
         args.discordant = True
  
     # update the quality score option into a flag for trimmomatic
-    args.trimmomatic_quality_scores=config.trimmomatic_flag_start+args.trimmomatic_quality_scores
+    args.trimmomatic_quality_scores=args.trimmomatic_quality_scores
         
     # find the location of trimmomatic, trimmomatic does not need to be executable
-    if not args.bypass_trim:
+    # Skip trimmomatic dependency check for second time
+    if not args.bypass_trim and check_dependencies:
         args.trimmomatic_path=utilities.find_dependency(args.trimmomatic_path,config.trimmomatic_jar,"trimmomatic",
             "--trimmomatic", bypass_permissions_check=True)
     
     # find the location of bmtagger, if set to run
-    if args.reference_db:
+    if args.reference_db and check_dependencies:
         if args.bmtagger:
             args.bmtagger_path=utilities.find_dependency(args.bmtagger_path,config.bmtagger_exe,"bmtagger",
                 "--bmtagger", bypass_permissions_check=False)
@@ -356,12 +364,12 @@ def update_configuration(args):
                 "--bowtie2", bypass_permissions_check=False)        
     
     # find the location of trf, if set to run
-    if not args.bypass_trf:
+    if not args.bypass_trf and check_dependencies:
         args.trf_path=utilities.find_dependency(args.trf_path,config.trf_exe,"trf",
             "--trf", bypass_permissions_check=False)
         
     # if fastqc is set to be run, check if the executable can be found
-    if args.fastqc_start or args.fastqc_end:
+    if args.fastqc_start or args.fastqc_end and check_dependencies:
         args.fastqc_path=utilities.find_dependency(args.fastqc_path,config.fastqc_exe,"fastqc",
                                                    "--fastqc",bypass_permissions_check=False)
 
@@ -420,142 +428,172 @@ def main():
     # Parse the arguments from the user
     args = parse_arguments(sys.argv)
     
-    # Update the configuration
-    args = update_configuration(args)
-    
-    # set the prefix for the output files
-    full_path_output_prefix = os.path.join(args.output_dir, args.output_prefix)
-
-    # Start logging
-    setup_logging(args)
-    
-    temp_output_files=[]
-    # Check for compressed files, bam files, or sam files
-    for index in range(len(args.input)):
-        args.input[index]=utilities.get_decompressed_file(args.input[index], args.output_dir, temp_output_files, args.input)
-        args.input[index]=utilities.get_sam_from_bam_file(args.input[index], args.output_dir, temp_output_files, args.input)
-        args.input[index]=utilities.get_fastq_from_sam_file(args.input[index], args.output_dir, temp_output_files, args.input)
-        
-    # Get the format of the first input file
-    file_format=utilities.get_file_format(args.input[0])
-
-    if file_format != "fastq":
-        message="Your input file is of type: "+file_format+". Please provide an input file of fastq format."
+    # Check for PairEnds inputs or SingleEnd input 
+    if  (args.input1 and (args.input2 is None)) or (args.input2 and (args.input1 is None)):
+        message="Both --input1 and --input2 required for the paired reads"
         logger.critical(message)
         sys.exit(message)
     
-    # if this is the new illumina identifier format, create temp files after reformatting the headers
-    for index in range(len(args.input)):
-        args.input[index]=utilities.get_reformatted_identifiers(args.input[index],args.output_dir, temp_output_files, args.input)
+    if  (args.input1 is None and args.input2 is None and args.unpaired is None):
+        message="Either --input1 and --input2 required for Paired Ends or the --unpaired for Single End as input"
+        logger.critical(message)
+        sys.exit(message)
     
-    # check for reads that are not ordered and order if needed (if trimmomatic is run)
-    if not args.bypass_trim and len(args.input)==2:
-        args.input=utilities.check_and_reorder_reads(args.input, args.output_dir, temp_output_files)
-   
-    # remove any temp files from decompress/reformat that are no longer needed
-    utilities.update_temp_output_files(temp_output_files, [], args.input)
- 
-    # set trimmomatic options
-    # this is done after the decompression and conversions from sam/bam
-    # as the default requires the read length from the input sequences
-    if args.trimmomatic_options:
-        # parse the options from the user into an array of options
-        args.trimmomatic_options = utilities.format_options_to_list(args.trimmomatic_options)
-    else:
-        # if trimmomatic options not set by user, then set to default options
-        # use read length of input file for minlen
-        args.trimmomatic_options = utilities.get_default_trimmomatic_options(utilities.get_read_length_fastq(args.input[0]),
-            path=config.trimmomatic_adapter_folder,type="PE" if len(args.input) == 2 else "SE", sequencer_source=args.sequencer_source)
+    inputFilesDict = {
+        "paired": [args.input1, args.input2],
+        "unpaired": args.unpaired 
+    }
+    check_dependencies=True
+    for category_index, category in enumerate(inputFilesDict):
+        args.input=[]
+        input_flag_exits=False
+        if (category == 'paired' and args.input1 and args.input2):
+            args.input.append(args.input1)
+            args.input.append(args.input2)
+            input_flag_exits=True
+        if (category == 'unpaired' and args.unpaired):
+            args.input.append(args.unpaired)
+            input_flag_exits=True
+        if not input_flag_exits:
+            continue
+        
+        # Update the configuration
+        args = update_configuration(args, check_dependencies)
+        
+        # set the prefix for the output files
+        full_path_output_prefix = os.path.join(args.output_dir, args.output_prefix)
+
+        # Start logging
+        setup_logging(args)
+        
+        temp_output_files=[]
+        # Check for compressed files, bam files, or sam files
+        for index in range(len(args.input)):
+            args.input[index]=utilities.get_decompressed_file(args.input[index], args.output_dir, temp_output_files, args.input)
+            args.input[index]=utilities.get_sam_from_bam_file(args.input[index], args.output_dir, temp_output_files, args.input)
+            args.input[index]=utilities.get_fastq_from_sam_file(args.input[index], args.output_dir, temp_output_files, args.input)
             
+        # Get the format of the first input file
+        file_format=utilities.get_file_format(args.input[0])
 
-    # Get the number of reads initially
-    utilities.log_read_count_for_files(args.input,"raw","Initial number of reads",args.verbose)
+        if file_format != "fastq":
+            message="Your input file is of type: "+file_format+". Please provide an input file of fastq format."
+            logger.critical(message)
+            sys.exit(message)
+        
+        # if this is the new illumina identifier format, create temp files after reformatting the headers
+        for index in range(len(args.input)):
+            args.input[index]=utilities.get_reformatted_identifiers(args.input[index],args.output_dir, temp_output_files, args.input, index)
+        
+        # check for reads that are not ordered and order if needed (if trimmomatic is run)
+        if not args.bypass_trim and len(args.input)==2:
+            args.input=utilities.check_and_reorder_reads(args.input, args.output_dir, temp_output_files)
     
-    # Run fastqc if set to run at start of workflow
-    if args.fastqc_start or args.run_trim_repetitive:
-        run.fastqc(args.fastqc_path, args.output_dir, original_input_files, args.threads, args.verbose)
-        #Setting fastqc output zip and txt file path
-        output_txt_files=[]
-        for input_file_name in original_input_files:
-            temp_file = os.path.splitext(input_file_name)[0]
-            if (temp_file.count('fastq')>0 or temp_file.count('fq')>0 ):
-                temp_file = os.path.splitext(temp_file)[0]
-            output_txt_files.append(args.output_dir+"/fastqc/"+temp_file.split('/')[-1]+"_fastqc/fastqc_data.txt")
+        # remove any temp files from decompress/reformat that are no longer needed
+        utilities.update_temp_output_files(temp_output_files, [], args.input)
+    
+        # set trimmomatic options
+        # this is done after the decompression and conversions from sam/bam
+        # as the default requires the read length from the input sequences
+        if args.trimmomatic_options:
+            # parse the options from the user into an array of options
+            args.trimmomatic_options = utilities.format_options_to_list(args.trimmomatic_options)
+        else:
+            # if trimmomatic options not set by user, then set to default options
+            # use read length of input file for minlen
+            args.trimmomatic_options = utilities.get_default_trimmomatic_options(utilities.get_read_length_fastq(args.input[0]),
+                path=config.trimmomatic_adapter_folder,type="PE" if len(args.input) == 2 else "SE", sequencer_source=args.sequencer_source)
+                
 
-    if not args.bypass_trim:
-        if args.run_trim_repetitive:
-             # Get the Min Overrepresented Seq Length
-            args.trimmomatic_options = utilities.get_updated_trimmomatic_parameters(output_txt_files, args.output_dir, args.trimmomatic_options)
+        # Get the number of reads initially
+        utilities.log_read_count_for_files(args.input,"raw","Initial number of reads",args.verbose)
         
-        trimmomatic_output_files = run.trim(
-        args.input, full_path_output_prefix, args.trimmomatic_path, 
-        args.trimmomatic_quality_scores, args.max_memory, args.trimmomatic_options, 
-        args.threads, args.verbose)
+        # Run fastqc if set to run at start of workflow
+        if args.fastqc_start or args.run_trim_repetitive:
+            run.fastqc(args.fastqc_path, args.output_dir, original_input_files, args.threads, args.verbose)
+            #Setting fastqc output zip and txt file path
+            output_txt_files=[]
+            for input_file_name in original_input_files:
+                temp_file = os.path.splitext(input_file_name)[0]
+                if (temp_file.count('fastq')>0 or temp_file.count('fq')>0 ):
+                    temp_file = os.path.splitext(temp_file)[0]
+                output_txt_files.append(args.output_dir+"/fastqc/"+temp_file.split('/')[-1]+"_fastqc/fastqc_data.txt")
+
+        if not args.bypass_trim:
+            if args.run_trim_repetitive:
+                # Get the Min Overrepresented Seq Length
+                args.trimmomatic_options = utilities.get_updated_trimmomatic_parameters(output_txt_files, args.output_dir, args.trimmomatic_options)
+            
+            trimmomatic_output_files = run.trim(
+            args.input, full_path_output_prefix, args.trimmomatic_path, 
+            args.trimmomatic_quality_scores, args.max_memory, args.trimmomatic_options, 
+            args.threads, args.verbose)
+            
+        else:
+            message="Bypass trimming"	
+            logger.info(message)	
+            print(message)	
+            trimmomatic_output_files=[args.input]
+            
+        # Get the number of reads after trimming
+        utilities.log_read_count_for_files(trimmomatic_output_files,"trimmed","Total reads after trimming",args.verbose)
+    
+        # run TRF, if set
+        if not args.bypass_trf:
+            # run trf on all output files
+            trf_output_files=run.tandem(trimmomatic_output_files, full_path_output_prefix, args.match,
+                                        args.mismatch,args.delta,args.pm,args.pi,
+                                        args.minscore,args.maxperiod,args.trf_path,
+                                        args.processes,args.verbose,args.remove_temp_output)
+            # remove the aligment files, if intermediate output files should be removed
+            if args.reference_db and args.remove_intermediate_output:
+                temp_output_files+=utilities.resolve_sublists(trimmomatic_output_files)
+        else:
+            trf_output_files = trimmomatic_output_files
+        # If a reference database is not provided, then bypass decontamination step
+        if not args.reference_db:
+            message="Bypass decontamination"
+            logger.info(message)
+            print(message)
+            # resolve sub-lists if present
+            final_output_files=trf_output_files
+        else:
+            final_output_files=run.decontaminate(args, full_path_output_prefix, trf_output_files)
+            # remove trimmed output files, if set to remove intermediate outputx
+            if not args.bypass_trim and args.remove_intermediate_output:
+                temp_output_files+=utilities.resolve_sublists(trf_output_files)
+            
+        # If set, concat the final output files if there is more than one
+        final_output_files = utilities.resolve_sublists(final_output_files)
+        if args.cat_final_output and len(final_output_files) > 1:
+            cat_output_file=full_path_output_prefix+config.fastq_file_extension
+            utilities.cat_files(final_output_files,cat_output_file)
+            
+            # if removing intermediate output, then remove the files that were merged
+            if args.remove_intermediate_output:
+                temp_output_files+=final_output_files
+                final_output_files=[cat_output_file]
+            else:
+                final_output_files.append(cat_output_file)
+            
+        # Remove any temp output files, if set
+        if not args.store_temp_output:
+            for file in temp_output_files:
+                utilities.remove_file(file)
+                
+        # Run fastqc if set to run at end of workflow
+        if args.fastqc_end:
+            run.fastqc(args.fastqc_path, args.output_dir, final_output_files, args.threads, args.verbose)
+
+        if len(final_output_files) > 1:
+            message="\nFinal output files created: \n"
+        else:
+            message="\nFinal output file created: \n"
         
-    else:
-        message="Bypass trimming"	
-        logger.info(message)	
-        print(message)	
-        trimmomatic_output_files=[args.input]
-        
-    # Get the number of reads after trimming
-    utilities.log_read_count_for_files(trimmomatic_output_files,"trimmed","Total reads after trimming",args.verbose)
-   
-    # run TRF, if set
-    if not args.bypass_trf:
-        # run trf on all output files
-        trf_output_files=run.tandem(trimmomatic_output_files, full_path_output_prefix, args.match,
-                                      args.mismatch,args.delta,args.pm,args.pi,
-                                      args.minscore,args.maxperiod,args.trf_path,
-                                      args.processes,args.verbose,args.remove_temp_output)
-        # remove the aligment files, if intermediate output files should be removed
-        if args.reference_db and args.remove_intermediate_output:
-            temp_output_files+=utilities.resolve_sublists(trimmomatic_output_files)
-    else:
-        trf_output_files = trimmomatic_output_files
-    # If a reference database is not provided, then bypass decontamination step
-    if not args.reference_db:
-        message="Bypass decontamination"
+        message=message+ "\n".join(final_output_files) + "\n"
         logger.info(message)
         print(message)
-        # resolve sub-lists if present
-        final_output_files=trf_output_files
-    else:
-        final_output_files=run.decontaminate(args, full_path_output_prefix, trf_output_files)
-        # remove trimmed output files, if set to remove intermediate outputx
-        if not args.bypass_trim and args.remove_intermediate_output:
-            temp_output_files+=utilities.resolve_sublists(trf_output_files)
-        
-    # If set, concat the final output files if there is more than one
-    final_output_files = utilities.resolve_sublists(final_output_files)
-    if args.cat_final_output and len(final_output_files) > 1:
-        cat_output_file=full_path_output_prefix+config.fastq_file_extension
-        utilities.cat_files(final_output_files,cat_output_file)
-        
-        # if removing intermediate output, then remove the files that were merged
-        if args.remove_intermediate_output:
-            temp_output_files+=final_output_files
-            final_output_files=[cat_output_file]
-        else:
-            final_output_files.append(cat_output_file)
-        
-    # Remove any temp output files, if set
-    if not args.store_temp_output:
-        for file in temp_output_files:
-            utilities.remove_file(file)
-            
-    # Run fastqc if set to run at end of workflow
-    if args.fastqc_end:
-        run.fastqc(args.fastqc_path, args.output_dir, final_output_files, args.threads, args.verbose)
-
-    if len(final_output_files) > 1:
-        message="\nFinal output files created: \n"
-    else:
-        message="\nFinal output file created: \n"
-    
-    message=message+ "\n".join(final_output_files) + "\n"
-    logger.info(message)
-    print(message)
+        check_dependencies=False
 
 if __name__ == '__main__':
     main()

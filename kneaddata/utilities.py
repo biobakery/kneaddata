@@ -311,15 +311,19 @@ def check_sequence_identifier_format(file):
         and the format of the id to see if this is the new illumina format """ 
     
     new_format=False
-    all_lines=read_file_n_lines(file,4)
-    first_lines=next(all_lines)
-    if (" 1:" in first_lines[0] or " 2:" in first_lines[0]) and len(first_lines[0].split(":")) >= 7:
+    all_lines=read_file_n_lines(file,100)
+    first_hundred_lines=next(all_lines)
+    if (" 1:" in first_hundred_lines[0] or " 2:" in first_hundred_lines[0]) and len(first_hundred_lines[0].split(":")) >= 7:
         new_format=True
-            
+    
+    # Check for spaces in the seq identifier
+    for line in first_hundred_lines:
+        if (" " in line):
+            new_format=True
     return new_format
         
         
-def get_reformatted_identifiers(file, output_folder, temp_file_list, all_input_files):
+def get_reformatted_identifiers(file, output_folder, temp_file_list, all_input_files, index):
     """ Reformat the sequence identifiers in the fastq file writing to a temp file """
     
     # check if the file needs to be reformatted
@@ -330,7 +334,7 @@ def get_reformatted_identifiers(file, output_folder, temp_file_list, all_input_f
     
     message="Reformatting file sequence identifiers ..."
     print(message+"\n")
-    logger.info(message)   
+    logger.info(message)
     
     file_out, new_file=tempfile.mkstemp(prefix="reformatted_identifiers",
         suffix="_"+file_without_extension(file), dir=output_folder)
@@ -339,12 +343,17 @@ def get_reformatted_identifiers(file, output_folder, temp_file_list, all_input_f
     with open(new_file, "wt") as file_handle:
         for lines in read_file_n_lines(file,4):
             # reformat the identifier and write to temp file
+            # Check for new Illumina format
             if " 1:" in lines[0]:
                 lines[0]=lines[0].replace(" 1","").rstrip()+"#0/1\n"
             elif " 2:" in lines[0]:
                 lines[0]=lines[0].replace(" 2","").rstrip()+"#0/2\n"
-            else:
-                lines[0]=lines[0].replace(" ","")
+            # Check if no sequence identifier number is present
+            elif index==0 and not lines[0].endswith('/1):
+                lines[0]=lines[0]+"#0/1\n"
+            elif index==1 and not lines[0].endswith('/2):
+                lines[0]=lines[0]+"#0/2\n"
+            lines[0]=lines[0].replace(" ","")
             file_handle.write("".join(lines))
     
     # add the new file to the list of temp files
@@ -646,7 +655,7 @@ def find_dependency(path_provided,exe,name,path_option,bypass_permissions_check)
             files=os.listdir(path_provided)
         except EnvironmentError:
             sys.exit("ERROR: Unable to list files in "+name+" directory: "+ path_provided)
-            
+                
         found_paths=fnmatch.filter(files, exe)
         if not found_paths:
             sys.exit("ERROR: The "+exe+" executable is not included in the directory: " + path_provided)
@@ -658,7 +667,7 @@ def find_dependency(path_provided,exe,name,path_option,bypass_permissions_check)
                 check_file_executable(os.path.abspath(os.path.join(found_path,exe)))
 
         dependency_path=os.path.abspath(os.path.join(found_path,exe))
-
+        
     else:
         # search for the exe
         dependency_path=find_exe_in_path(exe, bypass_permissions_check, add_exe_to_path=True)
