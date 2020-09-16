@@ -1,4 +1,3 @@
-
 # ***ATTENTION***
 
 Before opening a new issue here, please check the appropriate help channel on the bioBakery Support Forum (https://forum.biobakery.org) and consider opening or commenting on a thread there.
