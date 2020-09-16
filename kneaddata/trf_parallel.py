@@ -89,28 +89,42 @@ def run_trf(input,trf_path,trf_options,nproc,output,verbose=True):
         
         utilities.start_processes(commands,nproc,verbose)
     else:
+        # get the total number of reads
+        total_lines=0
+        with open(input) as file_handle:
+            for line in file_handle:
+                total_lines+=1
+
         # split the input into multiple files and run in parallel
         for i in range(int(nproc)):
             file_out, new_file = tempfile.mkstemp(prefix=os.path.basename(output)+'_'+str(i)+'_temp_trf_output',dir=os.path.dirname(output))
-            tempfile_list.append([file_out, new_file])
+            os.close(file_out)
+            tempfile_list.append(new_file)
             datfile_list.append(new_file+".".join(trf_options.split("-")[0].split(" "))+"dat")
 
         # write the input file into all temp output files
         output_file_number=0
+        lines_per_file = int(total_lines/int(nproc))
+        lines_written=0
+        file_handle_write=None
         for read_line in utilities.read_file_n_lines(input,2):
-            os.write(tempfile_list[output_file_number][0],bytes("".join(read_line),'utf-8'))
+            if not file_handle_write:
+                file_handle_write = open(tempfile_list[output_file_number],"wt")
+            file_handle_write.write("".join(read_line))
 
-            output_file_number+=1
-            if output_file_number > len(tempfile_list)-1:
-                output_file_number = 0
-
-        for temp_file_info in tempfile_list:
-            os.close(temp_file_info[0])      
+            lines_written+=2
+            if lines_written > lines_per_file:
+                file_handle_write.close()
+                lines_written=0
+                output_file_number+=1
+                file_handle_write = open(tempfile_list[output_file_number],"wt")
+               
+        file_handle_write.close() 
 
         # run commands
         for i, temp_in, temp_out in zip(range(len(tempfile_list)), tempfile_list, datfile_list):
-            trf_command=[trf_path,temp_in[1]]+trf_options.split(" ")
-            commands.append([trf_command,"trf{}".format(i),[temp_in[1]],[temp_out],temp_out])
+            trf_command=[trf_path,temp_in]+trf_options.split(" ")
+            commands.append([trf_command,"trf{}".format(i),[temp_in],[temp_out],temp_out])
 
         utilities.start_processes(commands,nproc,verbose)
     
@@ -122,7 +136,7 @@ def run_trf(input,trf_path,trf_options,nproc,output,verbose=True):
                         file_write.write(line)
     
         # remove temp files
-        for filename in [info[1] for info in tempfile_list]+datfile_list:
+        for filename in tempfile_list+datfile_list:
             try:
                 os.remove(filename)   
             except EnvironmentError:
