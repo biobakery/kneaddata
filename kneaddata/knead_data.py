@@ -343,6 +343,7 @@ def update_configuration(args, check_dependencies):
         args.discordant = True
  
     # update the quality score option into a flag for trimmomatic
+    
     args.trimmomatic_quality_scores=args.trimmomatic_quality_scores
         
     # find the location of trimmomatic, trimmomatic does not need to be executable
@@ -427,22 +428,16 @@ def setup_logging(args):
 def main():
     # Parse the arguments from the user
     args = parse_arguments(sys.argv)
-    
     # Check for PairEnds inputs or SingleEnd input 
     if  (args.input1 and (args.input2 is None)) or (args.input2 and (args.input1 is None)):
-        message="Both --input1 and --input2 required for the paired reads"
-        logger.critical(message)
-        sys.exit(message)
-    
+        error_message="Both --input1 and --input2 required for the paired reads"
+        logger.critical(error_message)
+        sys.exit(error_message)
     if  (args.input1 is None and args.input2 is None and args.unpaired is None):
-        message="Either --input1 and --input2 required for Paired Ends or the --unpaired for Single End as input"
-        logger.critical(message)
-        sys.exit(message)
-    
-    inputFilesDict = {
-        "paired": [args.input1, args.input2],
-        "unpaired": args.unpaired 
-    }
+        error_message="Either --input1 and --input2 required for Paired Ends or the --unpaired for Single End as input"
+        logger.critical(error_message)
+        sys.exit(error_message)
+    inputFilesDict = {"paired": [args.input1, args.input2],"unpaired": args.unpaired}
     check_dependencies=True
     for category_index, category in enumerate(inputFilesDict):
         args.input=[]
@@ -456,7 +451,6 @@ def main():
             input_flag_exits=True
         if not input_flag_exits:
             continue
-        
         # Update the configuration
         args = update_configuration(args, check_dependencies)
         
