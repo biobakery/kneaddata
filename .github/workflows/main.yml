@@ -29,4 +29,4 @@ jobs:
       run: kneaddata --help
     
     - name: Run basic test with small demo files
-      run: kneaddata --input examples/demo.fastq --output output_folder -db examples/
+      run: kneaddata --unpaired examples/demo.fastq --output output_folder -db examples/

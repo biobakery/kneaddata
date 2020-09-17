@@ -2,7 +2,10 @@
 # KneadData History #
 
 ## v0.8.0 07-31-2020
-
+* Change the input format to --input1 --input2 --unpaired
+* Trim the spaces in the identifiers sequences of the input files
+* Add the idetifier sequence number if not present in the input files
+* Bowtie2 default options set to --very-sensitive-local
 * Add another bowtie2 option for filtering of paired end reads. This "strict" mode, the new default, removes both reads if either pair aligns. Modify existing pair alignment options into a single option.
 
 ## v0.7.10 07-29-2020

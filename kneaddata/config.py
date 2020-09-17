@@ -38,7 +38,6 @@ trimmomatic_provided_sequencer_default="NexteraPE"
 trimmomatic_adapter_folder=os.path.join(os.path.dirname(os.path.abspath(__file__)),"adapters")
 trimmomatic_jar="trimmomatic*.jar"
 trimmomatic_memory="500m"
-trimmomatic_flag_start="-"
 trimmomatic_trim_adapters_option_se="ILLUMINACLIP:$PATH/"+trimmomatic_provided_sequencer_default+"-PE.fa:2:30:10"
 trimmomatic_trim_adapters_option_pe="ILLUMINACLIP:$PATH/"+trimmomatic_provided_sequencer_default+"-PE.fa:2:30:10:8:TRUE"
 trimmomatic_slidingwindow_option="SLIDINGWINDOW:4:20"
@@ -48,12 +47,12 @@ trimmomatic_min_len_percent=50
 default_read_length=100
 
 # quality score flags for trimmomatic and bowtie2
-quality_scores_options=["phred33","phred64"]
+quality_scores_options=["-phred33","-phred64"]
 quality_scores=quality_scores_options[0]
 
 bowtie2_exe="bowtie2"
-bowtie2_flag_start="--"
-bowtie2_options=["--very-sensitive"]
+bowtie2_flag_start="-"
+bowtie2_options=["--very-sensitive-local"]
 
 trf_exe="trf"
 trf_match=2
