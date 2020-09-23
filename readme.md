@@ -368,17 +368,6 @@ This will create four output files:
 3. `` kneaddata_demo_output/demo_kneaddata.log ``
 3. `` kneaddata_demo_output/demo_kneaddata.trimmed.fastq ``
 
-## Sequencer Source for trimming Adapter Contents ####
-Kneaddata will use **"NexteraPE"** adapters provided by trimomatic to trim the adapter contents `by default`.
-
-The other available options are: `["NexteraPE", "TruSeq2", "TruSeq3"]`. Based on the source of the sequencer and the FASTQC report, it is **highly reccommended**
-to choose the correct sequencer source to ensure the removal of adapter contents by Kneaddata. 
-
-###### Example: Trimmming adapter sequence using **TruSeq3** sequencer adapters in the workflow: 
-```
-kneaddata --input demo.fastq -db demo_db -o kneaddata_output --sequencer-source TruSeq3 --fastqc FastQC
-```
-
 ## Trim Overrepresented/Repetitive sequences ####
 It is highly recommeded to use **--run-trim-repetitive** flag for **Shotgun sequences (Metatranscriptomics-MTX, Metagenomics-MGX)** to trim the overrepresented sequences if shown in FASTQC reports.
 
@@ -393,27 +382,51 @@ kneaddata --input demo.fastq -db demo_db -o kneaddata_output --run-trim-repetiti
 kneaddata --input demo.fastq -db demo_db -o kneaddata_output --run-trim-repetitive --sequencer-source TruSeq3 --fastqc FastQC
 ```
 
+## Sequencer Source for trimming Adapter Contents ####
+Kneaddata will use **"NexteraPE"** adapters provided by trimomatic to trim the adapter contents `by default`.
+
+The other available options are: `["NexteraPE", "TruSeq2", "TruSeq3"]`. Based on the source of the sequencer and the FASTQC report, it is **highly reccommended**
+to choose the correct sequencer source to ensure the removal of adapter contents by Kneaddata. 
+
+###### Example: Trimmming adapter sequence using **TruSeq3** sequencer adapters in the workflow: 
+```
+kneaddata --input demo.fastq -db demo_db -o kneaddata_output --sequencer-source TruSeq3 --fastqc FastQC
+```
+
+
 ## Additional Arguments ####
 
+### `--bowtie2-options`
 If you want to specify additional arguments for Bowtie2 using the
 `--bowtie2-options` flag, you will need to use the equals sign along with quotes. Add additional flags for each option.
 
-For example:
-
+Example:
 `$ kneaddata --input demo.fastq --output kneaddata_output --reference-db database_folder --bowtie2-options="--very-fast" --bowtie2-options="-p 2"`
 
+### `--trimmomatic-options`
 A similar approach is used to specify additional arguments for Trimmomatic:
 
+Example:
 `$ kneaddata --input demo.fastq --output kneaddata_output --reference-db database_folder --trimmomatic-options="LEADING:3" --trimmomatic-options="TRAILING:3"`
 
+### --decontaminate-pairs
+Kneaddata will use `strict` mode as default for the `--decontaminate-pairs`.
+- strict: 'remove both R1+R2 if either align'
+- lenient: 'remove only if both R1+R2 align'
+- unpaired: 'ignore pairing and remove as single end'
+
+Example:
+`$ kneaddata --input demo.fastq --output kneaddata_output --reference-db database_folder --decontaminate-pairs="unpaired"`
+
+
+  
 *NOTE*: Manually specifying additional arguments will completely override the defaults.
 
 Also more than one database can be provided for each run. The database argument can contain the folder that includes the database or the prefix of the database files. 
 
 For example:
 
-`$ kneaddata --input demo.fastq --output kneaddata_output --reference-db database_folder --reference-db database_folder2/demo`
-
+`$ kneaddata --unapired demo.fastq --output kneaddata_output --reference-db database_folder --reference-db database_folder2/demo`
 
 ## Complete Option List ##
 

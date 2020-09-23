@@ -53,7 +53,7 @@ quality_scores=quality_scores_options[0]
 
 bowtie2_exe="bowtie2"
 bowtie2_flag_start="--"
-bowtie2_options=["--very-sensitive"]
+bowtie2_options=["--very-sensitive-local"]
 
 trf_exe="trf"
 trf_match=2

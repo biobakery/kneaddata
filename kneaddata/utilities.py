@@ -310,14 +310,66 @@ def check_sequence_identifier_format(file):
     """ Check the fastq file to see if there are spaces in the identifier
         and the format of the id to see if this is the new illumina format """ 
     
-    new_format=False
-    all_lines=read_file_n_lines(file,4)
-    first_lines=next(all_lines)
-    if (" 1:" in first_lines[0] or " 2:" in first_lines[0]) and len(first_lines[0].split(":")) >= 7:
-        new_format=True
-            
+    #checking first 100 (400/4) lines
+    num_seq_to_check=100 
+    num_lines_to_check=400
+    
+    #Fetching first and last 100 identifier sequences
+    first_seq_identifiers_list=get_first_n_seq_identifiers(file,num_seq_to_check)
+    last_seq_identifiers_list=get_last_n_seq_identifiers(file,num_lines_to_check)
+    # Checking first and last 100 seq identifiers for spaces and new Illumina format
+    for lines in first_seq_identifiers_list:
+        new_format=sequence_identifier_format_conditions(lines)
+    for lines in last_seq_identifiers_list:
+        new_format=sequence_identifier_format_conditions(lines)
     return new_format
-        
+  
+def sequence_identifier_format_conditions(identifier_seq):
+    new_format=False
+    if (" " in identifier_seq):
+        new_format=True
+    if (" 1:" in identifier_seq or " 2:" in identifier_seq) and len(identifier_seq.split(":")) >= 7:
+        new_format=True
+    return new_format
+    
+def get_last_n_seq_identifiers(file, n):
+    list_of_lines = []
+    last_seq_identifiers=[]
+    with open(file, 'rb') as read_obj:
+        read_obj.seek(0, os.SEEK_END)
+        buffer = bytearray()
+        pointer_location = read_obj.tell()
+        while pointer_location >= 0:
+            read_obj.seek(pointer_location)
+            pointer_location = pointer_location -1
+            new_byte = read_obj.read(1)
+            if new_byte == b'\n':
+                list_of_lines.append(buffer.decode()[::-1])
+                if len(list_of_lines) == n:
+                    reversed_list=list(reversed(list_of_lines))
+                    break
+                buffer = bytearray()
+            else:
+                buffer.extend(new_byte)
+        if len(buffer) > 0:
+            list_of_lines.append(buffer.decode()[::-1])
+        reversed_list =list(reversed(list_of_lines))
+    for index in range(0,len(reversed_list),4):
+        last_seq_identifiers.append(reversed_list[index])
+    return last_seq_identifiers
+    
+def get_first_n_seq_identifiers(file,n):
+    count=0
+    all_lines=read_file_n_lines(file,4)
+    first_seq_identifiers=[]
+    # Getting first nth seq identifier
+    while(count<n):
+        lines=next(all_lines)
+        first_seq_identifiers.append(lines[0])
+        count+=1
+    return first_seq_identifiers
+
+
         
 def get_reformatted_identifiers(file, output_folder, temp_file_list, all_input_files):
     """ Reformat the sequence identifiers in the fastq file writing to a temp file """
@@ -343,7 +395,7 @@ def get_reformatted_identifiers(file, output_folder, temp_file_list, all_input_f
                 lines[0]=lines[0].replace(" 1","").rstrip()+"#0/1\n"
             elif " 2:" in lines[0]:
                 lines[0]=lines[0].replace(" 2","").rstrip()+"#0/2\n"
-            else:
+            elif " " in lines[0]:
                 lines[0]=lines[0].replace(" ","")
             file_handle.write("".join(lines))
     
