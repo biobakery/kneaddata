@@ -2,13 +2,11 @@
 # KneadData History #
 ## v0.9.0 TBD
 
-* Checking 1st and last 100 seq and removing spaces from seq identifiers if present
 * Changed bowtie2 settings from --very-sensitive to --very-sensitive-local
+* Checking 1st and last 100 seq and removing spaces from seq identifiers if present
 
 ## v0.8.0 07-31-2020
 
-* Trim the spaces in the identifiers sequences of the input files
-* Bowtie2 default options set to --very-sensitive-local
 * Add another bowtie2 option for filtering of paired end reads. This "strict" mode, the new default, removes both reads if either pair aligns. Modify existing pair alignment options into a single option.
 
 ## v0.7.10 07-29-2020
