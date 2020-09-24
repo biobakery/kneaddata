@@ -328,34 +328,18 @@ def sequence_identifier_format_conditions(identifier_seq):
     new_format=False
     if (" " in identifier_seq):
         new_format=True
-    if (" 1:" in identifier_seq or " 2:" in identifier_seq) and len(identifier_seq.split(":")) >= 7:
-        new_format=True
     return new_format
     
 def get_last_n_seq_identifiers(file, n):
-    list_of_lines = []
     last_seq_identifiers=[]
-    with open(file, 'rb') as read_obj:
-        read_obj.seek(0, os.SEEK_END)
-        buffer = bytearray()
-        pointer_location = read_obj.tell()
-        while pointer_location >= 0:
-            read_obj.seek(pointer_location)
-            pointer_location = pointer_location -1
-            new_byte = read_obj.read(1)
-            if new_byte == b'\n':
-                list_of_lines.append(buffer.decode()[::-1])
-                if len(list_of_lines) == n:
-                    reversed_list=list(reversed(list_of_lines))
-                    break
-                buffer = bytearray()
-            else:
-                buffer.extend(new_byte)
-        if len(buffer) > 0:
-            list_of_lines.append(buffer.decode()[::-1])
-        reversed_list =list(reversed(list_of_lines))
-    for index in range(0,len(reversed_list),4):
-        last_seq_identifiers.append(reversed_list[index])
+    # Tail to find last lines
+    try:
+        process = subprocess.Popen(['tail', '-'+str(n), file], stdout=subprocess.PIPE)
+    except subprocess.CalledProcessError:
+        pass
+    for i,line in enumerate(process.stdout.readlines()):
+        if (i%4==0):
+            last_seq_identifiers.append(line.decode("utf-8")) 
     return last_seq_identifiers
     
 def get_first_n_seq_identifiers(file,n):

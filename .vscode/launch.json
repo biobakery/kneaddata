@@ -1,0 +1,18 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Python: Current File",
+            "type": "python",
+            "django": true,
+            "request": "launch",
+            "program": "${file}",
+            "args": ["--input","../Kneaddata_inputs/MGX/CSM5FZ3N_P_R1.fastq.gz","--input","../Kneaddata_inputs/MGX/CSM5FZ3N_P_R2.fastq.gz","--bypass-trf","--output", "bugs_space_Kneaddata"],
+            "console": "integratedTerminal",
+            "justMyCode": false
+        }
+    ]
+}
