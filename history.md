@@ -1,5 +1,9 @@
 
 # KneadData History #
+## v0.9.0 TBD
+
+* Changed bowtie2 settings from --very-sensitive to --very-sensitive-local
+* Checking 1st and last 100 seq and removing spaces from seq identifiers if present
 
 ## v0.9.0 TBD
 * Changed bowtie2 settings from `--very-sensitive` to `--very-sensitive-local`
