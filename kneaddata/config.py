@@ -33,7 +33,7 @@ log_level=log_level_choices[0]
 
 bmtagger_exe="bmtagger.sh"
 
-trimmomatic_provided_sequencer_source=["NexteraPE","TruSeq2","TruSeq3"]
+trimmomatic_provided_sequencer_source=["NexteraPE","TruSeq2","TruSeq3","none"]
 trimmomatic_provided_sequencer_default="NexteraPE"
 trimmomatic_adapter_folder=os.path.join(os.path.dirname(os.path.abspath(__file__)),"adapters")
 trimmomatic_jar="trimmomatic*.jar"

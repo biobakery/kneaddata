@@ -892,19 +892,23 @@ def get_default_trimmomatic_options(read_length=None, path="", type="SE", sequen
     # have the minlen equal to a percent of the read length
     minlen=int(read_length*(config.trimmomatic_min_len_percent/100.0))
     
-    if type == "PE":
-        adapter_settings = config.trimmomatic_trim_adapters_option_pe.replace("$PATH",path)
-        if sequencer_source!=config.trimmomatic_provided_sequencer_default:
-            adapter_settings = adapter_settings.replace(config.trimmomatic_provided_sequencer_default,sequencer_source)
+    if (sequencer_source.lower()=="none"):
+        return [config.trimmomatic_slidingwindow_option,
+                config.trimmomatic_minlen_option_tag+config.trimmomatic_option_delimiter+str(minlen)]
     else:
-        adapter_settings = config.trimmomatic_trim_adapters_option_se.replace("$PATH",path)
-        if sequencer_source!=config.trimmomatic_provided_sequencer_default:
-            adapter_settings = adapter_settings.replace(config.trimmomatic_provided_sequencer_default,sequencer_source)
-            adapter_settings = adapter_settings.replace('PE','SE')
-        
-    return [adapter_settings,
-            config.trimmomatic_slidingwindow_option,
-            config.trimmomatic_minlen_option_tag+config.trimmomatic_option_delimiter+str(minlen)]
+        if type == "PE":
+            adapter_settings = config.trimmomatic_trim_adapters_option_pe.replace("$PATH",path)
+            if sequencer_source!=config.trimmomatic_provided_sequencer_default:
+                adapter_settings = adapter_settings.replace(config.trimmomatic_provided_sequencer_default,sequencer_source)
+        else:
+            adapter_settings = config.trimmomatic_trim_adapters_option_se.replace("$PATH",path)
+            if sequencer_source!=config.trimmomatic_provided_sequencer_default:
+                adapter_settings = adapter_settings.replace(config.trimmomatic_provided_sequencer_default,sequencer_source)
+                adapter_settings = adapter_settings.replace('PE','SE')
+            
+        return [adapter_settings,
+                config.trimmomatic_slidingwindow_option,
+                config.trimmomatic_minlen_option_tag+config.trimmomatic_option_delimiter+str(minlen)]
     
 def cat_files(files,output_file):
     """ Cat the files to a single file """
