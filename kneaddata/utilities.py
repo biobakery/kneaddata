@@ -906,7 +906,8 @@ def get_default_trimmomatic_options(read_length=None, path="", type="SE", sequen
                 adapter_settings = adapter_settings.replace(config.trimmomatic_provided_sequencer_default,sequencer_source)
                 adapter_settings = adapter_settings.replace('PE','SE')
             
-        return [adapter_settings,
+        return [config.trimmomatic_minlen_option_tag+config.trimmomatic_option_delimiter+str(minlen),
+                adapter_settings,
                 config.trimmomatic_slidingwindow_option,
                 config.trimmomatic_minlen_option_tag+config.trimmomatic_option_delimiter+str(minlen)]
     
