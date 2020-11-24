@@ -1,12 +1,10 @@
 
 # KneadData History #
-## v0.9.0 TBD
+## v0.9.0 11-24-2020
 
 * Changed bowtie2 settings from --very-sensitive to --very-sensitive-local
 * Checking 1st and last 100 seq and removing spaces from seq identifiers if present
-
-## v0.9.0 TBD
-* Changed bowtie2 settings from `--very-sensitive` to `--very-sensitive-local`
+* Add min len to start of trimmomatic run to try to resolve trimmomatic hanging during adapter trimming with short reads
 
 ## v0.8.0 07-31-2020
 * Add another bowtie2 option for filtering of paired end reads. This "strict" mode, the new default, removes both reads if either pair aligns. Modify existing pair alignment options into a single option.
