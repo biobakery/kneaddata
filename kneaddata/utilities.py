@@ -608,9 +608,6 @@ def log_read_count_for_files(files,type,message_base,database_names=None,verbose
     # convert possible list of lists to list
     files=resolve_sublists(files)
     
-    # sort the files
-    files=sorted(files,key=os.path.basename)
-
     # get the types for the files for the log message
     file_types=get_file_types(files,type,database_names)
 
