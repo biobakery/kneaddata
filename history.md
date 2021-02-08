@@ -1,5 +1,12 @@
 
 # KneadData History #
+
+## v0.10.0 02-08-2021
+
+* Remove the file sort from the function that counts the reads so the file name and database name are always in sync. Resolves issue with workflows where read counts are out of sync for database names.
+* Change trimmomatic min read length to 60 nt.
+* Add back in legacy option "--run-trf" for backwards compatibility with workflows.
+
 ## v0.9.0 11-24-2020
 
 * Changed bowtie2 settings from --very-sensitive to --very-sensitive-local
