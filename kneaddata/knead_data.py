@@ -149,6 +149,10 @@ def parse_arguments(args):
         action="store_true",
         help="option to bypass the removal of tandem repeats")
     group1.add_argument(
+        "--run-trf",
+        action="store_true",
+        help="legacy option to run the removal of tandem repeats (now run by default)")
+    group1.add_argument(
         "--run-fastqc-start",
         default=False,
         dest='fastqc_start',
