@@ -204,7 +204,7 @@ def parse_arguments(args):
         "--trimmomatic-options",
         action="append",
         help="options for trimmomatic\n[ DEFAULT : "+" ".join(utilities.get_default_trimmomatic_options())+" ]\n"+\
-             "MINLEN is set to "+str(config.trimmomatic_min_len_percent)+" percent of total input read length")
+             "MINLEN is set to "+str(config.trimmomatic_min_len_percent)+" percent of total input read length. The user can alternatively specify a length (in bases) for MINLEN.")
     group2.add_argument(
         "--sequencer-source",
         dest='sequencer_source',
