@@ -491,7 +491,7 @@ trimmomatic arguments:
   --trimmomatic-options TRIMMOMATIC_OPTIONS
                         options for trimmomatic
                         [ DEFAULT : SLIDINGWINDOW:4:20 MINLEN:50 ]
-                        MINLEN is set to 50 percent of total input read length
+                        MINLEN is set to 50 percent of total input read length. The user can alternatively specify a length (in bases) for MINLEN.
   --sequencer-source    options for sequencer-source
                         [ DEFAULT: NexteraPE]
                         Available sequencers: ["NexteraPE","TruSeq2","TruSeq3"]
