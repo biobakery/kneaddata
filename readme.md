@@ -21,16 +21,16 @@ separate the human and the non-human reads.
 
 ## Contents ##
 - [Requirements](#requirements)
-- [Installation](#markdown-header-installation)
-- [Create a Custom Database](#markdown-header-create-a-custom-database)
-- [How to Run](#markdown-header-how-to-run)
-    - [Single End Run](#markdown-header-single-end-run)
-    - [Paired End Run](#markdown-header-paired-end-run)
-    - [Demo Run](#markdown-header-demo-run)
+- [Installation](#installation)
+- [Create a Custom Database](#create-a-custom-database)
+- [How to Run](#how-to-run)
+    - [Single End Run](#single-end-run)
+    - [Paired End Run](#paired-end-run)
+    - [Demo Run](#demo-run)
     - [Sequencer Source for trimming Adapter Contents](#sequencer-source-for-trimming-adapter-contents)
     - [Trim Overrepresented/Repetitive sequences](#trim-overrepresented-repetitive-sequences)
-    - [Additional Arguments](#markdown-header-additional-arguments)
-- [Complete Option List](#markdown-header-complete-option-list)
+    - [Additional Arguments](#additional-arguments)
+- [Complete Option List](#complete-option-list)
 
 ## Requirements ##
 
