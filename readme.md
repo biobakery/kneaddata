@@ -20,7 +20,7 @@ separate the human and the non-human reads.
 **If you use the KneadData software, please cite our manuscript: TBA**
 
 ## Contents ##
-- [Requirements](#markdown-header-requirements)
+- [Requirements](#requirements)
 - [Installation](#markdown-header-installation)
 - [Create a Custom Database](#markdown-header-create-a-custom-database)
 - [How to Run](#markdown-header-how-to-run)
