@@ -28,7 +28,7 @@ separate the human and the non-human reads.
     - [Paired End Run](#paired-end-run)
     - [Demo Run](#demo-run)
     - [Sequencer Source for trimming Adapter Contents](#sequencer-source-for-trimming-adapter-contents)
-    - [Trim Overrepresented/Repetitive sequences](#trim-overrepresented-repetitive-sequences)
+    - [Trim Overrepresented/Repetitive sequences](#trim-overrepresentedrepetitive-sequences)
     - [Additional Arguments](#additional-arguments)
 - [Complete Option List](#complete-option-list)
 
