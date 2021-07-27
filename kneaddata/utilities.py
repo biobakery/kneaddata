@@ -348,7 +348,8 @@ def get_first_n_seq_identifiers(file,n):
     first_seq_identifiers=[]
     # Getting first nth seq identifier
     while(count<n):
-        lines=next(all_lines)
+        lines=next(all_lines, None)
+        if lines is None: break
         first_seq_identifiers.append(lines[0])
         count+=1
     return first_seq_identifiers
