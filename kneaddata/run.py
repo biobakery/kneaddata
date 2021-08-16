@@ -501,7 +501,7 @@ def tandem(input_files, output_prefix, match, mismatch, delta, pm, pi, minscore,
         trf_output_files=[]
         for input_fastq in input_fastq_files:
             # create a temp fasta file from the fastq file
-            input_fasta = input_fastq.replace(os.path.splitext(input_fastq)[-1],config.fasta_file_extension)
+            input_fasta = input_fastq + config.fasta_file_extension
             utilities.fastq_to_fasta(input_fastq, input_fasta)
             temp_fasta_files.append(input_fasta)
             
