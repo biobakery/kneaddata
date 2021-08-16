@@ -948,7 +948,7 @@ def fastq_to_fasta(file, new_file):
     try:
         file_out=open(new_file,"w")
     except EnvironmentError:
-        sys.exit("ERROR: Unable to write file: " + file)
+        sys.exit("ERROR: Unable to write file: " + new_file)
 
     sequence=""
     sequence_id=""
