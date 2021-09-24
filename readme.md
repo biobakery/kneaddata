@@ -335,10 +335,10 @@ Depending on the input FASTQ, one or more of the following may be output:
   situation (2) above that were identified as NOT belonging to the
   `human_rna_db` database.
 + `seq_kneaddata_unmatched_2_human_rna_db_bowtie2_contam.fastq`: Reads from the second mate in
-  situation (2) above that were identified as belonging to the `human_rna_db`
+  situation (3) above that were identified as belonging to the `human_rna_db`
   database.
 + `seq_kneaddata_unmatched_2_human_rna_db_bowtie2_clean.fastq`: Reads from the second mate in
-  situation (2) above that were identified as NOT belonging to the
+  situation (3) above that were identified as NOT belonging to the
   `human_rna_db` database.
 
 Note, the files named "*_clean.fastq" will only be written if running with the option "--store-temp-output".
