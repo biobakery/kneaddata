@@ -1,6 +1,11 @@
 
 # KneadData History #
 
+## v0.11.0 10-05-2021
+* Change the input format to --input1 --input2 --unpaired
+* Trim the spaces in the identifiers sequences of the input files
+* Add the identifier sequence number if not present in the input files
+
 ## v0.10.0 02-08-2021
 
 * Remove the file sort from the function that counts the reads so the file name and database name are always in sync. Resolves issue with workflows where read counts are out of sync for database names.

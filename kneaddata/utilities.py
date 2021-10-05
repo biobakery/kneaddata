@@ -355,7 +355,7 @@ def get_first_n_seq_identifiers(file,n):
 
 
         
-def get_reformatted_identifiers(file, output_folder, temp_file_list, all_input_files):
+def get_reformatted_identifiers(file, input_index, output_folder, temp_file_list, all_input_files):
     """ Reformat the sequence identifiers in the fastq file writing to a temp file """
     
     # check if the file needs to be reformatted
@@ -380,7 +380,15 @@ def get_reformatted_identifiers(file, output_folder, temp_file_list, all_input_f
             elif " 2:" in lines[0]:
                 lines[0]=lines[0].replace(" 2","").rstrip()+"#0/2\n"
             elif " " in lines[0]:
-                lines[0]=lines[0].replace(" ","")
+                if lines[0].endswith("/1\n") or lines[0].endswith("/2\n"):  
+                    lines[0]=lines[0].replace(" ",".")
+                else:
+                    if (input_index == 0):
+                        lines[0]=lines[0].replace(" ",".").rstrip()+"#0/1\n"
+                    else:
+                        lines[0]=lines[0].replace(" ",".").rstrip()+"#0/2\n"
+                    
+                    
             file_handle.write("".join(lines))
     
     # add the new file to the list of temp files

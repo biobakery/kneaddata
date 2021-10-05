@@ -220,7 +220,7 @@ contaminant reads.
 
 To run KneadData in single end mode, run
 
-` $ kneaddata --input seq.fastq --reference-db $DATABASE --output kneaddata_output `
+` $ kneaddata --unpaired seq.fastq --reference-db $DATABASE --output kneaddata_output `
 
 This will create files in the folder `kneaddata_output` named
 
@@ -232,7 +232,7 @@ This will create files in the folder `kneaddata_output` named
 
 To run KneadData in single end mode with BMTagger, run
 
-` $ kneaddata --input seq.fastq --reference-db $DATABASE --run-bmtagger`
+` $ kneaddata --unpaired seq.fastq --reference-db $DATABASE --run-bmtagger`
 
 By default, this will create the same four files as running with bowtie2. The only differences are the contaminants file will have "bmtagger" in the name instead of "bowtie2" and the included $DATABASE name would differ.
 
@@ -245,7 +245,7 @@ If you wanted to select the basenames of the output files, you would add the opt
 
 To run KneadData in paired end mode with Bowtie2, run
 
-` $ kneaddata --input seq1.fastq --input seq2.fastq -db $DATABASE --output kneaddata_output`
+` $ kneaddata --input1 seq1.fastq --input2 seq2.fastq -db $DATABASE --output kneaddata_output`
 
 To run KneadData in paired end mode with BMTagger, run
 
@@ -277,7 +277,7 @@ You have two databases, one prefixed `bact_rrna_db` and the other prefixed
 `human_rna_db`, and your sequence files are `seq1.fastq` and `seq2.fastq`. To
 run with Bowtie2, execute
 
-`$ kneaddata --input seq1.fastq --input seq2.fastq -db bact_rrna_db -db human_rna_db --output seq_out `
+`$ kneaddata --input1 seq1.fastq --input2 seq2.fastq -db bact_rrna_db -db human_rna_db --output seq_out `
 
 This will output files in the folder `seq_out` named:
 
@@ -359,7 +359,7 @@ Aggregated files:
 
 The examples folder contains a demo input file. This file is a single read, fastq format.
 
-`` $ kneaddata --input examples/demo.fastq --reference-db examples/demo_db --output kneaddata_demo_output ``
+`` $ kneaddata --unpaired examples/demo.fastq --reference-db examples/demo_db --output kneaddata_demo_output ``
 
 This will create four output files:
 
@@ -376,11 +376,11 @@ to choose the correct sequencer source to ensure the removal of adapter contents
 
 ###### Example: Trimmming adapter sequence using **TruSeq3** sequencer adapters in the workflow: 
 ```
-kneaddata --input demo.fastq -db demo_db -o kneaddata_output --sequencer-source TruSeq3 --fastqc FastQC
+kneaddata --unpaired demo.fastq -db demo_db -o kneaddata_output --sequencer-source TruSeq3 --fastqc FastQC
 ```
 ###### Example: Skipping adapter trimming in the workflow:
 ```
-kneaddata --input demo.fastq -db demo_db -o kneaddata_output --sequencer-source none --fastqc FastQC
+kneaddata --unpaired demo.fastq -db demo_db -o kneaddata_output --sequencer-source none --fastqc FastQC
 ```
 
 ## Trim Overrepresented/Repetitive sequences ####
@@ -390,11 +390,11 @@ However, Kneaddata will **not** trim the overrepresented sequences **by default*
 
 ###### Example: Trimming overrepresented sequences using the Fastqc reports:
 ```
-kneaddata --input demo.fastq -db demo_db -o kneaddata_output --run-trim-repetitive --fastqc FastQC
+kneaddata --unpaired demo.fastq -db demo_db -o kneaddata_output --run-trim-repetitive --fastqc FastQC
 ```
 ###### Example: Trimming overrepresented sequences and TruSeq3 adapters:
 ```
-kneaddata --input demo.fastq -db demo_db -o kneaddata_output --run-trim-repetitive --sequencer-source TruSeq3 --fastqc FastQC
+kneaddata --unpaired demo.fastq -db demo_db -o kneaddata_output --run-trim-repetitive --sequencer-source TruSeq3 --fastqc FastQC
 ```
 
 ## Additional Arguments ####
@@ -404,11 +404,11 @@ If you want to specify additional arguments for Bowtie2 using the
 
 For example:
 
-`$ kneaddata --input demo.fastq --output kneaddata_output --reference-db database_folder --bowtie2-options="--very-fast" --bowtie2-options="-p 2"`
+`$ kneaddata --unpaired demo.fastq --output kneaddata_output --reference-db database_folder --bowtie2-options="--very-fast" --bowtie2-options="-p 2"`
 
 A similar approach is used to specify additional arguments for Trimmomatic:
 
-`$ kneaddata --input demo.fastq --output kneaddata_output --reference-db database_folder --trimmomatic-options="LEADING:3" --trimmomatic-options="TRAILING:3"`
+`$ kneaddata --unpaired demo.fastq --output kneaddata_output --reference-db database_folder --trimmomatic-options="LEADING:3" --trimmomatic-options="TRAILING:3"`
 
 *NOTE*: Manually specifying additional arguments will completely override the defaults.
 
@@ -416,7 +416,7 @@ Also more than one database can be provided for each run. The database argument 
 
 For example:
 
-`$ kneaddata --input demo.fastq --output kneaddata_output --reference-db database_folder --reference-db database_folder2/demo`
+`$ kneaddata --unpaired demo.fastq --output kneaddata_output --reference-db database_folder --reference-db database_folder2/demo`
 
 
 ## Complete Option List ##
@@ -424,7 +424,8 @@ For example:
 All options can be accessed with `$ kneaddata --help`.
 
 ```
-usage: kneaddata [-h] [--version] [-v] -i INPUT -o OUTPUT_DIR
+usage: kneaddata [-h] [--version] [-v] [-i1 INPUT1] [-i2 INPUT2]
+                 [-un UNPAIRED]  -o OUTPUT_DIR
                  [-db REFERENCE_DB] [--bypass-trim] [--run-trim-repetitive]
                  [--output-prefix OUTPUT_PREFIX] [-t <1>] [-p <1>]
                  [-q {phred33,phred64}] [--run-bmtagger]
