@@ -328,6 +328,8 @@ def sequence_identifier_format_conditions(identifier_seq):
     new_format=False
     if (" " in identifier_seq):
         new_format=True
+    if not identifier_seq.endswith("/1\n") and not identifier_seq.endswith("/2\n"):
+        new_format=True
     return new_format
     
 def get_last_n_seq_identifiers(file, n):
