@@ -100,10 +100,17 @@ def parse_arguments(args):
         action="store_true",
         help="additional output is printed\n")
     group1.add_argument(
-        "-i", "--input",
-        help="input FASTQ file (add a second argument instance to run with paired input files)", 
-        action="append",
-        required=True)
+        "-i1", "--input1",
+        help="Pair 1 input FASTQ file", 
+        dest='input1')
+    group1.add_argument(
+        "-i2", "--input2",
+        help="Pair 2 input FASTQ file", 
+        dest='input2')
+    group1.add_argument(
+        "-un","--unpaired",
+        help="unparied input FASTQ file", 
+        dest='unpaired')
     group1.add_argument(
         "-o", "--output",
         dest='output_dir',
@@ -304,13 +311,19 @@ def update_configuration(args):
         args.remove_temp_output = True
     
     # check the input files are non-empty and readable
-    args.input[0] = os.path.abspath(args.input[0])
+    args.input=[]
+    if (args.input1 and args.input2):
+        args.input.append(os.path.abspath(args.input1))
+        args.input.append(os.path.abspath(args.input2))
+    if (args.unpaired):
+        args.input.append(os.path.abspath(args.unpaired))  
     utilities.is_file_readable(args.input[0],exit_on_error=True)
     if len(args.input) == 2:
-        args.input[1] = os.path.abspath(args.input[1])
         utilities.is_file_readable(args.input[1],exit_on_error=True)
     elif len(args.input) > 2:
         sys.exit("ERROR: Please provide at most 2 input files.")
+    elif len(args.input) == 0:
+        sys.exit("ERROR: Please provide --input1/--input2 or --unpaired (input) files.")
     
     #Store original file paths for FASTQC 
     for input in args.input:
@@ -450,7 +463,7 @@ def main():
     
     # if this is the new illumina identifier format, create temp files after reformatting the headers
     for index in range(len(args.input)):
-        args.input[index]=utilities.get_reformatted_identifiers(args.input[index],args.output_dir, temp_output_files, args.input)
+        args.input[index]=utilities.get_reformatted_identifiers(args.input[index],index,args.output_dir, temp_output_files, args.input)
     
     # check for reads that are not ordered and order if needed (if trimmomatic is run)
     if not args.bypass_trim and len(args.input)==2:
