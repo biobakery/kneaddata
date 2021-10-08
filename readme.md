@@ -48,6 +48,8 @@ Optionally, [BMTagger](ftp://ftp.ncbi.nlm.nih.gov/pub/agarwala/bmtagger/) can be
 
 The executables for the required software packages should be installed in your $PATH. Alternatively, you can provide the location of the Bowtie2 install ($BOWTIE2_DIR) with the following KneadData option “--bowtie2 $BOWTIE2_DIR”.
 
+![kneaddata_workflow](https://huttenhower.sph.harvard.edu/wp-content/uploads/2021/10/Kneaddata_Workflow.png)
+
 ## Installation ##
 
 Before installing KneadData, please install the Java Runtime Environment (JRE). First [download](http://www.oracle.com/technetwork/java/javase/downloads/jre7-downloads-1880261.html) the JRE for your platform. Then follow the instructions for your platform: [Linux 64-bit](http://docs.oracle.com/javase/8/docs/technotes/guides/install/linux_jre.html#CFHIEGAA) or [Mac OS](http://docs.oracle.com/javase/8/docs/technotes/guides/install/mac_jre.html#jre_8u40_osx). At the end of the installation, add the location of the java executable to your $PATH.
