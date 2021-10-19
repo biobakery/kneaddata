@@ -312,11 +312,10 @@ def check_sequence_identifier_format(file):
     
     #checking first 100 (400/4) lines
     num_seq_to_check=100 
-    num_lines_to_check=400
     
     #Fetching first and last 100 identifier sequences
     first_seq_identifiers_list=get_first_n_seq_identifiers(file,num_seq_to_check)
-    last_seq_identifiers_list=get_last_n_seq_identifiers(file,num_lines_to_check)
+    last_seq_identifiers_list=get_last_n_seq_identifiers(file,num_seq_to_check)
     # Checking first and last 100 seq identifiers for spaces and new Illumina format
     for lines in first_seq_identifiers_list:
         new_format=sequence_identifier_format_conditions(lines)
@@ -336,7 +335,7 @@ def get_last_n_seq_identifiers(file, n):
     last_seq_identifiers=[]
     # Tail to find last lines
     try:
-        process = subprocess.Popen(['tail', '-'+str(n), file], stdout=subprocess.PIPE)
+        process = subprocess.Popen(['tail', '-'+str(4*n), file], stdout=subprocess.PIPE)
     except subprocess.CalledProcessError:
         pass
     for i,line in enumerate(process.stdout.readlines()):
@@ -350,7 +349,8 @@ def get_first_n_seq_identifiers(file,n):
     first_seq_identifiers=[]
     # Getting first nth seq identifier
     while(count<n):
-        lines=next(all_lines)
+        lines=next(all_lines, None)
+        if not lines: break
         first_seq_identifiers.append(lines[0])
         count+=1
     return first_seq_identifiers
