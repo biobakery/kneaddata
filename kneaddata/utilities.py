@@ -307,56 +307,31 @@ def get_decompressed_file(file, output_folder, temp_file_list, all_input_files):
     return new_file
 
 def check_sequence_identifier_format(file):
-    """ Check the fastq file to see if there are spaces in the identifier
-        and the format of the id to see if this is the new illumina format """ 
-    
-    #checking first 100 (400/4) lines
-    num_seq_to_check=100 
-    
-    #Fetching first and last 100 identifier sequences
-    first_seq_identifiers_list=get_first_n_seq_identifiers(file,num_seq_to_check)
-    last_seq_identifiers_list=get_last_n_seq_identifiers(file,num_seq_to_check)
-    # Checking first and last 100 seq identifiers for spaces and new Illumina format
-    for lines in first_seq_identifiers_list:
-        new_format=sequence_identifier_format_conditions(lines)
-    for lines in last_seq_identifiers_list:
-        new_format=sequence_identifier_format_conditions(lines)
-    return new_format
-  
-def sequence_identifier_format_conditions(identifier_seq):
-    new_format=False
-    if (" " in identifier_seq):
-        new_format=True
-    if not identifier_seq.endswith("/1\n") and not identifier_seq.endswith("/2\n"):
-        new_format=True
-    return new_format
-    
-def get_last_n_seq_identifiers(file, n):
-    last_seq_identifiers=[]
-    # Tail to find last lines
-    try:
-        process = subprocess.Popen(['tail', '-'+str(4*n), file], stdout=subprocess.PIPE)
-    except subprocess.CalledProcessError:
-        pass
-    for i,line in enumerate(process.stdout.readlines()):
-        if (i%4==0):
-            last_seq_identifiers.append(line.decode("utf-8")) 
-    return last_seq_identifiers
-    
-def get_first_n_seq_identifiers(file,n):
-    count=0
-    all_lines=read_file_n_lines(file,4)
-    first_seq_identifiers=[]
-    # Getting first nth seq identifier
-    while(count<n):
-        lines=next(all_lines, None)
-        if not lines: break
-        first_seq_identifiers.append(lines[0])
-        count+=1
-    return first_seq_identifiers
+    """ Check the first and last read in the file and return True if there are
+        spaces in the read identifier or it doesn't end with /1 or /2. """
 
+    is_new_format=lambda s: " " in s or not (s.endswith("/1\n") or s.endswith("/2\n"))
 
-        
+    read_iter=read_file_n_lines(file,4)
+
+    # Collect the first read, exit with False if none
+    read=next(read_iter, None)
+    if not read:
+        return False
+
+    # Return True if the ID of read 1 is new format
+    read_id=read[0]
+    if is_new_format(read_id):
+        return True
+
+    # Otherwise skip to the last read
+    while read:
+        read_id=read[0]
+        read=next(read_iter, None)
+
+    # Return True iff the last read is new format
+    return is_new_format(read_id)
+
 def get_reformatted_identifiers(file, input_index, output_folder, temp_file_list, all_input_files):
     """ Reformat the sequence identifiers in the fastq file writing to a temp file """
     
