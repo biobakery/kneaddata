@@ -48,7 +48,7 @@ Optionally, [BMTagger](ftp://ftp.ncbi.nlm.nih.gov/pub/agarwala/bmtagger/) can be
 
 The executables for the required software packages should be installed in your $PATH. Alternatively, you can provide the location of the Bowtie2 install ($BOWTIE2_DIR) with the following KneadData option “--bowtie2 $BOWTIE2_DIR”.
 
-![kneaddata_workflow](https://huttenhower.sph.harvard.edu/wp-content/uploads/2021/10/Kneaddata_Workflow.png)
+![kneaddata_workflow](https://huttenhower.sph.harvard.edu/wp-content/uploads/2021/11/kneaddata_workflow.drawio.png)
 
 ## Installation ##
 
