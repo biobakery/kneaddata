@@ -420,6 +420,8 @@ For example:
 
 `$ kneaddata --unpaired demo.fastq --output kneaddata_output --reference-db database_folder --reference-db database_folder2/demo`
 
+## Contributions ##
+Thanks go to these wonderful people:
 
 ## Complete Option List ##
 
@@ -536,3 +538,4 @@ fastqc arguments:
   --fastqc FASTQC_PATH  path to fastqc
                         [ DEFAULT : $PATH ]
 ```
+
