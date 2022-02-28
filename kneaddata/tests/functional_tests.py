@@ -480,7 +480,7 @@ class TestFunctionalKneadData(unittest.TestCase):
         # run kneaddata test
         command = ["kneaddata","--input",cfg.fastq_file,
                    "--output",tempdir,"--reference-db",cfg.bowtie2_db_folder,
-                   "--store-temp-output","--bypass-trim"]
+                   "--store-temp-output","--bypass-trim", "--bypass-trf"]
         utils.run_kneaddata(command)
         
         # get the basename of the input file
@@ -501,7 +501,7 @@ class TestFunctionalKneadData(unittest.TestCase):
         utils.remove_temp_folder(tempdir)
         
     @skipIfExeNotFound(config.bowtie2_exe)
-    def test_bowtie2_only_paired_end_remove_intermedite_temp_output(self):
+    def test_bowtie2_only_paired_end_remove_intermediate_temp_output(self):
         """
         Test running the default flow of trimmomatic on paired end input with a
         bowtie2 database provided
@@ -513,7 +513,7 @@ class TestFunctionalKneadData(unittest.TestCase):
         
         # run kneaddata test
         command = ["kneaddata","--input",cfg.fastq_file,"--input",cfg.fastq_file,
-                   "--output",tempdir,"--reference-db",cfg.bowtie2_db_folder,"--bypass-trim","--no-discordant"]
+                   "--output",tempdir,"--reference-db",cfg.bowtie2_db_folder,"--bypass-trim","--no-discordant", "--bypass-trf"]
         utils.run_kneaddata(command)
         
         # get the basename of the input file
