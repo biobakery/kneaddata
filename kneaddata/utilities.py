@@ -350,7 +350,10 @@ def get_first_n_seq_identifiers(file,n):
     first_seq_identifiers=[]
     # Getting first nth seq identifier
     while(count<n):
-        lines=next(all_lines)
+        try:
+            lines=next(all_lines)
+        except StopIteration:
+            sys.exit("ERROR: {0} has less then {1} lines".format(file,n))
         first_seq_identifiers.append(lines[0])
         count+=1
     return first_seq_identifiers
