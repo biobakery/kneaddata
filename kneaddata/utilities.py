@@ -791,13 +791,16 @@ def is_file_readable(file, exit_on_error=None):
     else:
         return False
     
-def remove_file(file):
-    """ Try to remove the file """
+def remove_file(filepath):
+    """ Try to remove the file by it's filepath"""
     
     try:
-        os.unlink(file)
+        # changing permissions, so it does work in virtual containers, where user
+        # doesn't have access to 
+        os.chmod(filepath, 0o777)
+        os.unlink(filepath)
     except EnvironmentError:
-        logger.warning("Unable to remove file: " + file)
+        logger.warning("Unable to remove file: " + filepath)
 
 def byte_to_gigabyte(byte):
     """
