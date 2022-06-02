@@ -371,7 +371,7 @@ This will create four output files:
 3. `` kneaddata_demo_output/demo_kneaddata.trimmed.fastq ``
 
 ## Sequencer Source for trimming Adapter Contents ####
-Kneaddata will use **"NexteraPE"** adapters provided by trimomatic to trim the adapter contents `by default`.
+Kneaddata will use **"NexteraPE"** adapters provided by trimmomatic to trim the adapter contents `by default`.
 
 The other available options are: `["NexteraPE", "TruSeq2", "TruSeq3","none"]`. Based on the source of the sequencer and the FASTQC report, it is **highly reccommended**
 to choose the correct sequencer source to ensure the removal of adapter contents by Kneaddata. 
