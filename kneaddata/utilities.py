@@ -353,7 +353,8 @@ def get_first_n_seq_identifiers(file,n):
         try:
             lines=next(all_lines)
         except StopIteration:
-            sys.exit("ERROR: {0} has less then {1} lines".format(file,n))
+            # allow for less then n lines
+            break
         first_seq_identifiers.append(lines[0])
         count+=1
     return first_seq_identifiers
