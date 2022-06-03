@@ -1,10 +1,11 @@
 
 # KneadData History #
 
-## v0.11.0 10-05-2021
+## v0.11.0 06-03-2022
 * Change the input format to --input1 --input2 --unpaired
 * Trim the spaces in the identifiers sequences of the input files
 * Add the identifier sequence number if not present in the input files
+* Allow for files with less then N lines (in checks for sequence identifiers)
 
 ## v0.10.0 02-08-2021
 
