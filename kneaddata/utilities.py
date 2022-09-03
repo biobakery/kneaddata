@@ -389,10 +389,10 @@ def get_reformatted_identifiers(file, input_index, output_folder, temp_file_list
                 else:
                     lines[0]=lines[0].rstrip()+"#0/2\n"
             if re.search(r'\d+:N:\d+:(?=[A|T|C|G])',lines[0]):
-                lane_appendix_info = re.search(r'\d+:N:\d+:(?=[A|T|C|G])',lines)[0]
-                lines[0].replace(lane_appendix_info,'')
+                lane_appendix_info = re.search(r'\d+:N:\d+:(?=[A|T|C|G])',lines[0])[0]
+                lines[0] = lines[0].replace(lane_appendix_info,'')
                 
-                
+
             file_handle.write("".join(lines))
     
     # add the new file to the list of temp files
