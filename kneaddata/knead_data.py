@@ -74,7 +74,7 @@ except ImportError:
 from kneaddata import run
 from kneaddata import config
 
-VERSION="0.11.0"
+VERSION="0.12.0"
 
 # name global logging instance
 logger=logging.getLogger(__name__)
@@ -449,9 +449,18 @@ def main():
     temp_output_files=[]
     # Check for compressed files, bam files, or sam files
     for index in range(len(args.input)):
-        args.input[index]=utilities.get_decompressed_file(args.input[index], args.output_dir, temp_output_files, args.input)
-        args.input[index]=utilities.get_sam_from_bam_file(args.input[index], args.output_dir, temp_output_files, args.input)
-        args.input[index]=utilities.get_fastq_from_sam_file(args.input[index], args.output_dir, temp_output_files, args.input)
+
+        # check for gzipped/bz2 files
+        if args.input[index].endswith(".gz") or args.input[index].endswith(".bz2"):
+            args.input[index]=utilities.get_decompressed_file(args.input[index], args.output_dir, temp_output_files, args.input)
+        elif args.input[index].endswith(".bam"):
+            input_files_set=utilities.get_fastq_from_bam_file(args.input[index], args.output_dir, temp_output_files, args.input)
+            if isinstance(input_files_set,list):
+                args.input=input_files_set
+            else:
+                args.input[index]=input_files_set
+        elif args.input[index].endswith(".sam"): 
+            args.input[index]=utilities.get_fastq_from_sam_file(args.input[index], args.output_dir, temp_output_files, args.input)
         
     # Get the format of the first input file
     file_format=utilities.get_file_format(args.input[0])

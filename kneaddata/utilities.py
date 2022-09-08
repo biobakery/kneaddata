@@ -171,7 +171,7 @@ def run_command_returncode(args):
         
     return returncode
 
-def run_command(command,command_name,infiles,outfiles,stdout_file,verbose,exit_on_error):
+def run_command(command,command_name,infiles,outfiles,stdout_file,verbose,exit_on_error,shell=False):
     """ Run and log command """
     
     # convert any numbers in command to strings
@@ -190,7 +190,7 @@ def run_command(command,command_name,infiles,outfiles,stdout_file,verbose,exit_o
     logger.info("Execute command: " + message)
     if verbose:
         print("\n" + message + "\n")
-        
+       
     if stdout_file:
         try:
             stdout=open(stdout_file,"w")
@@ -203,8 +203,11 @@ def run_command(command,command_name,infiles,outfiles,stdout_file,verbose,exit_o
                 raise EnvironmentError
     try:
         if stdout_file:
-            # run command, raise CalledProcessError if return code is non-zero
-            p_out = subprocess.check_call(command, stdout=stdout)
+            if shell:
+                p_out = subprocess.check_call(" ".join(command), stdout=stdout, shell=True)
+            else:
+                # run command, raise CalledProcessError if return code is non-zero
+                p_out = subprocess.check_call(command, stdout=stdout)
         else:
             p_out = subprocess.check_output(command, stderr=subprocess.STDOUT)
         logger.debug(p_out)
@@ -403,16 +406,66 @@ def bam_to_sam(bam_file, new_file):
     """
 
     exe=config.samtools_exe
-    args=["view","-h",bam_file,"-o",new_file]
+    args=["view","-h",bam_file]
     
     message="Converting bam file to sam format ..."
     print(message)
     logger.info(message)
     
-    run_command([exe]+args, exe, [bam_file], [new_file], None, None, True)
+    run_command([exe]+args, exe, [bam_file], [new_file], new_file, verbose=False, exit_on_error=True)
     
     logger.info("Sam file created at: " + new_file)
     
+def bam_to_fastq(bam_file, new_file, output_folder):
+    """ Convert bam file to single or set of fastq files """
+
+    exe=config.samtools_exe
+    args=["bam2fq",bam_file]
+
+    message="Converting bam file to fastq format ..."
+    print(message)
+    logger.info(message)
+    
+    run_command([exe]+args, exe, [bam_file], [new_file], new_file, verbose=False,exit_on_error=True)
+
+    # check for paired-end output
+    try:
+        output=subprocess.check_output("grep '^@.*/2$' "+new_file,shell=True)
+    except (EnvironmentError, subprocess.CalledProcessError):
+        output=[]
+
+    if output:
+        # pairs found
+        filename=file_without_extension(bam_file)
+        pair1_file=os.path.join(output_folder,file_without_extension(filename)+"_decompressed_R1"+".fastq")
+        pair2_file=os.path.join(output_folder,file_without_extension(filename)+"_decompressed_R2"+".fastq")
+
+        run_command(["grep","'^@.*/1$'",new_file,"-A 3","--no-group-separator"],"bam to fastq R1",[new_file],[pair1_file],pair1_file,verbose=False,exit_on_error=True,shell=True)
+        run_command(["grep","'^@.*/2$'",new_file,"-A 3","--no-group-separator"],"bam to fastq R2",[new_file],[pair2_file],pair2_file,verbose=False,exit_on_error=True,shell=True)
+
+        remove_file(new_file)
+
+        new_file=[pair1_file,pair2_file]
+
+    return new_file
+
+
+def get_fastq_from_bam_file(file, output_folder, temp_file_list, all_input_files):
+    """ Look for paired input files from bam, requires samtools """
+    if file.endswith(".bam"):
+        # Check for the samtools software
+        if not find_exe_in_path(config.samtools_exe):
+            sys.exit("CRITICAL ERROR: The samtools executable can not be found. "
+            "Please check the install or select another input format.")
+        new_file=os.path.join(output_folder,file_without_extension(file)+"_decompressed"+".fastq")
+        new_file=bam_to_fastq(file, new_file, output_folder) 
+        update_temp_output_files(temp_file_list, new_file, all_input_files)
+    else:
+        new_file=file
+
+    return new_file
+
+
 def get_sam_from_bam_file(file, output_folder, temp_file_list, all_input_files):
     """ Check if a file is bam, if so create a sam file """
     

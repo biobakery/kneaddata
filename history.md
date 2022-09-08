@@ -1,6 +1,9 @@
 
 # KneadData History #
 
+## v0.12.0 09-08-2022
+* Allow for tracking of paired-end reads from bam input files
+
 ## v0.11.0 06-03-2022
 * Change the input format to --input1 --input2 --unpaired
 * Trim the spaces in the identifiers sequences of the input files
