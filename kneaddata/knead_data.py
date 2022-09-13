@@ -117,6 +117,11 @@ def parse_arguments(args):
         help="directory to write output files",
         required=True)
     group1.add_argument(
+        "-s", "--scratch",
+        dest='scratch_dir',
+        help="directory to write temp files",
+        default="")
+    group1.add_argument(
         "-db", "--reference-db",
         default=[], action="append",
         help="location of reference database (additional arguments add databases)")
@@ -302,7 +307,9 @@ def update_configuration(args):
 
     # get the full path for the output directory
     args.output_dir = os.path.abspath(args.output_dir)
-    
+    if args.scratch_dir:
+        args.scratch_dir = os.path.abspath(args.scratch_dir)    
+
     # set if temp output should be removed
     args.remove_temp_output = not args.store_temp_output
     
@@ -329,8 +336,10 @@ def update_configuration(args):
     for input in args.input:
         original_input_files.append(input)
     
-    # create the output directory if needed
+    # create the output directory and scratch if needed
     utilities.create_directory(args.output_dir)
+    if args.scratch_dir:
+        utilities.create_directory(args.scratch_dir)
     
     # set bowtie2 options
     if args.bowtie2_options:
@@ -440,12 +449,17 @@ def main():
     # Update the configuration
     args = update_configuration(args)
     
-    # set the prefix for the output files
-    full_path_output_prefix = os.path.join(args.output_dir, args.output_prefix)
-
     # Start logging
     setup_logging(args)
-    
+
+    # set the prefix for the output files
+    final_output_dir = args.output_dir
+    if args.scratch_dir:
+        full_path_output_prefix = os.path.join(args.scratch_dir, args.output_prefix)
+        args.output_dir = args.scratch_dir
+    else:
+        full_path_output_prefix = os.path.join(args.output_dir, args.output_prefix)
+
     temp_output_files=[]
     # Check for compressed files, bam files, or sam files
     for index in range(len(args.input)):
@@ -573,6 +587,14 @@ def main():
     # Run fastqc if set to run at end of workflow
     if args.fastqc_end:
         run.fastqc(args.fastqc_path, args.output_dir, final_output_files, args.threads, args.verbose)
+
+    # If using scratch, then move final output files to output folder
+    if args.scratch_dir:
+        scratch_output_files=final_output_files
+        final_output_files=[]
+        for outfile in scratch_output_files:
+            utilities.move_file(os.path.basename(outfile),args.output_dir,final_output_dir)
+            final_output_files.append(os.path.join(final_output_dir,os.path.basename(outfile)))
 
     if len(final_output_files) > 1:
         message="\nFinal output files created: \n"

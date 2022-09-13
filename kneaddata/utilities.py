@@ -844,7 +844,21 @@ def is_file_readable(file, exit_on_error=None):
         return True
     else:
         return False
-    
+   
+def move_file(file, old_folder, new_folder):
+    """ Try to move a file """
+
+    old_file=os.path.join(old_folder,file)
+    new_file=os.path.join(new_folder,file)
+
+    remove_file(new_file)
+
+    try:
+        shutil.move(old_file,new_file)
+    except EnvironmentError as e:
+        logger.warning("Unable to move file "+old_file+" to "+new_file)
+        logger.warning(e)
+ 
 def remove_file(file):
     """ Try to remove the file """
     
