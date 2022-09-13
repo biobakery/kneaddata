@@ -1,8 +1,9 @@
 
 # KneadData History #
 
-## v0.12.0 09-08-2022
+## v0.12.0 09-13-2022
 * Allow for tracking of paired-end reads from bam input files
+* Add an option to use a scratch directory
 
 ## v0.11.0 06-03-2022
 * Change the input format to --input1 --input2 --unpaired
