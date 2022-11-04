@@ -145,6 +145,11 @@ def parse_arguments(args):
         dest='bmtagger',
         help="run BMTagger instead of Bowtie2 to identify contaminant reads")
     group1.add_argument(
+        "--mateIds_are_equal",
+        choices=('True','False'),
+        dest='mateIds_are_equal',
+        help="Are mates in paired reads equal or different. I.e. 1 and 1 or 1 and 2")
+    group1.add_argument(
         "--bypass-trf",
         action="store_true",
         help="option to bypass the removal of tandem repeats")

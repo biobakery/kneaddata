@@ -37,7 +37,7 @@ try:
     import argparse
 except ImportError:
     sys.exit("Please upgrade to python 2.7+")
-    
+
 import string
 import tempfile
 import subprocess
@@ -73,7 +73,12 @@ def parse_arguments(args):
         "-2",
         dest="pair2",
         help="the fastq file of pair2 reads",
-        required=True) 
+        required=True)
+    parser.add_argument(
+        "--mateIds_are_equal",
+        dest="mateIds_are_equal",
+        help="If mateIds are same or different",
+        required=True)
     parser.add_argument(
         "-x",
         dest="index",
@@ -172,7 +177,7 @@ def read_sam_line(line):
     read="\n".join(["@"+data[0], data[9], "+", data[10], ""])
     return (query_id, mate, is_aligned, read)
 
-def process_alignments(pair1_sam, pair2_sam, orphan_sam, aligned_pair, unaligned_pair, aligned_orphan, unaligned_orphan, treat_pair_as_aligned_if_either_read_aligned):
+def process_alignments(pair1_sam, pair2_sam, orphan_sam, aligned_pair, unaligned_pair, aligned_orphan, unaligned_orphan, mateIds_are_equal, treat_pair_as_aligned_if_either_read_aligned):
     """ Read through the paired sam alignments and organize into the output files """
 
     open_files={
@@ -208,11 +213,18 @@ def process_alignments(pair1_sam, pair2_sam, orphan_sam, aligned_pair, unaligned
         while line_1 and line_2:
             query_id_1, mate_1, is_aligned_1, read_1 = read_sam_line(line_1)
             query_id_2, mate_2, is_aligned_2, read_2 = read_sam_line(line_2)
-            if not (query_id_1 == query_id_2 and mate_1 != mate_2):
-                raise ValueError(
-                    "sam files do not match on line {0}: found IDs {1}{2} and {3}{4}"
-                        .format(line_count, query_id_1, mate_1, query_id_2, mate_2)
-                )
+            if (mateIds_are_equal=='True'):
+                if not (query_id_1 == query_id_2 and mate_1 == mate_2):
+                    raise ValueError(
+                        "sam files do not match on line {0}: found IDs {1}{2} and {3}{4}"
+                            .format(line_count, query_id_1, mate_1, query_id_2, mate_2)
+                        )
+            else:
+                if not (query_id_1 == query_id_2 and mate_1 != mate_2):
+                    raise ValueError(
+                        "sam files do not match on line {0}: found IDs {1}{2} and {3}{4}"
+                            .format(line_count, query_id_1, mate_1, query_id_2, mate_2)
+                        )
             aa = is_aligned_1 and is_aligned_2 or (treat_pair_as_aligned_if_either_read_aligned and (is_aligned_1 or is_aligned_2))
 
             x1 = 'both_aligned' if aa else 'only_this_aligned' if is_aligned_1 else 'only_this_unaligned' if is_aligned_2 else 'both_unaligned'
@@ -310,6 +322,7 @@ def main():
       unaligned_pair = args.un_pair,
       aligned_orphan = args.al_single,
       unaligned_orphan = args.un_single,
+      mateIds_are_equal = args.mateIds_are_equal,
       treat_pair_as_aligned_if_either_read_aligned = (args.mode == "strict")
     )
 
