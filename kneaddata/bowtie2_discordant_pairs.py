@@ -172,18 +172,13 @@ def run_command(command, **kwargs):
             message+="\nError message returned:\n" + e.output
         sys.exit(message)
     
-
 def read_sam_line(line,query_mate_separator):
     data=line.rstrip().split("\t")
     separatorLocation = data[0].find(query_mate_separator)
     query_id = data[0][:separatorLocation]
-    print(query_id)
     mate = data[0][separatorLocation+1]
-    print(mate)
     is_aligned = not (int(data[1]) & 4)
-    print(is_aligned)
     read="\n".join(["@"+data[0], data[9], "+", data[10], ""])
-    print(read)
     return (query_id, mate, is_aligned, read)
 
 def process_alignments(pair1_sam, pair2_sam, orphan_sam, aligned_pair, unaligned_pair, aligned_orphan, unaligned_orphan, mateIds_are_equal, query_mate_separator, treat_pair_as_aligned_if_either_read_aligned):
@@ -224,16 +219,11 @@ def process_alignments(pair1_sam, pair2_sam, orphan_sam, aligned_pair, unaligned
             query_id_2, mate_2, is_aligned_2, read_2 = read_sam_line(line_2,query_mate_separator)
             if (mateIds_are_equal=='True'):
                 if not (query_id_1 == query_id_2 and mate_1 == mate_2):
-                    raise ValueError(
-                        "sam files do not match on line {0}: found IDs {1}{2} and {3}{4}"
-                            .format(line_count, query_id_1, mate_1, query_id_2, mate_2)
-                        )
+                    raise ValueError("QueryIds: "+str(query_id_1)+","+str(query_id_1)+" mates: "+str(mate_1)+","+str(mate_2)+". Mates do not match on line.")
             else:
                 if not (query_id_1 == query_id_2 and mate_1 != mate_2):
-                    raise ValueError(
-                        "QueryIds: "+str(query_id_1)+","+str(query_id_1)+" mates: "+str(mate_1)+","+str(mate_2)+", sam files do not match on line {0}: found IDs {1}{2} and {3}{4}"
-                            .format(line_count, query_id_1, mate_1, query_id_2, mate_2)
-                        )
+                    raise ValueError("QueryIds: "+str(query_id_1)+","+str(query_id_1)+" mates: "+str(mate_1)+","+str(mate_2)+". Mates match.")
+                
             aa = is_aligned_1 and is_aligned_2 or (treat_pair_as_aligned_if_either_read_aligned and (is_aligned_1 or is_aligned_2))
 
             x1 = 'both_aligned' if aa else 'only_this_aligned' if is_aligned_1 else 'only_this_unaligned' if is_aligned_2 else 'both_unaligned'
