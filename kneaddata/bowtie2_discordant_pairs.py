@@ -215,16 +215,11 @@ def process_alignments(pair1_sam, pair2_sam, orphan_sam, aligned_pair, unaligned
             query_id_2, mate_2, is_aligned_2, read_2 = read_sam_line(line_2)
             if (mateIds_are_equal=='True'):
                 if not (query_id_1 == query_id_2 and mate_1 == mate_2):
-                    raise ValueError(
-                        "sam files do not match on line {0}: found IDs {1}{2} and {3}{4}"
-                            .format(line_count, query_id_1, mate_1, query_id_2, mate_2)
-                        )
+                    raise ValueError("Queries: "+str(query_id_1)+", "+str(query_id_2)+" mates: "+str(mate_1)+", "+str(mate_2)+". Mates do not match.")
             else:
                 if not (query_id_1 == query_id_2 and mate_1 != mate_2):
-                    raise ValueError(
-                        "sam files do not match on line {0}: found IDs {1}{2} and {3}{4}"
-                            .format(line_count, query_id_1, mate_1, query_id_2, mate_2)
-                        )
+                    raise ValueError("QueryIds: "+str(query_id_1)+","+str(query_id_2)+" mates: "+str(mate_1)+", "+str(mate_2)+". Mates match.")
+                
             aa = is_aligned_1 and is_aligned_2 or (treat_pair_as_aligned_if_either_read_aligned and (is_aligned_1 or is_aligned_2))
 
             x1 = 'both_aligned' if aa else 'only_this_aligned' if is_aligned_1 else 'only_this_unaligned' if is_aligned_2 else 'both_unaligned'
