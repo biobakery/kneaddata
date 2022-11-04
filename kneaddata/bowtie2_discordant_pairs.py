@@ -80,6 +80,11 @@ def parse_arguments(args):
         help="If mateIds are same or different",
         required=True)
     parser.add_argument(
+        "--query_mate_separator",
+        dest="query_mate_separator",
+        help="Separator between queryid and mate",
+        required=True)
+    parser.add_argument(
         "-x",
         dest="index",
         help="the database index file",
@@ -168,16 +173,20 @@ def run_command(command, **kwargs):
         sys.exit(message)
     
 
-def read_sam_line(line):
+def read_sam_line(line,query_mate_separator):
     data=line.rstrip().split("\t")
-
-    query_id = data[0][:-1]
-    mate = data[0][-1]
+    separatorLocation = data[0].find(query_mate_separator)
+    query_id = data[0][:separatorLocation]
+    print(query_id)
+    mate = data[0][separatorLocation+1]
+    print(mate)
     is_aligned = not (int(data[1]) & 4)
+    print(is_aligned)
     read="\n".join(["@"+data[0], data[9], "+", data[10], ""])
+    print(read)
     return (query_id, mate, is_aligned, read)
 
-def process_alignments(pair1_sam, pair2_sam, orphan_sam, aligned_pair, unaligned_pair, aligned_orphan, unaligned_orphan, mateIds_are_equal, treat_pair_as_aligned_if_either_read_aligned):
+def process_alignments(pair1_sam, pair2_sam, orphan_sam, aligned_pair, unaligned_pair, aligned_orphan, unaligned_orphan, mateIds_are_equal, query_mate_separator, treat_pair_as_aligned_if_either_read_aligned):
     """ Read through the paired sam alignments and organize into the output files """
 
     open_files={
@@ -211,15 +220,20 @@ def process_alignments(pair1_sam, pair2_sam, orphan_sam, aligned_pair, unaligned
             line_2=fh_2.readline()
         line_count = 1
         while line_1 and line_2:
-            query_id_1, mate_1, is_aligned_1, read_1 = read_sam_line(line_1)
-            query_id_2, mate_2, is_aligned_2, read_2 = read_sam_line(line_2)
+            query_id_1, mate_1, is_aligned_1, read_1 = read_sam_line(line_1,query_mate_separator)
+            query_id_2, mate_2, is_aligned_2, read_2 = read_sam_line(line_2,query_mate_separator)
             if (mateIds_are_equal=='True'):
                 if not (query_id_1 == query_id_2 and mate_1 == mate_2):
-                    raise ValueError("Queries: "+str(query_id_1)+", "+str(query_id_2)+" mates: "+str(mate_1)+", "+str(mate_2)+". Mates do not match.")
+                    raise ValueError(
+                        "sam files do not match on line {0}: found IDs {1}{2} and {3}{4}"
+                            .format(line_count, query_id_1, mate_1, query_id_2, mate_2)
+                        )
             else:
                 if not (query_id_1 == query_id_2 and mate_1 != mate_2):
-                    raise ValueError("QueryIds: "+str(query_id_1)+","+str(query_id_2)+" mates: "+str(mate_1)+", "+str(mate_2)+". Mates match.")
-                
+                    raise ValueError(
+                        "QueryIds: "+str(query_id_1)+","+str(query_id_1)+" mates: "+str(mate_1)+","+str(mate_2)+", sam files do not match on line {0}: found IDs {1}{2} and {3}{4}"
+                            .format(line_count, query_id_1, mate_1, query_id_2, mate_2)
+                        )
             aa = is_aligned_1 and is_aligned_2 or (treat_pair_as_aligned_if_either_read_aligned and (is_aligned_1 or is_aligned_2))
 
             x1 = 'both_aligned' if aa else 'only_this_aligned' if is_aligned_1 else 'only_this_unaligned' if is_aligned_2 else 'both_unaligned'
@@ -233,14 +247,14 @@ def process_alignments(pair1_sam, pair2_sam, orphan_sam, aligned_pair, unaligned
             line_count+=1
 
         while line_1:
-            query_id_1, mate_1, is_aligned_1, read_1 = read_sam_line(line_1)
+            query_id_1, mate_1, is_aligned_1, read_1 = read_sam_line(line_1,query_mate_separator)
             x1 = 'only_this_aligned' if is_aligned_1 else 'only_this_unaligned'
             counts[x1]+=1
             open_files[1][x1].write(read_1)
             line_1=fh_1.readline()
 
         while line_2:
-            query_id_2, mate_2, is_aligned_2, read_2 = read_sam_line(line_2)
+            query_id_2, mate_2, is_aligned_2, read_2 = read_sam_line(line_2, query_mate_separator)
             x2 = 'only_this_aligned' if is_aligned_2 else 'only_this_unaligned'
             counts[x2]+=2
             open_files[2][x2].write(read_2)
@@ -256,7 +270,7 @@ def process_alignments(pair1_sam, pair2_sam, orphan_sam, aligned_pair, unaligned
             while line.startswith("@"):
                 line=fh.readline()
             while line:
-                query_id, mate, is_aligned, read = read_sam_line(line)
+                query_id, mate, is_aligned, read = read_sam_line(line,query_mate_separator)
                 m = 2 if mate == '2' else 1
                 x = 'only_this_aligned' if is_aligned else 'only_this_unaligned'
                 orphan_counts[x]+=1
@@ -318,6 +332,7 @@ def main():
       aligned_orphan = args.al_single,
       unaligned_orphan = args.un_single,
       mateIds_are_equal = args.mateIds_are_equal,
+      query_mate_separator = args.query_mate_separator,
       treat_pair_as_aligned_if_either_read_aligned = (args.mode == "strict")
     )
 

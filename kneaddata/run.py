@@ -51,7 +51,7 @@ def fastqc(fastqc_path, output_dir, input_files, threads, verbose):
 
 
 def align(infile_list, db_prefix_list, output_prefix, remove_temp_output,
-          bowtie2_path, threads, processors, bowtie2_opts, verbose, mateIds_are_equal,
+          bowtie2_path, threads, processors, bowtie2_opts, verbose, mateIds_are_equal, query_mate_separator,
           discordant=None, reorder=None, serial=None, decontaminate_pairs=None):
     """ Runs bowtie2 on a single-end sequence file or a paired-end set of files. 
     For each input file set and database provided, a bowtie2 command is generated and run."""
@@ -86,7 +86,7 @@ def align(infile_list, db_prefix_list, output_prefix, remove_temp_output,
                 current_infile_list=infile_list
             
             # run the pairs allowing for all alignments (including those generating orphans)
-            cmd=["kneaddata_bowtie2_discordant_pairs","--mateIds_are_equal",mateIds_are_equal,"--bowtie2",bowtie2_path,"--threads", str(threads),"-x",fullpath,"--mode",decontaminate_pairs]
+            cmd=["kneaddata_bowtie2_discordant_pairs","--mateIds_are_equal",mateIds_are_equal,"--query_mate_separator",query_mate_separator,"--bowtie2",bowtie2_path,"--threads", str(threads),"-x",fullpath,"--mode",decontaminate_pairs]
 
             if bowtie2_opts:
                 cmd+=["--bowtie2-options","\""+" ".join(bowtie2_opts)+"\""]
@@ -163,7 +163,7 @@ def align(infile_list, db_prefix_list, output_prefix, remove_temp_output,
     # run the bowtie2 commands with the number of processes specified
     utilities.start_processes(commands,processors,verbose)
 
-    # write out total number of contaminated reads found
+     # write out total number of contaminated reads found
     for file in all_contaminated_outputs:
         total_contaminates=utilities.count_reads_in_fastq_file(file, verbose)
         message="Total contaminate sequences in file ( " + file + " ) : " + str(total_contaminates)
@@ -560,7 +560,7 @@ def decontaminate(args, output_prefix, files_to_align):
     if not args.bmtagger and args.discordant and isinstance(files_to_align[0], list) and len(files_to_align[0]) == 2:
         alignment_output_files = align([files_to_align[0][0],files_to_align[0][1]]+utilities.resolve_sublists(files_to_align[1:]), 
             args.reference_db, output_prefix, args.remove_temp_output, args.bowtie2_path, args.threads,
-                                       args.processes, args.bowtie2_options, args.verbose, args.mateIds_are_equal, discordant=args.discordant, 
+                                       args.processes, args.bowtie2_options, args.verbose, args.mateIds_are_equal, args.query_mate_separator, discordant=args.discordant, 
             reorder=args.reorder, serial=args.serial, decontaminate_pairs=args.decontaminate_pairs)
         output_files=alignment_output_files
     else:
@@ -579,7 +579,7 @@ def decontaminate(args, output_prefix, files_to_align):
             else:
                 alignment_output_files = align(files_list, args.reference_db, prefix, 
                                args.remove_temp_output, args.bowtie2_path, args.threads,
-                                               args.processes, args.bowtie2_options, args.verbose, args.mateIds_are_equal, serial=args.serial)
+                                               args.processes, args.bowtie2_options, args.verbose, args.mateIds_are_equal, args.query_mate_separator, serial=args.serial)
              
             output_files.append(alignment_output_files)   
             
