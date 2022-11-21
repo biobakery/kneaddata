@@ -385,12 +385,16 @@ def get_reformatted_identifiers(file, input_index, output_folder, temp_file_list
         for lines in read_file_n_lines(file,4):
             # reformat the identifier and write to temp file
             if " " in lines[0]:
-                lines[0]=lines[0].replace(" ",".")
+                # only use the first part of the sequence identifier as the second part might include the read id
+                lines[0]=lines[0].split(" ")[0]
+                lines[2]="+\n"
             if not lines[0].endswith("/1\n") and not lines[0].endswith("/2\n"):  
                 if (input_index == 0):
                     lines[0]=lines[0].rstrip()+"#0/1\n"
                 else:
                     lines[0]=lines[0].rstrip()+"#0/2\n"
+                # keep the quality id empty for biopython dependency 
+                lines[2]="+\n"
                     
                     
             file_handle.write("".join(lines))
