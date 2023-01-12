@@ -246,7 +246,7 @@ def parse_arguments(args):
     group3.add_argument(
         "--serial",
         action="store_true",
-        help="filter the input in serial for multiple databases so a subset of reads are processed in each database search")
+        help="filter the input in serial for multiple databases so a subset of reads are processed in each database search (the default when running with a single process)")
         
     group4 = parser.add_argument_group("bmtagger arguments")
     group4.add_argument(
@@ -304,6 +304,10 @@ def parse_arguments(args):
     
 def update_configuration(args):
     """ Update the run settings based on the arguments provided """
+
+    # if only a single processor is to be used, default to serial mode for efficiency
+    if args.processes == 1:
+        args.serial=True
 
     # get the full path for the output directory
     args.output_dir = os.path.abspath(args.output_dir)
