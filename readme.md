@@ -1,6 +1,6 @@
 # ***ATTENTION***
 
-Before opening a new issue here, please check the appropriate help channel on the [KneadData bioBakery Support Forum] (https://forum.biobakery.org/c/infrastructure-and-utilities/kneaddata/8) and consider opening or commenting on a thread there.
+Before opening a new issue here, please check the appropriate help channel on the [KneadData bioBakery Support Forum](https://forum.biobakery.org/c/infrastructure-and-utilities/kneaddata/8) and consider opening or commenting on a thread there.
 
 For additional information, visit the [KneadData Tutorial](https://github.com/biobakery/biobakery/wiki/kneaddata)
 
