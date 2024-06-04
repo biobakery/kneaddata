@@ -134,13 +134,13 @@ def run_trf(input,trf_path,trf_options,nproc,output,verbose=True):
     
         # merge all of the outputs to the final output file
         with open(output,"w") as file_write:
-            for datfile in datfile_list:
+            for datfile in datfile_to_write_list:
                 with open(datfile) as file_read:
                     for line in file_read:
                         file_write.write(line)
     
         # remove temp files
-        for filename in tempfile_list+datfile_list:
+        for filename in tempfile_list+datfile_to_write_list:
             try:
                 os.remove(filename)   
             except EnvironmentError:
