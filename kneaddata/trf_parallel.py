@@ -80,7 +80,9 @@ def run_trf(input,trf_path,trf_options,nproc,output,verbose=True):
     """ Run trf with the options provided """
 
     tempfile_list=[]
+    tempfile_written_list=[]
     datfile_list=[]
+    datfile_to_write_list=[]
     commands=[]
 
     # check for one process and if so just run trf directly
@@ -110,6 +112,8 @@ def run_trf(input,trf_path,trf_options,nproc,output,verbose=True):
         for read_line in utilities.read_file_n_lines(input,2):
             if not file_handle_write:
                 file_handle_write = open(tempfile_list[output_file_number],"wt")
+                tempfile_written_list.append(tempfile_list[output_file_number])
+                datfile_to_write_list.append(datfile_list[output_file_number])
             file_handle_write.write("".join(read_line))
 
             lines_written+=2
@@ -122,7 +126,7 @@ def run_trf(input,trf_path,trf_options,nproc,output,verbose=True):
         file_handle_write.close() 
 
         # run commands
-        for i, temp_in, temp_out in zip(range(len(tempfile_list)), tempfile_list, datfile_list):
+        for i, temp_in, temp_out in zip(range(len(tempfile_written_list)), tempfile_written_list, datfile_to_write_list):
             trf_command=[trf_path,temp_in]+trf_options.split(" ")
             commands.append([trf_command,"trf{}".format(i),[temp_in],[temp_out],temp_out])
 
