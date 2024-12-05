@@ -1,6 +1,9 @@
 
 # KneadData History #
 
+## TBD
+* Added dog reference genome database
+
 ## v0.12.0 09-13-2022
 * Allow for tracking of paired-end reads from bam input files
 * Add an option to use a scratch directory

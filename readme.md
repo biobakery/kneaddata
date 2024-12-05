@@ -115,13 +115,10 @@ The mouse (C57BL) reference database is also available for download (approx. siz
 
 * `` $ kneaddata_database --download mouse_C57BL bowtie2 $DIR ``
 
-The dog reference database is also available for download (approx. size = 1.4 GB).
+The dog reference database is also available for download (approx. size = 1.4 GB). This database is based on the genomic DNA sequences for the [Canis familiaris (domestic dog) assembly version ROS_Cfam_1.0.](https://ftp.ncbi.nlm.nih.gov/genomes/all/GCF/014/441/545/GCF_014441545.1_ROS_Cfam_1.0/GCF_014441545.1_ROS_Cfam_1.0_genomic.fna.gz) This file includes the nucleotide sequences of the assembled chromosomes and unplaced scaffolds.  
 
 * `` $ kneaddata_database --download dog_genome bowtie2 $DIR ``
 
-The cat reference database is also available for download (approx. size = 3.8 GB).
-
-* `` $ kneaddata_database --download cat_genome bowtie2 $DIR ``
 
 ## Create a Custom Database ##
 
