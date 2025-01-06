@@ -1,8 +1,9 @@
 
 # KneadData History #
 
-## TBD
+## v0.12.1 01-06-2025
 * Added dog reference genome database
+* PyPi + conda release updated
 
 ## v0.12.0 09-13-2022
 * Allow for tracking of paired-end reads from bam input files
