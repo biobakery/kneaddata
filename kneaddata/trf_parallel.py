@@ -121,7 +121,7 @@ def run_trf(input,trf_path,trf_options,nproc,output,verbose=True):
                 file_handle_write.close()
                 lines_written=0
                 output_file_number+=1
-                file_handle_write = open(tempfile_list[output_file_number],"wt")
+                file_handle_write=None
                
         file_handle_write.close() 
 
