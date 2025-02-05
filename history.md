@@ -1,6 +1,9 @@
 
 # KneadData History #
-
+## v0.12.2 TBD
+* Fixed TRF parallel run bug 
+* TRF broken download links updated
+  
 ## v0.12.1 01-06-2025
 * Added dog reference genome database
 * PyPi + conda release updated
