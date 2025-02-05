@@ -429,6 +429,8 @@ For example:
 
 ## Contributions ##
 Thanks go to these wonderful people:
+- weichi weichi.syu@atgenomix.com
+  - TRF parallel run bug fix    
 
 ## Complete Option List ##
 
