@@ -85,6 +85,9 @@ def run_trf(input,trf_path,trf_options,nproc,output,verbose=True):
     datfile_to_write_list=[]
     commands=[]
 
+    total_sequences = sum(1 for line in open(input) if line.startswith('>'))
+    nproc = min(nproc, total_sequences)
+    
     # check for one process and if so just run trf directly
     if nproc == 1:
         commands.append([[trf_path,input]+trf_options.split(" "),"trf",[input],[output],output])
