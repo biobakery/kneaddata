@@ -86,7 +86,7 @@ def run_trf(input,trf_path,trf_options,nproc,output,verbose=True):
     commands=[]
 
     total_sequences = sum(1 for line in open(input) if line.startswith('>'))
-    nproc = nproc if total_sequences > nproc*10 else 1
+    nproc = min(nproc, total_sequences)
     
     # check for one process and if so just run trf directly
     if nproc == 1:
@@ -120,7 +120,7 @@ def run_trf(input,trf_path,trf_options,nproc,output,verbose=True):
             file_handle_write.write("".join(read_line))
 
             lines_written+=2
-            if lines_written > lines_per_file:
+            if lines_written >= lines_per_file and output_file_number < int(nproc) - 1:
                 file_handle_write.close()
                 lines_written=0
                 output_file_number+=1
