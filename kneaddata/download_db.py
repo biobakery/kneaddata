@@ -30,7 +30,7 @@ current_downloads={
     # genome/database
     "human_genome" : {
         # database build type
-        "bowtie2" : "http://huttenhower.sph.harvard.edu/kneadData_databases/Homo_sapiens_hg37_and_human_contamination_Bowtie2_v0.1.tar.gz",
+        "bowtie2" : "https://huttenhower.sph.harvard.edu/kneadData_databases/Homo_sapiens_hg39_T2D_Bowtie2_v0.1.tar.gz",
         "bmtagger" : "http://huttenhower.sph.harvard.edu/kneadData_databases/Homo_sapiens_BMTagger_v0.1.tar.gz"
     },
     "human_transcriptome" : {

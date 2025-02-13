@@ -74,7 +74,7 @@ except ImportError:
 from kneaddata import run
 from kneaddata import config
 
-VERSION="0.12.1"
+VERSION="0.12.2"
 
 # name global logging instance
 logger=logging.getLogger(__name__)

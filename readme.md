@@ -91,9 +91,7 @@ Option 2: Development Version
 
 ### Download the database ###
 
-It is recommended that you download the human (hg37_and_human_contamination) reference database (approx. size = 3.5 GB). However, this step is not required if you are using your own custom reference database or if you will not be running with a reference database.
- 
-This database is based on the Decoy Genome (http://www.cureffi.org/2013/02/01/the-decoy-genome/)  and contaminants taken from “Human contamination in bacterial genomes has created thousands of spurious proteins”  (Salzberg et. al. 2019) 
+It is recommended that you download the human ([Homo_sapiens_hg39_T2T_Bowtie2_v0.1.tar.gz](https://huttenhower.sph.harvard.edu/kneadData_databases/Homo_sapiens_hg39_T2T_Bowtie2_v0.1.tar.gz) - [source](https://www.ncbi.nlm.nih.gov/datasets/genome/GCF_009914755.1/) ) reference database (approx. size = 3.6 GB). However, this step is not required if you are using your own custom reference database or if you will not be running with a reference database.
 
 * `` $ kneaddata_database --download human_genome bowtie2 $DIR ``
 * When running this command, $DIR should be replaced with the full path to the directory you have selected to store the database.

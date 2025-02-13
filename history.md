@@ -1,6 +1,7 @@
 
 # KneadData History #
 ## v0.12.2 TBD
+* Added the hg39 T2D Human genome reference database
 * Fixed TRF parallel run bug 
 * TRF broken download links updated
   
