@@ -94,12 +94,6 @@ def run_trf(input,trf_path,trf_options,nproc,output,verbose=True):
         
         utilities.start_processes(commands,nproc,verbose)
     else:
-        # get the total number of reads
-        total_lines=0
-        with open(input) as file_handle:
-            for line in file_handle:
-                total_lines+=1
-
         # split the input into multiple files and run in parallel
         for i in range(int(nproc)):
             file_out, new_file = tempfile.mkstemp(prefix=os.path.basename(output)+'_'+str(i)+'_temp_trf_output',dir=os.path.dirname(output))
@@ -109,7 +103,7 @@ def run_trf(input,trf_path,trf_options,nproc,output,verbose=True):
 
         # write the input file into all temp output files
         output_file_number=0
-        lines_per_file = int(total_lines/int(nproc))
+        seqs_per_file = int(total_sequences/int(nproc))
         lines_written=0
         file_handle_write=None
         for read_line in utilities.read_file_n_lines(input,2):
@@ -120,7 +114,7 @@ def run_trf(input,trf_path,trf_options,nproc,output,verbose=True):
             file_handle_write.write("".join(read_line))
 
             lines_written+=2
-            if lines_written >= lines_per_file and output_file_number < int(nproc) - 1:
+            if lines_written >= seqs_per_file and output_file_number < int(nproc) - 1:
                 file_handle_write.close()
                 lines_written=0
                 output_file_number+=1
