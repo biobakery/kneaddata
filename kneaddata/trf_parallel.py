@@ -113,7 +113,7 @@ def run_trf(input,trf_path,trf_options,nproc,output,verbose=True):
                 datfile_to_write_list.append(datfile_list[output_file_number])
             file_handle_write.write("".join(read_line))
 
-            lines_written+=2
+            lines_written+=1
             if lines_written >= seqs_per_file and output_file_number < int(nproc) - 1:
                 file_handle_write.close()
                 lines_written=0
