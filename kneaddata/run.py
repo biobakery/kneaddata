@@ -375,7 +375,12 @@ def trim(infiles, outfiles_prefix, trimmomatic_path, quality_scores,
     Returns a list of the output files.
     """
 
-    command = ["java", "-Xmx" + java_memory, "-jar", trimmomatic_path]
+    # Determine if the provided trimmomatic_path is a jar or an executable for conda install.
+    if trimmomatic_path.endswith('.jar'):
+        command = ["java", "-Xmx" + java_memory, "-jar", trimmomatic_path]
+    else:
+        # Assume it's a directly executable file
+        command = [trimmomatic_path]
 
     # determine if paired end input files
     paired_end=False
