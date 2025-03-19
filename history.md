@@ -1,10 +1,12 @@
 
 # KneadData History #
 ## v0.12.3 TBD
+* Fixed hg39 T2T Human genome download issue
+* Added cat database
 
 ## v0.12.2 02-24-2025
 * Fixed trimmomatic conda executable 
-* Added the hg39 T2D Human genome reference database
+* Added the hg39 T2T Human genome reference database
 * Fixed TRF parallel run bug 
 * TRF broken download links updated
   

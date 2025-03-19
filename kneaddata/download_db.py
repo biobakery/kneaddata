@@ -30,7 +30,7 @@ current_downloads={
     # genome/database
     "human_genome" : {
         # database build type
-        "bowtie2" : "https://huttenhower.sph.harvard.edu/kneadData_databases/Homo_sapiens_hg39_T2D_Bowtie2_v0.1.tar.gz",
+        "bowtie2" : "https://huttenhower.sph.harvard.edu/kneadData_databases/Homo_sapiens_hg39_T2T_Bowtie2_v0.1.tar.gz",
         "bmtagger" : "http://huttenhower.sph.harvard.edu/kneadData_databases/Homo_sapiens_BMTagger_v0.1.tar.gz"
     },
     "human_transcriptome" : {
@@ -46,7 +46,7 @@ current_downloads={
         "bowtie2" : "http://huttenhower.sph.harvard.edu/kneadData_databases/dog_genome.tar.gz"
     },
         "cat_genome" : {
-        "bowtie2" : "http://huttenhower.sph.harvard.edu/kneadData_databases/cat_genome.tar.gz"
+        "bowtie2" : "http://huttenhower.sph.harvard.edu/kneadData_databases/cat_genome_v0.1.tar.gz"
     }
 }
 

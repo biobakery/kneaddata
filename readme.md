@@ -117,6 +117,10 @@ The dog reference database is also available for download (approx. size = 1.4 GB
 
 * `` $ kneaddata_database --download dog_genome bowtie2 $DIR ``
 
+The cat reference database is available for download (approx. size = 3.7 GB). This database is based on the genomic DNA sequences for the [Felis catus (domestic cat)](https://www.ncbi.nlm.nih.gov/datasets/genome/GCF_018350175.1/) This link includes the nucleotide sequences of the assembled chromosomes and unplaced scaffolds.  
+
+* `` $ kneaddata_database --download cat_genome bowtie2 $DIR ``
+
 
 ## Create a Custom Database ##
 
