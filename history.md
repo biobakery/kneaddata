@@ -1,6 +1,7 @@
 
 # KneadData History #
 ## v0.12.3 TBD
+* Fixed auto-close issue template
 * Fixed hg39 T2T Human genome download issue
 * Added cat database
 
