@@ -31,22 +31,22 @@ current_downloads={
     "human_genome" : {
         # database build type
         "bowtie2" : "https://huttenhower.sph.harvard.edu/kneadData_databases/Homo_sapiens_hg39_T2T_Bowtie2_v0.1.tar.gz",
-        "bmtagger" : "http://huttenhower.sph.harvard.edu/kneadData_databases/Homo_sapiens_BMTagger_v0.1.tar.gz"
+        "bmtagger" : "https://huttenhower.sph.harvard.edu/kneadData_databases/Homo_sapiens_BMTagger_v0.1.tar.gz"
     },
     "human_transcriptome" : {
-        "bowtie2" : "http://huttenhower.sph.harvard.edu/kneadData_databases/Homo_sapiens_hg38_transcriptome_Bowtie2_v0.1.tar.gz"
+        "bowtie2" : "https://huttenhower.sph.harvard.edu/kneadData_databases/Homo_sapiens_hg38_transcriptome_Bowtie2_v0.1.tar.gz"
     },
     "ribosomal_RNA" : {
-        "bowtie2" : "http://huttenhower.sph.harvard.edu/kneadData_databases/SILVA_128_LSUParc_SSUParc_ribosomal_RNA_v0.2.tar.gz"
+        "bowtie2" : "https://huttenhower.sph.harvard.edu/kneadData_databases/SILVA_128_LSUParc_SSUParc_ribosomal_RNA_v0.2.tar.gz"
     },
     "mouse_C57BL" : {
-        "bowtie2" : "http://huttenhower.sph.harvard.edu/kneadData_databases/mouse_C57BL_6NJ_Bowtie2_v0.1.tar.gz"
+        "bowtie2" : "https://huttenhower.sph.harvard.edu/kneadData_databases/mouse_C57BL_6NJ_Bowtie2_v0.1.tar.gz"
     },
         "dog_genome" : {
-        "bowtie2" : "http://huttenhower.sph.harvard.edu/kneadData_databases/dog_genome.tar.gz"
+        "bowtie2" : "https://huttenhower.sph.harvard.edu/kneadData_databases/dog_genome.tar.gz"
     },
         "cat_genome" : {
-        "bowtie2" : "http://huttenhower.sph.harvard.edu/kneadData_databases/cat_genome_v0.1.tar.gz"
+        "bowtie2" : "https://huttenhower.sph.harvard.edu/kneadData_databases/cat_genome_v0.1.tar.gz"
     }
 }
 
