@@ -185,15 +185,15 @@ def install_bowtie2(final_install_folder, mac_os, replace_install=None):
     
     if not bowtie2_installed or replace_install:
         bowtie2_exe="bowtie2"
-        bowtie2_file="bowtie2-2.2.3-linux-x86_64.zip"
-        bowtie2_url="http://sourceforge.net/projects/bowtie-bio/files/bowtie2/2.2.3/bowtie2-2.2.3-linux-x86_64.zip"
+        bowtie2_file="bowtie2-2.5.3-linux-x86_64.zip"
+        bowtie2_url="http://sourceforge.net/projects/bowtie-bio/files/bowtie2/2.5.3/bowtie2-2.5.3-linux-x86_64.zip"
 
         # if this is a MAC OS, select a different binary download
         if mac_os:
-            bowtie2_file="bowtie2-2.2.3-macos-x86_64.zip"
-            bowtie2_url="http://sourceforge.net/projects/bowtie-bio/files/bowtie2/2.2.3/bowtie2-2.2.3-macos-x86_64.zip"
+            bowtie2_file="bowtie2-2.5.3-macos-x86_64.zip"
+            bowtie2_url="http://sourceforge.net/projects/bowtie-bio/files/bowtie2/2.5.3/bowtie2-2.5.3-macos-x86_64.zip"
             
-        bowtie2_folder="bowtie2-2.2.3"
+        bowtie2_folder="bowtie2-2.5.3"
     
         tempfolder=tempfile.mkdtemp(prefix="bowtie2_download_",dir=setup_directory)
 

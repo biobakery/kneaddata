@@ -2,6 +2,7 @@
 # KneadData History #
 ## v0.12.4 TBD
 * Enabled https for all the database downloads
+* Updated bowtie2 version to 2.5.3
 
 ## v0.12.3 06-24-2025
 * Fixed auto-close issue template
