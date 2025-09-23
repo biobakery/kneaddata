@@ -393,6 +393,12 @@ kneaddata --unpaired demo.fastq -db demo_db -o kneaddata_output --sequencer-sour
 ```
 kneaddata --unpaired demo.fastq -db demo_db -o kneaddata_output --sequencer-source none --fastqc FastQC
 ```
+## --bypass-trim option ####
+When using --bypass-trim, Kneaddata expects input files to follow its post-trim naming convention (e.g., *.trimmed.fastq). If you supply input.fastq, the run may crash with an unclear error.
+Workaround: Rename your input to match the expected format, e.g.:
+```
+mv input.fastq input.trimmed.fastq
+```
 
 ## Trim Overrepresented/Repetitive sequences ####
 It is highly recommeded to use **--run-trim-repetitive** flag for **Shotgun sequences (Metatranscriptomics-MTX, Metagenomics-MGX)** to trim the overrepresented sequences if shown in FASTQC reports.
@@ -549,4 +555,5 @@ fastqc arguments:
   --fastqc FASTQC_PATH  path to fastqc
                         [ DEFAULT : $PATH ]
 ```
+
 
