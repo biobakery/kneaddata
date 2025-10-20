@@ -43,7 +43,7 @@ current_downloads={
         "bowtie2" : "https://huttenhower.sph.harvard.edu/kneadData_databases/mouse_C57BL_6NJ_Bowtie2_v0.1.tar.gz"
     },
         "dog_genome" : {
-        "bowtie2" : "https://huttenhower.sph.harvard.edu/kneadData_databases/dog_genome.tar.gz"
+        "bowtie2" : "https://huttenhower.sph.harvard.edu/kneadData_databases/GCF_011100685.1_UU_Cfam_GSD_1.0_genomic.tar.gz"
     },
         "cat_genome" : {
         "bowtie2" : "https://huttenhower.sph.harvard.edu/kneadData_databases/cat_genome_v0.1.tar.gz"

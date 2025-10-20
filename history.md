@@ -1,6 +1,7 @@
 
 # KneadData History #
 ## v0.12.4 TBD
+* Added German Shephard Dog Reference DB
 * Enabled https for all the database downloads
 * Updated bowtie2 version to 2.5.3
 

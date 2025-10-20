@@ -113,9 +113,12 @@ The mouse (C57BL) reference database is also available for download (approx. siz
 
 * `` $ kneaddata_database --download mouse_C57BL bowtie2 $DIR ``
 
-The dog reference database is also available for download (approx. size = 1.4 GB). This database is based on the genomic DNA sequences for the [Canis familiaris (domestic dog) assembly version ROS_Cfam_1.0.](https://ftp.ncbi.nlm.nih.gov/genomes/all/GCF/014/441/545/GCF_014441545.1_ROS_Cfam_1.0/GCF_014441545.1_ROS_Cfam_1.0_genomic.fna.gz) This file includes the nucleotide sequences of the assembled chromosomes and unplaced scaffolds.  
-
+The dog reference database (German Shepherd dog assembly) is also available for download (approximate size = ~2.5 Gb). This database is based on the genomic DNA sequences for the [Canis lupus familiaris assembly version UU_Cfam_GSD_1.0 (accession GCF_011100685.1)](https://www.ncbi.nlm.nih.gov/datasets/genome/GCF_011100685.1/). This file includes the nucleotide sequences of the assembled chromosomes and unplaced scaffolds.
 * `` $ kneaddata_database --download dog_genome bowtie2 $DIR ``
+
+The dog reference database (domestic dog) is also available for download (approx. size = 1.4 GB). This database is based on the genomic DNA sequences for the [Canis familiaris (domestic dog) assembly version ROS_Cfam_1.0.](https://ftp.ncbi.nlm.nih.gov/genomes/all/GCF/014/441/545/GCF_014441545.1_ROS_Cfam_1.0/GCF_014441545.1_ROS_Cfam_1.0_genomic.fna.gz) This file includes the nucleotide sequences of the assembled chromosomes and unplaced scaffolds.  
+* `` $ wget https://huttenhower.sph.harvard.edu/kneadData_databases/dog_genome.tar.gz ``
+
 
 The cat reference database is available for download (approx. size = 3.7 GB). This database is based on the genomic DNA sequences for the [Felis catus (domestic cat)](https://www.ncbi.nlm.nih.gov/datasets/genome/GCF_018350175.1/) This link includes the nucleotide sequences of the assembled chromosomes and unplaced scaffolds.  
 
