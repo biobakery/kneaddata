@@ -377,8 +377,9 @@ def get_reformatted_identifiers(file, input_index, output_folder, temp_file_list
     print(message+"\n")
     logger.info(message)   
     
+    # make .fastq temp file
     file_out, new_file=tempfile.mkstemp(prefix="reformatted_identifiers",
-        suffix="_"+file_without_extension(file), dir=output_folder)
+        suffix="_"+os.path.basename(file), dir=output_folder)
     os.close(file_out)
     
     with open(new_file, "wt") as file_handle:
