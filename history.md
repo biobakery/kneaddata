@@ -1,6 +1,9 @@
 
 # KneadData History #
-## v0.12.4 TBD
+## v0.12.5 TBD
+* Resolved long file names TRF parallel run bug
+
+## v0.12.4 11-25-2025
 * Added German Shephard Dog Reference DB
 * Enabled https for all the database downloads
 * Updated bowtie2 version to 2.5.3
