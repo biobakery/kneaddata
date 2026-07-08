@@ -391,7 +391,7 @@ def update_configuration(args):
             "--trf", bypass_permissions_check=False)
         
     # if fastqc is set to be run, check if the executable can be found
-    if args.fastqc_start or args.fastqc_end:
+    if args.fastqc_start or args.fastqc_end or args.run_trim_repetitive:
         args.fastqc_path=utilities.find_dependency(args.fastqc_path,config.fastqc_exe,"fastqc",
                                                    "--fastqc",bypass_permissions_check=False)
 
