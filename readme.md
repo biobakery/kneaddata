@@ -441,7 +441,9 @@ For example:
 ## Contributions ##
 Thanks go to these wonderful people:
 - weichi weichi.syu@atgenomix.com
-  - TRF parallel run bug fix    
+  - TRF parallel run bug fix
+- Rikke M. Larsen https://github.com/RikkeML
+  - Reported fastqc dependency issue for trim-repetitive
 
 ## Complete Option List ##
 
