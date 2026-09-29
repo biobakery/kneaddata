@@ -179,8 +179,8 @@ to the [bowtie2-build-documentation](http://bowtie-bio.sourceforge.net/bowtie2/m
  
 ##### **Note: Creating SILVA ribosomal_RNA Database**
 Creating the **SILVA ribosomal_RNA** database requires one additional step. Run the following python program before `bowtie2-build` command which converts the "U"s to "T"s in the fasta sequences.  
-Script link: [modify_RNA_to_DNA.py](https://github.com/biobakery/kneaddata/blob/master/kneaddata/db_preprocessing/modify_RNA_to_DNA.py)
-``$ python -u modify_RNA_to_DNA.py input.fasta  output.fa``
+Script link: [Modify_RNA_to_DNA.py](https://github.com/biobakery/kneaddata/blob/master/kneaddata/db_preprocessing/Modify_RNA_to_DNA.py)
+``$ python -u Modify_RNA_to_DNA.py input.fasta  output.fa``
 
 
 ### Creating a BMTagger Database #####
