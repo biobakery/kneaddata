@@ -2,6 +2,7 @@
 # KneadData History #
 ## v0.12.5 TBD
 * Resolved long file names TRF parallel run bug
+* Updated hg39 T2T Human genome reference database to v0.2 (T2T-CHM13v2.0, [GCA_009914755.4](https://www.ncbi.nlm.nih.gov/datasets/genome/GCA_009914755.4/))
 
 ## v0.12.4 11-25-2025
 * Added German Shephard Dog Reference DB

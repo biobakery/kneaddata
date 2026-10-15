@@ -91,7 +91,7 @@ Option 2: Development Version
 
 ### Download the database ###
 
-It is recommended that you download the human ([Homo_sapiens_hg39_T2T_Bowtie2_v0.1.tar.gz](https://huttenhower.sph.harvard.edu/kneadData_databases/Homo_sapiens_hg39_T2T_Bowtie2_v0.1.tar.gz) - [source](https://www.ncbi.nlm.nih.gov/datasets/genome/GCF_009914755.1/) ) reference database (approx. size = 3.6 GB). However, this step is not required if you are using your own custom reference database or if you will not be running with a reference database.
+It is recommended that you download the human ([Homo_sapiens_hg39_T2T_Bowtie2_v0.2.tar.gz](https://huttenhower.sph.harvard.edu/kneadData_databases/Homo_sapiens_hg39_T2T_Bowtie2_v0.2.tar.gz) - [source](https://www.ncbi.nlm.nih.gov/datasets/genome/GCA_009914755.4/) ) reference database (approx. size = 4.4 GB uncompressed). However, this step is not required if you are using your own custom reference database or if you will not be running with a reference database.
 
 * `` $ kneaddata_database --download human_genome bowtie2 $DIR ``
 * When running this command, $DIR should be replaced with the full path to the directory you have selected to store the database.
